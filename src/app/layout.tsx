@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { MobileNav } from "@/components/mobile-nav";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -44,7 +45,7 @@ export default function RootLayout({
             >
               xs
             </Link>
-            <div className="flex items-center gap-6">
+            <div className="hidden items-center gap-6 md:flex">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
@@ -63,6 +64,7 @@ export default function RootLayout({
                 GitHub
               </a>
             </div>
+            <MobileNav />
           </div>
         </nav>
 
