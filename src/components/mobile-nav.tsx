@@ -8,6 +8,7 @@ const links = [
   { href: "/docs", label: "Docs" },
   { href: "/examples", label: "Examples" },
   { href: "/playground", label: "Playground" },
+  { href: "https://reg.xslang.org", label: "Registry", external: true },
   { href: "https://github.com/xs-lang0/xs", label: "GitHub", external: true },
 ];
 
