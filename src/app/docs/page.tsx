@@ -1,6 +1,6 @@
 import { CodeBlock } from "@/components/code-block";
 import Link from "next/link";
-import { docsLinks } from "@/components/docs-nav";
+import { docsLinks } from "@/lib/docs-links";
 
 export default function DocsPage() {
   return (

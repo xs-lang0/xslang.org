@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { docsLinks } from "./docs-nav";
+import { docsLinks } from "@/lib/docs-links";
 
 export function DocsMobileNav() {
   const [open, setOpen] = useState(false);
