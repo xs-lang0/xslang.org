@@ -78,8 +78,34 @@ export default function RootLayout({
 
         <main className="flex-1">{children}</main>
 
-        <footer className="border-t border-border py-8 text-center text-sm text-muted">
-          <div className="mx-auto max-w-5xl px-6">xslang.org</div>
+        <footer className="border-t border-border py-8 text-sm text-muted">
+          <div className="mx-auto flex max-w-5xl items-center justify-between px-6">
+            <span>xslang.org</span>
+            <div className="flex gap-6">
+              <a
+                href="https://github.com/xs-lang0/xs"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-colors hover:text-foreground"
+              >
+                GitHub
+              </a>
+              <a
+                href="https://reg.xslang.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-colors hover:text-foreground"
+              >
+                Registry
+              </a>
+              <a
+                href="/docs"
+                className="transition-colors hover:text-foreground"
+              >
+                Docs
+              </a>
+            </div>
+          </div>
         </footer>
       </body>
     </html>

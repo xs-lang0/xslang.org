@@ -3,7 +3,7 @@ import { CodeBlock } from "@/components/code-block";
 const examples = [
   {
     title: "FizzBuzz",
-    desc: "The classic, with pattern matching.",
+    desc: "The classic interview question, but with pattern matching instead of if/else chains.",
     code: `fn fizzbuzz(n) {
   match (n % 3, n % 5) {
     (0, 0) => "FizzBuzz"
@@ -21,7 +21,7 @@ fn main() {
   },
   {
     title: "Generators",
-    desc: "Lazy sequences with fn* and yield.",
+    desc: "Lazy infinite sequences using fn* and yield. Pull values on demand.",
     code: `fn* fibonacci() {
   var a = 0
   var b = 1
@@ -42,7 +42,7 @@ fn main() {
   },
   {
     title: "Tagged blocks",
-    desc: "User-defined control structures.",
+    desc: "Build your own control flow. Retry logic, timing, resource management, whatever you need.",
     code: `-- retry a block up to n times
 tag retry(n) {
   var attempts = 0
@@ -78,7 +78,7 @@ timed() {
   },
   {
     title: "Error handling with effects",
-    desc: "Recoverable errors without exceptions or Result types.",
+    desc: "Handle errors without exceptions or Result types. Effects let the caller decide what happens.",
     code: `effect Fail {
   fn fail(msg)
 }
@@ -108,7 +108,7 @@ fn main() {
   },
   {
     title: "Structs and operator overloading",
-    desc: "Custom types with operators.",
+    desc: "Define custom types and make them work with +, -, and other operators.",
     code: `struct Vec2 { x, y }
 
 impl Vec2 {
@@ -134,7 +134,7 @@ fn main() {
   },
   {
     title: "List comprehensions",
-    desc: "Concise collection transformations.",
+    desc: "Filter, map, and transform collections in a single expression.",
     code: `-- squares
 let squares = [x * x for x in 0..10]
 println(squares)  -- [0, 1, 4, 9, 16, 25, 36, 49, 64, 81]
@@ -152,7 +152,7 @@ let pairs = [(x, y) for x in 0..3 for y in 0..3 if x != y]`,
   },
   {
     title: "Inline C",
-    desc: "Drop to C when you need raw performance.",
+    desc: "Drop to C when you need raw performance. The inline block compiles directly to native code.",
     code: `fn fast_hash(data) {
   inline c {
     uint64_t h = 0x525201;
@@ -169,7 +169,7 @@ fn main() {
   },
   {
     title: "Nurseries",
-    desc: "Structured concurrency with guaranteed cleanup.",
+    desc: "Structured concurrency that guarantees all spawned tasks finish before moving on.",
     code: `let pipe = channel()
 var output = []
 
@@ -194,7 +194,7 @@ println(output)  -- [10, 20, 30, 40, 50]`,
   },
   {
     title: "Reactive signals",
-    desc: "Observable values that propagate changes.",
+    desc: "Observable values that automatically propagate changes to anything that depends on them.",
     code: `let count = signal(0)
 
 let doubled = derived(fn() { count.get() * 2 })
@@ -215,8 +215,14 @@ export default function ExamplesPage() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-16">
       <h1 className="mb-4 text-3xl font-bold tracking-tight">Examples</h1>
-      <p className="mb-12 text-muted">
+      <p className="mb-4 text-muted">
         A collection of XS code showing off various features.
+      </p>
+      <p className="mb-12 text-sm text-muted">
+        Want to run these yourself?{" "}
+        <a href="/playground" className="text-accent transition-colors hover:text-foreground">
+          Try the playground
+        </a>.
       </p>
 
       <div className="flex flex-col gap-12">

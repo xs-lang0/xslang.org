@@ -1,4 +1,5 @@
 import { CodeBlock } from "@/components/code-block";
+import Link from "next/link";
 
 export default function GettingStartedPage() {
   return (
@@ -21,6 +22,12 @@ export default function GettingStartedPage() {
       <p className="mb-4 text-sm text-muted">
         This installs the <code className="text-foreground">xs</code> compiler, the VM, and all
         built-in tools. Supports Linux, macOS, and Windows.
+      </p>
+
+      <p className="mb-2 text-sm text-muted">Verify the installation:</p>
+      <CodeBlock code={`xs --version`} />
+      <p className="mb-4 mt-2 text-sm text-muted">
+        You should see the installed version printed.
       </p>
 
       <p className="mb-4 text-sm text-muted">Or build from source:</p>
@@ -139,6 +146,30 @@ fn example() {
 -- panic for unrecoverable errors (not catchable)
 panic("fatal: invariant violated")`}
       />
+
+      <h2 className="mb-4 mt-12 text-xl font-semibold">Comments</h2>
+      <p className="mb-4 text-sm text-muted">
+        XS uses <code className="text-foreground">--</code> for line comments
+        and <code className="text-foreground">{"{- -}"}</code> for block comments.
+      </p>
+      <CodeBlock
+        code={`-- this is a line comment
+{- this is a
+   block comment -}`}
+      />
+
+      <h2 className="mb-4 mt-12 text-xl font-semibold">What&apos;s next?</h2>
+      <div className="flex flex-col gap-2 text-sm">
+        <Link href="/docs/functions" className="text-muted transition-colors hover:text-foreground">
+          Functions - closures, generators, default args
+        </Link>
+        <Link href="/docs/pattern-matching" className="text-muted transition-colors hover:text-foreground">
+          Pattern matching - guards, destructuring, ranges
+        </Link>
+        <Link href="/docs/types" className="text-muted transition-colors hover:text-foreground">
+          Type system - gradual typing and annotations
+        </Link>
+      </div>
     </div>
   );
 }

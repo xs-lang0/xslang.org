@@ -1,5 +1,6 @@
 import { DocsNav } from "@/components/docs-nav";
 import { DocsMobileNav } from "@/components/docs-mobile-nav";
+import { DocsPrevNext } from "@/components/docs-prev-next";
 
 export default function DocsLayout({
   children,
@@ -16,6 +17,7 @@ export default function DocsLayout({
       <div className="min-w-0 flex-1">
         <DocsMobileNav />
         {children}
+        <DocsPrevNext />
       </div>
     </div>
   );

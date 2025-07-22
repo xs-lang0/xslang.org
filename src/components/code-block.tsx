@@ -173,6 +173,8 @@ function tokenize(code: string): Token[] {
   return tokens;
 }
 
+import { CopyButton } from "@/components/copy-button";
+
 export function CodeBlock({
   code,
   filename,
@@ -180,7 +182,8 @@ export function CodeBlock({
   code: string;
   filename?: string;
 }) {
-  const tokens = tokenize(code.trim());
+  const trimmed = code.trim();
+  const tokens = tokenize(trimmed);
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-surface">
@@ -189,20 +192,23 @@ export function CodeBlock({
           {filename}
         </div>
       )}
-      <pre className="overflow-x-auto p-4 text-sm leading-relaxed">
-        <code>
-          {tokens.map((token, i) => {
-            const color = TOKEN_COLORS[token.type];
-            return color ? (
-              <span key={i} style={{ color }}>
-                {token.text}
-              </span>
-            ) : (
-              token.text
-            );
-          })}
-        </code>
-      </pre>
+      <div className="relative">
+        <CopyButton text={trimmed} />
+        <pre className="overflow-x-auto p-4 text-sm leading-relaxed">
+          <code>
+            {tokens.map((token, i) => {
+              const color = TOKEN_COLORS[token.type];
+              return color ? (
+                <span key={i} style={{ color }}>
+                  {token.text}
+                </span>
+              ) : (
+                token.text
+              );
+            })}
+          </code>
+        </pre>
+      </div>
     </div>
   );
 }
