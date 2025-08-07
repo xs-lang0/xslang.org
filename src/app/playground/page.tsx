@@ -4,94 +4,156 @@ import { useState } from "react";
 
 const samples: Record<string, string> = {
   "Hello world": `fn main() {
-  println("hello, world")
+  println("hello, world!")
 }`,
-  "Pattern matching": `enum Color {
-  Red,
-  Green,
-  Blue,
-  Custom(r, g, b)
-}
-
-fn to_hex(c) {
-  match c {
-    Color::Red             => "#ff0000"
-    Color::Green           => "#00ff00"
-    Color::Blue            => "#0000ff"
-    Color::Custom(r, g, b) => "#{r:02x}{g:02x}{b:02x}"
+  "Pattern matching": `fn describe(value) {
+  match value {
+    0          => "zero"
+    n if n > 0 => "positive: " + str(n)
+    _          => "negative"
   }
 }
 
 fn main() {
-  let colors = [Color::Red, Color::Green, Color::Custom(255, 128, 0)]
-  for c in colors {
-    println(to_hex(c))
-  }
+  println(describe(0))
+  println(describe(42))
+  println(describe(-7))
 }`,
-  "Effects": `effect Logger {
-  fn log(level, msg)
-}
-
-fn process(items) {
-  for item in items {
-    perform Logger.log("info", "processing: {item}")
+  "Classes": `class Animal {
+  fn new(name, sound) {
+    self.name = name
+    self.sound = sound
+  }
+  fn speak(self) {
+    println(self.name + " says " + self.sound)
   }
 }
 
 fn main() {
-  handle {
-    process(["a", "b", "c"])
-  } {
-    Logger.log(level, msg) => {
-      println("[{level}] {msg}")
-      resume(null)
+  let dog = Animal("Rex", "woof")
+  let cat = Animal("Milo", "meow")
+  dog.speak()
+  cat.speak()
+}`,
+  "Closures": `fn make_counter(start) {
+  var n = start
+  return fn() {
+    n = n + 1
+    return n
+  }
+}
+
+fn main() {
+  let count = make_counter(0)
+  println(count())
+  println(count())
+  println(count())
+}`,
+  "Error handling": `fn safe_divide(a, b) {
+  try {
+    if b == 0 {
+      throw "cannot divide by zero"
+    }
+    return a / b
+  } catch e {
+    println("error: " + e)
+    return 0
+  }
+}
+
+fn main() {
+  println(safe_divide(10, 3))
+  println(safe_divide(10, 0))
+}`,
+  "FizzBuzz": `fn main() {
+  for i in 1..=20 {
+    match 0 {
+      _ if i % 15 == 0 => println("FizzBuzz")
+      _ if i % 3 == 0  => println("Fizz")
+      _ if i % 5 == 0  => println("Buzz")
+      _                 => println(str(i))
     }
   }
 }`,
-  "Generators": `fn* range_step(start, stop, step) {
-  var i = start
-  while i < stop {
-    yield i
-    i = i + step
-  }
-}
-
-fn main() {
-  for n in range_step(0, 20, 3) {
-    println(n)
-  }
-}`,
-  "Structs": `struct Vec2 { x, y }
-
-impl Vec2 {
-  static fn new(x, y) {
-    return Vec2 { x: x, y: y }
-  }
-
-  fn +(self, other) {
-    return Vec2 { x: self.x + other.x, y: self.y + other.y }
-  }
-
-  fn magnitude(self) {
-    return sqrt(self.x * self.x + self.y * self.y)
-  }
-}
-
-fn main() {
-  let a = Vec2.new(3.0, 4.0)
-  let b = Vec2.new(1.0, 2.0)
-  let c = a + b
-  println("magnitude: {c.magnitude()}")
-}`,
 };
+
+function runJS(js: string): string {
+  const lines: string[] = [];
+
+  const sandbox = {
+    console: {
+      log: (...args: unknown[]) => {
+        lines.push(args.map((a) => {
+          if (a === null || a === undefined) return String(a);
+          if (typeof a === "object") {
+            try { return JSON.stringify(a); } catch { return String(a); }
+          }
+          return String(a);
+        }).join(" "));
+      },
+    },
+    Math,
+    Array,
+    Object,
+    String,
+    Number,
+    JSON,
+    parseInt,
+    parseFloat,
+    isNaN,
+    isFinite,
+    prompt: () => "",
+    Error,
+  };
+
+  const keys = Object.keys(sandbox);
+  const vals = Object.values(sandbox);
+
+  try {
+    const fn = new Function(...keys, js);
+    fn(...vals);
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      lines.push("error: " + e.message);
+    } else {
+      lines.push("error: " + String(e));
+    }
+  }
+
+  return lines.join("\n");
+}
 
 export default function PlaygroundPage() {
   const [selected, setSelected] = useState("Hello world");
   const [code, setCode] = useState(samples["Hello world"]);
   const [output, setOutput] = useState("");
+  const [running, setRunning] = useState(false);
 
-  function handleRun() {
-    setOutput("-- playground is not yet connected to a backend\n-- this is a preview of the editor experience");
+  async function handleRun() {
+    setOutput("transpiling...");
+    setRunning(true);
+
+    try {
+      const res = await fetch("/api/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+
+      const data = await res.json();
+
+      if (data.error) {
+        setOutput("error: " + data.error);
+        return;
+      }
+
+      const result = runJS(data.js);
+      setOutput(result || "(no output)");
+    } catch {
+      setOutput("error: could not connect to server");
+    } finally {
+      setRunning(false);
+    }
   }
 
   return (
@@ -116,9 +178,10 @@ export default function PlaygroundPage() {
           </select>
           <button
             onClick={handleRun}
-            className="rounded-md bg-accent-dim px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent"
+            disabled={running}
+            className="rounded-md bg-accent-dim px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent disabled:opacity-50"
           >
-            Run
+            {running ? "Running..." : "Run"}
           </button>
         </div>
       </div>
@@ -133,6 +196,23 @@ export default function PlaygroundPage() {
             onChange={(e) => setCode(e.target.value)}
             spellCheck={false}
             className="flex-1 resize-none bg-surface p-4 font-mono text-sm leading-relaxed text-foreground outline-none"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                handleRun();
+              }
+              // tab inserts 2 spaces
+              if (e.key === "Tab") {
+                e.preventDefault();
+                const t = e.currentTarget;
+                const start = t.selectionStart;
+                const end = t.selectionEnd;
+                setCode(code.substring(0, start) + "  " + code.substring(end));
+                setTimeout(() => {
+                  t.selectionStart = t.selectionEnd = start + 2;
+                }, 0);
+              }
+            }}
           />
         </div>
 
@@ -140,8 +220,8 @@ export default function PlaygroundPage() {
           <div className="border-b border-border px-4 py-2 text-xs text-muted">
             output
           </div>
-          <pre className="flex-1 overflow-auto bg-surface p-4 font-mono text-sm leading-relaxed text-muted">
-            {output || "-- click Run to execute"}
+          <pre className="flex-1 overflow-auto bg-surface p-4 font-mono text-sm leading-relaxed text-muted whitespace-pre-wrap">
+            {output || "-- press Ctrl+Enter or click Run"}
           </pre>
         </div>
       </div>
