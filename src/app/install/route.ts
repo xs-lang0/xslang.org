@@ -38,7 +38,7 @@ main() {
   curl -fsSL "\$url" -o "\$TMP_DIR/xsi"
   chmod +x "\$TMP_DIR/xsi"
 
-  "\$TMP_DIR/xsi" install --auto
+  sudo "\$TMP_DIR/xsi" install --auto
 
   rm -rf "\$TMP_DIR"
 }
