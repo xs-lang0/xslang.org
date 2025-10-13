@@ -82,7 +82,7 @@ export default function Home() {
             dependencies.
           </p>
           <div className="font-mono text-sm text-muted">
-            <span className="text-accent">$</span> curl -fsSL xslang.org/install | sh
+            <span className="text-accent">$</span> curl -fsSL https://xslang.org/install | sh
           </div>
           <div className="flex flex-wrap gap-3">
             <Link

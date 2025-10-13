@@ -11,12 +11,12 @@ export default function GettingStartedPage() {
 
       <div className="mb-2">
         <p className="mb-2 text-sm text-muted">Linux / macOS:</p>
-        <CodeBlock code={`curl -fsSL xslang.org/install | sh`} />
+        <CodeBlock code={`curl -fsSL https://xslang.org/install | sh`} />
       </div>
 
       <div className="mb-4">
         <p className="mb-2 mt-4 text-sm text-muted">Windows (PowerShell):</p>
-        <CodeBlock code={`irm xslang.org/install.ps1 | iex`} />
+        <CodeBlock code={`irm https://xslang.org/install.ps1 | iex`} />
       </div>
 
       <p className="mb-4 text-sm text-muted">
