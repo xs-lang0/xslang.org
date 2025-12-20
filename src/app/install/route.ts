@@ -94,15 +94,17 @@ foreach ($d in @($BinDir, $LibDir, $CacheDir)) {
   New-Item -ItemType Directory -Force -Path $d | Out-Null
 }
 
-# download xs
+# download xs (use .tmp extension to avoid antivirus blocking .exe writes)
 $XsUrl = "https://github.com/$XsRepo/releases/latest/download/xs-windows-$Arch.exe"
 Write-Host "  downloading xs..."
-Invoke-WebRequest -Uri $XsUrl -OutFile "$BinDir\\xs.exe" -UseBasicParsing
+Invoke-WebRequest -Uri $XsUrl -OutFile "$BinDir\\xs.tmp" -UseBasicParsing
+Move-Item -Force "$BinDir\\xs.tmp" "$BinDir\\xs.exe"
 
 # download xsi
 $XsiUrl = "https://github.com/$XsiRepo/releases/latest/download/xsi-windows-$Arch.exe"
 Write-Host "  downloading xsi..."
-Invoke-WebRequest -Uri $XsiUrl -OutFile "$BinDir\\xsi.exe" -UseBasicParsing
+Invoke-WebRequest -Uri $XsiUrl -OutFile "$BinDir\\xsi.tmp" -UseBasicParsing
+Move-Item -Force "$BinDir\\xsi.tmp" "$BinDir\\xsi.exe"
 
 # add to system PATH
 $SysPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
