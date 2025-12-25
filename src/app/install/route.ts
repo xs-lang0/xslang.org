@@ -97,12 +97,12 @@ foreach ($d in @($BinDir, $LibDir, $CacheDir)) {
 # download xs
 $XsUrl = "https://github.com/$XsRepo/releases/latest/download/xs-windows-$Arch.exe"
 Write-Host "  downloading xs..."
-curl.exe -fsSL $XsUrl -o "$BinDir\\xs.exe"
+curl.exe -fsSL --ssl-no-revoke $XsUrl -o "$BinDir\\xs.exe"
 
 # download xsi
 $XsiUrl = "https://github.com/$XsiRepo/releases/latest/download/xsi-windows-$Arch.exe"
 Write-Host "  downloading xsi..."
-curl.exe -fsSL $XsiUrl -o "$BinDir\\xsi.exe"
+curl.exe -fsSL --ssl-no-revoke $XsiUrl -o "$BinDir\\xsi.exe"
 
 # add to system PATH
 $SysPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
