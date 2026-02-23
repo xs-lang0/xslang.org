@@ -14,7 +14,7 @@ export default function BrowserSDKPage() {
         code={`<!DOCTYPE html>
 <html>
 <head>
-  <script src="https://xslang.org/xs.js"><\/script>
+  <script src="https://static.xslang.org/xs.js"><\/script>
 </head>
 <body>
   <p id="out"></p>
