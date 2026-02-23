@@ -89,9 +89,10 @@ println(area(Shape::Circle(5)))
 println(area(Shape::Rect(3, 4)))`,
 };
 
-type XSModule = {
-  callMain: (args: string[]) => void;
-  FS: { writeFile: (path: string, data: string) => void };
+type XS = {
+  run: (code: string) => Promise<string>;
+  exec: (args: string[]) => Promise<number>;
+  writeFile: (path: string, content: string) => void;
 };
 
 function LineNumbers({ code }: { code: string }) {
@@ -117,22 +118,18 @@ export default function PlaygroundPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumRef = useRef<HTMLDivElement>(null);
   const highlightRef = useRef<HTMLPreElement>(null);
-  const xsRef = useRef<XSModule | null>(null);
+  const xsRef = useRef<XS | null>(null);
 
   const highlighted = useMemo(() => highlightXS(code), [code]);
 
   useEffect(() => {
     const script = document.createElement("script");
-    script.src = "/xs_run.js";
+    script.src = "/xs.js";
     script.onload = async () => {
       try {
-        // @ts-expect-error - createXS loaded by script
-        const mod = await window.createXS({
-          print: () => {},
-          printErr: () => {},
-          locateFile: (path: string) => path.endsWith(".wasm") ? "/xs_run.wasm" : "/" + path,
-        });
-        xsRef.current = mod;
+        // @ts-expect-error - loadXS from loaded script
+        const runtime = await window.loadXS();
+        xsRef.current = runtime;
         setLoading(false);
       } catch {
         setOutput("error: could not load XS runtime");
@@ -146,23 +143,9 @@ export default function PlaygroundPage() {
   const handleRun = useCallback(async () => {
     if (!xsRef.current || running) return;
     setRunning(true);
-    const lines: string[] = [];
     try {
-      // @ts-expect-error - createXS from loaded script
-      const xs = await window.createXS({
-        print: (text: string) => lines.push(text),
-        printErr: (text: string) => lines.push(text),
-        locateFile: (path: string) => path.endsWith(".wasm") ? "/xs_run.wasm" : "/" + path,
-      });
-      xs.FS.writeFile("/playground.xs", code);
-      try {
-        xs.callMain(["/playground.xs"]);
-      } catch (e: unknown) {
-        if (e instanceof Error && !e.message.includes("exit")) {
-          lines.push("error: " + e.message);
-        }
-      }
-      setOutput(lines.join("\n") || "(no output)");
+      const result = await xsRef.current.run(code);
+      setOutput(result || "(no output)");
     } catch {
       setOutput("error: runtime crashed, try again");
     } finally {
