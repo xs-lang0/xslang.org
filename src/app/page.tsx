@@ -53,6 +53,14 @@ const features = [
     title: "Full concurrency",
     desc: "Spawn, async/await, actors, channels, nurseries. Pick the model that fits.",
   },
+  {
+    title: "Package registry",
+    desc: "Install packages with xsi, publish your own, and browse everything at reg.xslang.org.",
+  },
+  {
+    title: "Reactive bindings",
+    desc: "Variables that auto-update when dependencies change. Add contracts to enforce invariants at runtime.",
+  },
 ];
 
 const tooling = [
@@ -63,6 +71,7 @@ const tooling = [
   "Test runner",
   "VSCode extension",
   "Plugin system",
+  "Package registry (xsi)",
 ];
 
 export default function Home() {
@@ -131,6 +140,48 @@ export default function Home() {
             </li>
           ))}
         </ul>
+      </section>
+
+      {/* install */}
+      <section className="border-t border-border py-20">
+        <h2 className="mb-12 text-2xl font-bold tracking-tight">
+          Works everywhere
+        </h2>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div>
+            <p className="mb-4 text-muted">
+              Install on any platform with a single command. No dependencies, no runtime, no setup.
+            </p>
+            <CodeBlock
+              code={`# linux / macos
+curl -fsSL https://xslang.org/install | sh
+
+# windows (powershell)
+irm https://xslang.org/install.ps1 | iex
+
+# or build from source
+git clone https://github.com/xs-lang0/xs
+cd xs && make && make install`}
+            />
+          </div>
+          <div>
+            <p className="mb-4 text-muted">
+              Manage packages with the built-in installer. Browse the registry at reg.xslang.org.
+            </p>
+            <CodeBlock
+              code={`# install a package
+xsi get json-utils
+
+# use it
+use "json-utils"
+let data = json.parse('{"name": "xs"}')
+println(data.name)
+
+# search the registry
+xsi search http`}
+            />
+          </div>
+        </div>
       </section>
 
       {/* concurrency preview */}

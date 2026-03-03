@@ -209,6 +209,70 @@ println(doubled.get())  -- 10
 count.set(10)
 println(doubled.get())  -- 20`,
   },
+  {
+    title: "Reactive bindings",
+    desc: "Variables that auto-update when their dependencies change. Like a spreadsheet.",
+    code: `var price = 10
+var qty = 3
+bind total = price * qty
+bind tax = total * 0.1
+bind final_price = total + tax
+
+println("total: {total}")         -- 30
+println("with tax: {final_price}") -- 33.0
+
+qty = 5
+println("total: {total}")         -- 50
+println("with tax: {final_price}") -- 55.0`,
+  },
+  {
+    title: "Gradual contracts",
+    desc: "Add runtime constraints to types with where clauses. Only checked when you write them.",
+    code: `fn create_user(name: str where name.len > 0, age: int where age >= 0) {
+  return #{name: name, age: age}
+}
+
+println(create_user("alice", 30))
+
+try {
+  create_user("", 25)
+} catch e {
+  println(e)  -- contract violation
+}`,
+  },
+  {
+    title: "Named arguments",
+    desc: "Call functions with named parameters for clarity. Mix with positional args freely.",
+    code: `fn connect(host, port, ssl) {
+  let proto = if ssl { "https" } else { "http" }
+  return "{proto}://{host}:{port}"
+}
+
+println(connect(host: "localhost", port: 8080, ssl: false))
+println(connect("api.example.com", port: 443, ssl: true))`,
+  },
+  {
+    title: "Do expressions",
+    desc: "Blocks that return values, and resource management that cleans up automatically.",
+    code: `let grade = do {
+  let score = 85
+  if score >= 90 { "A" }
+  elif score >= 80 { "B" }
+  else { "C" }
+}
+println(grade)  -- B
+
+struct File { name }
+impl File {
+  fn read(self) { return "contents of {self.name}" }
+  fn close(self) { println("closed {self.name}") }
+}
+
+with File { name: "data.txt" } as f {
+  println(f.read())
+}
+-- auto-calls f.close()`,
+  },
 ];
 
 export default function ExamplesPage() {

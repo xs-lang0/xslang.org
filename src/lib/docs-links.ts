@@ -9,7 +9,10 @@ export const docsLinks = [
   { href: "/docs/literals", label: "Universal literals", description: "Tagged literals for dates, URLs, colors, and units" },
   { href: "/docs/temporal", label: "Temporal primitives", description: "Built-in time, duration, and scheduling" },
   { href: "/docs/concurrency", label: "Concurrency", description: "Spawn, channels, actors, nurseries, async/await" },
+  { href: "/docs/reactive", label: "Reactive and contracts", description: "Reactive bindings, gradual contracts, and adapt blocks" },
   { href: "/docs/interop", label: "Interop", description: "Inline C, FFI, and calling into JS or WASM" },
   { href: "/docs/browser-sdk", label: "Browser SDK", description: "Run XS in any webpage with one script tag" },
+  { href: "/docs/reactive", label: "Reactive primitives", description: "Reactive bindings, contracts, and adapt blocks" },
+  { href: "/docs/packages", label: "Packages", description: "Package registry and the xsi installer" },
   { href: "/docs/tooling", label: "Tooling", description: "LSP, debugger, formatter, test runner, and plugins" },
 ];
