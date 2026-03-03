@@ -14,9 +14,7 @@ export default function DocsPage() {
 
       <CodeBlock
         filename="hello.xs"
-        code={`fn main() {
-  println("hello, world")
-}`}
+        code={`println("hello, world")`}
       />
 
       <p className="mt-4 mb-8 text-sm text-muted">

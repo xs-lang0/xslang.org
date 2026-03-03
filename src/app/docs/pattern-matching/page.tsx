@@ -11,6 +11,7 @@ export default function PatternMatchingPage() {
 
       <h2 className="mb-4 text-xl font-semibold">Basics</h2>
       <CodeBlock
+        runnable
         code={`let result = match value {
   0 => "zero"
   1 => "one"
@@ -21,6 +22,7 @@ export default function PatternMatchingPage() {
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Pattern types</h2>
       <CodeBlock
+        runnable
         code={`-- literals
 match data {
   42      => "exact int"
@@ -85,6 +87,7 @@ match url {
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Enums</h2>
       <CodeBlock
+        runnable
         code={`enum Shape {
   Circle(radius),
   Rect(w, h),
@@ -105,6 +108,7 @@ println(area(s))  -- 78.53975`}
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Struct destructuring</h2>
       <CodeBlock
+        runnable
         code={`struct Point { x, y }
 
 match shape {

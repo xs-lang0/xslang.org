@@ -17,6 +17,7 @@ export default function ReactivePage() {
         that automatically recomputes whenever its dependencies change:
       </p>
       <CodeBlock
+        runnable
         filename="reactive.xs"
         code={`var price = 10
 var qty = 3
@@ -53,6 +54,7 @@ println(doubled)            -- 40`}
         constraints to variables and function parameters:
       </p>
       <CodeBlock
+        runnable
         filename="contracts.xs"
         code={`let age: int where age > 0 and age < 150 = 25
 let name: str where name.len > 0 = "xs"
@@ -65,6 +67,7 @@ let bad: int where bad > 0 = -1  -- throws: contract violation`}
         Contracts work on function parameters too:
       </p>
       <CodeBlock
+        runnable
         code={`fn divide(a: int, b: int where b != 0) {
   return a / b
 }
@@ -84,6 +87,7 @@ divide(10, 0)   -- throws: contract violation on b`}
         <code className="text-foreground">adapt</code>:
       </p>
       <CodeBlock
+        runnable
         filename="platform.xs"
         code={`adapt fn greet(name: str) -> str {
   native { return "hello, " + name }
@@ -106,6 +110,7 @@ println(greet("world"))  -- "hello, world" in the interpreter`}
         contracts, and default parameters:
       </p>
       <CodeBlock
+        runnable
         code={`adapt fn read_file(path: str where path.len > 0) -> str {
   native {
     -- use built-in file I/O
