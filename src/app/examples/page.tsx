@@ -283,10 +283,7 @@ export default function ExamplesPage() {
         A collection of XS code showing off various features.
       </p>
       <p className="mb-12 text-sm text-muted">
-        Want to run these yourself?{" "}
-        <a href="/playground" className="text-accent transition-colors hover:text-foreground">
-          Try the playground
-        </a>.
+        Click <span className="text-accent">run</span> on any example to execute it in the browser.
       </p>
 
       <div className="flex flex-col gap-12">
@@ -294,7 +291,7 @@ export default function ExamplesPage() {
           <section key={ex.title}>
             <h2 className="mb-1 text-lg font-semibold">{ex.title}</h2>
             <p className="mb-4 text-sm text-muted">{ex.desc}</p>
-            <CodeBlock code={ex.code} />
+            <CodeBlock code={ex.code} runnable />
           </section>
         ))}
       </div>

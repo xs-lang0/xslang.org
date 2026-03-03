@@ -174,13 +174,16 @@ function tokenize(code: string): Token[] {
 }
 
 import { CopyButton } from "@/components/copy-button";
+import { RunButton } from "@/components/run-button";
 
 export function CodeBlock({
   code,
   filename,
+  runnable,
 }: {
   code: string;
   filename?: string;
+  runnable?: boolean;
 }) {
   const trimmed = code.trim();
   const tokens = tokenize(trimmed);
@@ -194,6 +197,7 @@ export function CodeBlock({
       )}
       <div className="relative">
         <CopyButton text={trimmed} />
+        {runnable && <RunButton code={trimmed} />}
         <pre className="overflow-x-auto p-4 text-sm leading-relaxed">
           <code>
             {tokens.map((token, i) => {

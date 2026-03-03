@@ -109,7 +109,7 @@ export default function Home() {
           </div>
         </div>
         <div className="flex-1 min-w-0">
-          <CodeBlock code={heroCode} filename="hello.xs" />
+          <CodeBlock code={heroCode} filename="hello.xs" runnable />
         </div>
       </section>
 
@@ -192,6 +192,7 @@ xsi search http`}
         <div className="grid gap-6 lg:grid-cols-2">
           <CodeBlock
             filename="channels.xs"
+            runnable
             code={`let ch = channel()
 
 spawn {
@@ -206,6 +207,7 @@ for i in 0..10 {
           />
           <CodeBlock
             filename="actors.xs"
+            runnable
             code={`actor Counter {
   var count = 0
 
