@@ -23,7 +23,6 @@ export default function TemporalPage() {
         Run a block on an interval.
       </p>
       <CodeBlock
-        runnable
         code={`use literals duration
 
 every 5s {
@@ -41,7 +40,6 @@ every 100ms {
         Run a block after a delay.
       </p>
       <CodeBlock
-        runnable
         code={`use literals duration
 
 after 2s {
@@ -59,7 +57,6 @@ after 500ms {
         the else block instead.
       </p>
       <CodeBlock
-        runnable
         code={`use literals duration
 
 timeout 3s {
@@ -88,7 +85,6 @@ timeout 10s {
         window actually runs.
       </p>
       <CodeBlock
-        runnable
         code={`use literals duration
 
 -- only the last call in the 200ms window runs
@@ -108,7 +104,6 @@ debounce 1s {
         Temporal primitives combine naturally with the rest of the language.
       </p>
       <CodeBlock
-        runnable
         code={`use literals duration, color
 
 -- auto-reconnecting websocket
