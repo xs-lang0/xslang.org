@@ -2,38 +2,53 @@
 
 import { useState, useRef } from "react";
 
-let xsPromise: Promise<unknown> | null = null;
+const TIMEOUT_MS = 5000;
 
-function getXS() {
-  if (xsPromise) return xsPromise;
-  xsPromise = new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = "https://static.xslang.org/xs.js";
-    script.onload = () => {
-      // @ts-expect-error loadXS is global from xs.js
-      resolve(window.loadXS({ wasmUrl: "https://static.xslang.org/xs.wasm" }));
+function runXS(code: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const blob = new Blob([`
+      self.onmessage = async function(e) {
+        const { code, baseUrl } = e.data;
+        try {
+          importScripts(baseUrl + "/xs.js");
+          const lines = [];
+          const xs = await loadXS({
+            wasmUrl: baseUrl + "/xs.wasm",
+            stdout: (line) => lines.push(line),
+            stderr: (line) => lines.push(line),
+          });
+          await xs.run(code);
+          self.postMessage({ ok: true, output: lines.join("\\n") });
+        } catch (err) {
+          self.postMessage({ ok: false, output: String(err) });
+        }
+      };
+    `], { type: "application/javascript" });
+
+    const worker = new Worker(URL.createObjectURL(blob));
+    const timer = setTimeout(() => {
+      worker.terminate();
+      resolve("(timed out after " + (TIMEOUT_MS / 1000) + "s)");
+    }, TIMEOUT_MS);
+
+    worker.onmessage = (e) => {
+      clearTimeout(timer);
+      worker.terminate();
+      if (e.data.ok) {
+        resolve(e.data.output);
+      } else {
+        reject(new Error(e.data.output));
+      }
     };
-    script.onerror = () => reject(new Error("failed to load xs.js"));
-    document.head.appendChild(script);
-  });
-  return xsPromise;
-}
 
-async function runXS(code: string): Promise<string> {
-  await getXS();
-  // @ts-expect-error loadXS is global from xs.js
-  const inst = await window.loadXS({
-    wasmUrl: "https://static.xslang.org/xs.wasm",
+    worker.onerror = (e) => {
+      clearTimeout(timer);
+      worker.terminate();
+      reject(new Error(String(e.message)));
+    };
+
+    worker.postMessage({ code, baseUrl: "https://static.xslang.org" });
   });
-  const lines: string[] = [];
-  // @ts-expect-error inst from loadXS
-  const fresh = await window.loadXS({
-    wasmUrl: "https://static.xslang.org/xs.wasm",
-    stdout: (line: string) => lines.push(line),
-    stderr: (line: string) => lines.push(line),
-  });
-  await fresh.run(code);
-  return lines.join("\n");
 }
 
 export function RunButton({ code }: { code: string }) {
@@ -47,7 +62,9 @@ export function RunButton({ code }: { code: string }) {
     setError(false);
     try {
       const result = await runXS(code);
+      const timedOut = result.startsWith("(timed out");
       setOutput(result);
+      setError(timedOut);
       setState("done");
     } catch (e) {
       setOutput(String(e));
