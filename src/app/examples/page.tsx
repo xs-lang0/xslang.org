@@ -94,7 +94,7 @@ timed() {
 fn parse_int(s) {
   for ch in s.chars() {
     if not ch.is_digit() {
-      perform Fail.fail("not a number: {s}")
+      return perform Fail.fail("not a number: {s}")
     }
   }
   return s.parse_int()
