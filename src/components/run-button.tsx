@@ -3,29 +3,42 @@
 import { useState, useRef } from "react";
 
 const TIMEOUT_MS = 5000;
+const BASE_URL = "https://static.xslang.org";
 
-function runXS(code: string): Promise<string> {
+let xsScriptCache: string | null = null;
+
+async function getXSScript(): Promise<string> {
+  if (xsScriptCache) return xsScriptCache;
+  const res = await fetch(BASE_URL + "/xs.js");
+  if (!res.ok) throw new Error("failed to fetch xs.js: " + res.status);
+  xsScriptCache = await res.text();
+  return xsScriptCache;
+}
+
+async function runXS(code: string): Promise<string> {
+  const xsScript = await getXSScript();
+
   return new Promise((resolve, reject) => {
-    const blob = new Blob([`
+    const workerCode = xsScript + "\n;" + `
       self.onmessage = async function(e) {
-        const { code, baseUrl } = e.data;
         try {
-          importScripts(baseUrl + "/xs.js");
           const lines = [];
           const xs = await loadXS({
-            wasmUrl: baseUrl + "/xs.wasm",
+            wasmUrl: "${BASE_URL}/xs.wasm",
             stdout: (line) => lines.push(line),
             stderr: (line) => lines.push(line),
           });
-          await xs.run(code);
+          await xs.run(e.data);
           self.postMessage({ ok: true, output: lines.join("\\n") });
         } catch (err) {
           self.postMessage({ ok: false, output: String(err) });
         }
       };
-    `], { type: "application/javascript" });
+    `;
 
+    const blob = new Blob([workerCode], { type: "application/javascript" });
     const worker = new Worker(URL.createObjectURL(blob));
+
     const timer = setTimeout(() => {
       worker.terminate();
       resolve("(timed out after " + (TIMEOUT_MS / 1000) + "s)");
@@ -47,7 +60,7 @@ function runXS(code: string): Promise<string> {
       reject(new Error(String(e.message)));
     };
 
-    worker.postMessage({ code, baseUrl: "https://static.xslang.org" });
+    worker.postMessage(code);
   });
 }
 
