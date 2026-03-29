@@ -56,6 +56,14 @@ export default function RootLayout({
                 </Link>
               ))}
               <a
+                href="https://reg.xslang.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-muted transition-colors hover:text-foreground"
+              >
+                Registry
+              </a>
+              <a
                 href="https://github.com/xs-lang0/xs"
                 target="_blank"
                 rel="noopener noreferrer"
