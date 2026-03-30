@@ -106,14 +106,14 @@ export default function PlaygroundPage() {
   useEffect(() => {
     // load WASM module
     const script = document.createElement("script");
-    script.src = "/xs.js";
+    script.src = "/xs_wasm.js";
     script.onload = async () => {
       try {
         // @ts-expect-error - createXS is loaded by script
         const mod = await window.createXS({
           print: () => {},
           printErr: () => {},
-          locateFile: (path: string) => "/" + path,
+          locateFile: (path: string) => path === "xs_wasm.wasm" ? "/xs_wasm.wasm" : "/" + path,
         });
         xsRef.current = mod;
         setLoading(false);
@@ -138,7 +138,7 @@ export default function PlaygroundPage() {
       const xs = await window.createXS({
         print: (text: string) => lines.push(text),
         printErr: (text: string) => lines.push(text),
-        locateFile: (path: string) => "/" + path,
+        locateFile: (path: string) => path === "xs_wasm.wasm" ? "/xs_wasm.wasm" : "/" + path,
       });
 
       xs.FS.writeFile("/playground.xs", code);
