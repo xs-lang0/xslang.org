@@ -90,10 +90,19 @@ println(area(Shape::Rect(3, 4)))`,
 
 type XSModule = {
   callMain: (args: string[]) => void;
-  FS: {
-    writeFile: (path: string, data: string) => void;
-  };
+  FS: { writeFile: (path: string, data: string) => void };
 };
+
+function LineNumbers({ code }: { code: string }) {
+  const count = code.split("\n").length;
+  return (
+    <div className="select-none text-right pr-3 pt-4 pb-4 text-xs leading-relaxed text-muted/40 font-mono shrink-0 w-10">
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i}>{i + 1}</div>
+      ))}
+    </div>
+  );
+}
 
 export default function PlaygroundPage() {
   const [selected, setSelected] = useState("Hello world");
@@ -101,15 +110,19 @@ export default function PlaygroundPage() {
   const [output, setOutput] = useState("");
   const [running, setRunning] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [splitPercent, setSplitPercent] = useState(60);
+  const [dragging, setDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lineNumRef = useRef<HTMLDivElement>(null);
   const xsRef = useRef<XSModule | null>(null);
 
   useEffect(() => {
-    // load WASM module
     const script = document.createElement("script");
     script.src = "/xs_wasm.js";
     script.onload = async () => {
       try {
-        // @ts-expect-error - createXS is loaded by script
+        // @ts-expect-error - createXS loaded by script
         const mod = await window.createXS({
           print: () => {},
           printErr: () => {},
@@ -129,20 +142,15 @@ export default function PlaygroundPage() {
   const handleRun = useCallback(async () => {
     if (!xsRef.current || running) return;
     setRunning(true);
-
     const lines: string[] = [];
-
     try {
-      // re-create module for clean state
       // @ts-expect-error - createXS from loaded script
       const xs = await window.createXS({
         print: (text: string) => lines.push(text),
         printErr: (text: string) => lines.push(text),
         locateFile: (path: string) => path === "xs_wasm.wasm" ? "/xs_wasm.wasm" : "/" + path,
       });
-
       xs.FS.writeFile("/playground.xs", code);
-
       try {
         xs.callMain(["/playground.xs"]);
       } catch (e: unknown) {
@@ -150,7 +158,6 @@ export default function PlaygroundPage() {
           lines.push("error: " + e.message);
         }
       }
-
       setOutput(lines.join("\n") || "(no output)");
     } catch {
       setOutput("error: runtime crashed, try again");
@@ -159,11 +166,78 @@ export default function PlaygroundPage() {
     }
   }, [code, running]);
 
+  // sync scroll between line numbers and textarea
+  const handleEditorScroll = () => {
+    if (textareaRef.current && lineNumRef.current) {
+      lineNumRef.current.scrollTop = textareaRef.current.scrollTop;
+    }
+  };
+
+  // drag to resize
+  const handleMouseDown = () => setDragging(true);
+
+  useEffect(() => {
+    if (!dragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      // detect if mobile (stacked) or desktop (side-by-side)
+      const isVertical = rect.width < 768;
+      let pct: number;
+      if (isVertical) {
+        pct = ((e.clientY - rect.top) / rect.height) * 100;
+      } else {
+        pct = ((e.clientX - rect.left) / rect.width) * 100;
+      }
+      setSplitPercent(Math.max(20, Math.min(80, pct)));
+    };
+
+    const handleMouseUp = () => setDragging(false);
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [dragging]);
+
+  // touch drag for mobile
+  const handleTouchStart = () => setDragging(true);
+
+  useEffect(() => {
+    if (!dragging) return;
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!containerRef.current || !e.touches[0]) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const isVertical = rect.width < 768;
+      let pct: number;
+      if (isVertical) {
+        pct = ((e.touches[0].clientY - rect.top) / rect.height) * 100;
+      } else {
+        pct = ((e.touches[0].clientX - rect.left) / rect.width) * 100;
+      }
+      setSplitPercent(Math.max(20, Math.min(80, pct)));
+    };
+
+    const handleTouchEnd = () => setDragging(false);
+
+    document.addEventListener("touchmove", handleTouchMove);
+    document.addEventListener("touchend", handleTouchEnd);
+    return () => {
+      document.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [dragging]);
+
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-8 h-[calc(100vh-7rem)]">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold tracking-tight">Playground</h1>
-        <div className="flex items-center gap-3">
+    <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 sm:px-6 py-6 sm:py-8 h-[calc(100vh-7rem)]">
+      {/* toolbar */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h1 className="text-lg sm:text-xl font-bold tracking-tight">Playground</h1>
+        <div className="flex items-center gap-2 sm:gap-3">
           <select
             value={selected}
             onChange={(e) => {
@@ -171,55 +245,101 @@ export default function PlaygroundPage() {
               setCode(samples[e.target.value]);
               setOutput("");
             }}
-            className="rounded-md border border-border bg-surface px-3 py-1.5 text-sm text-foreground outline-none"
+            className="rounded-md border border-border bg-surface px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-foreground outline-none"
           >
             {Object.keys(samples).map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
+              <option key={name} value={name}>{name}</option>
             ))}
           </select>
           <button
             onClick={handleRun}
             disabled={running || loading}
-            className="rounded-md bg-accent-dim px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent disabled:opacity-50"
+            className="rounded-md bg-accent-dim px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-medium text-white transition-colors hover:bg-accent disabled:opacity-50"
           >
             {loading ? "Loading..." : running ? "Running..." : "Run"}
           </button>
         </div>
       </div>
 
-      <div className="flex flex-1 gap-4 min-h-0">
-        <div className="flex flex-1 flex-col overflow-hidden rounded-lg border border-border">
-          <div className="border-b border-border px-4 py-2 text-xs text-muted">
+      {/* editor + output with resizable split */}
+      {/* desktop: side-by-side, mobile: stacked */}
+      <div
+        ref={containerRef}
+        className="flex flex-1 min-h-0 flex-col md:flex-row"
+        style={{ userSelect: dragging ? "none" : "auto" }}
+      >
+        {/* editor panel */}
+        <div
+          className="flex flex-col overflow-hidden rounded-t-lg md:rounded-l-lg md:rounded-tr-none border border-border"
+          style={{
+            flexBasis: `${splitPercent}%`,
+            flexShrink: 0,
+            minHeight: 100,
+            minWidth: 100,
+          }}
+        >
+          <div className="border-b border-border px-4 py-1.5 text-xs text-muted">
             playground.xs
           </div>
-          <textarea
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            spellCheck={false}
-            className="flex-1 resize-none bg-surface p-4 font-mono text-sm leading-relaxed text-foreground outline-none"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault();
-                handleRun();
-              }
-              if (e.key === "Tab") {
-                e.preventDefault();
-                const t = e.currentTarget;
-                const start = t.selectionStart;
-                const end = t.selectionEnd;
-                setCode(code.substring(0, start) + "  " + code.substring(end));
-                setTimeout(() => {
-                  t.selectionStart = t.selectionEnd = start + 2;
-                }, 0);
-              }
-            }}
-          />
+          <div className="flex flex-1 overflow-hidden">
+            <div
+              ref={lineNumRef}
+              className="overflow-hidden shrink-0"
+              style={{ overflowY: "hidden" }}
+            >
+              <LineNumbers code={code} />
+            </div>
+            <textarea
+              ref={textareaRef}
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              onScroll={handleEditorScroll}
+              spellCheck={false}
+              className="flex-1 resize-none bg-surface pt-4 pb-4 pr-4 font-mono text-sm leading-relaxed text-foreground outline-none"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                  e.preventDefault();
+                  handleRun();
+                }
+                if (e.key === "Tab") {
+                  e.preventDefault();
+                  const t = e.currentTarget;
+                  const start = t.selectionStart;
+                  const end = t.selectionEnd;
+                  setCode(code.substring(0, start) + "  " + code.substring(end));
+                  setTimeout(() => {
+                    t.selectionStart = t.selectionEnd = start + 2;
+                  }, 0);
+                }
+              }}
+            />
+          </div>
         </div>
 
-        <div className="flex w-80 flex-col overflow-hidden rounded-lg border border-border">
-          <div className="border-b border-border px-4 py-2 text-xs text-muted">
+        {/* resize handle */}
+        <div
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
+          className="shrink-0 flex items-center justify-center
+            md:w-2 md:cursor-col-resize md:hover:bg-accent-dim/30
+            h-2 md:h-auto cursor-row-resize hover:bg-accent-dim/30
+            bg-border transition-colors z-10"
+        >
+          <div className="hidden md:block w-0.5 h-8 rounded-full bg-muted/30" />
+          <div className="md:hidden h-0.5 w-8 rounded-full bg-muted/30" />
+        </div>
+
+        {/* output panel */}
+        <div
+          className="flex flex-col overflow-hidden rounded-b-lg md:rounded-r-lg md:rounded-bl-none border border-border border-t-0 md:border-t md:border-l-0"
+          style={{
+            flexBasis: `${100 - splitPercent}%`,
+            flexShrink: 0,
+            minHeight: 80,
+            minWidth: 80,
+          }}
+        >
+          <div className="border-b border-border px-4 py-1.5 text-xs text-muted">
             output
           </div>
           <pre className="flex-1 overflow-auto bg-surface p-4 font-mono text-sm leading-relaxed text-muted whitespace-pre-wrap">
@@ -228,16 +348,12 @@ export default function PlaygroundPage() {
         </div>
       </div>
 
-      <div className="text-xs text-muted space-y-1">
+      {/* restrictions note */}
+      <div className="text-xs text-muted space-y-1 hidden sm:block">
         <p>
-          The playground runs the real XS interpreter compiled to WebAssembly.
-          Most features work exactly like the native binary.
-        </p>
-        <p>
-          <span className="text-foreground">Not available here:</span>{" "}
-          networking (http, sockets), file system access, native plugins (.so/.dll),
-          JIT compilation, REPL, LSP/DAP, and profiler timing.
-          The <code className="text-foreground">input()</code> function is also disabled.
+          Runs the real XS interpreter compiled to WebAssembly.{" "}
+          <span className="text-foreground">Not available:</span>{" "}
+          networking, file system, native plugins, JIT, REPL, LSP/DAP, profiler, input().
         </p>
       </div>
     </div>
