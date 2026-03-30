@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { highlightXS } from "@/components/xs-highlighter";
 
 const samples: Record<string, string> = {
   "Hello world": `println("hello, world!")
@@ -115,7 +116,10 @@ export default function PlaygroundPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumRef = useRef<HTMLDivElement>(null);
+  const highlightRef = useRef<HTMLPreElement>(null);
   const xsRef = useRef<XSModule | null>(null);
+
+  const highlighted = useMemo(() => highlightXS(code), [code]);
 
   useEffect(() => {
     const script = document.createElement("script");
@@ -168,8 +172,14 @@ export default function PlaygroundPage() {
 
   // sync scroll between line numbers and textarea
   const handleEditorScroll = () => {
-    if (textareaRef.current && lineNumRef.current) {
-      lineNumRef.current.scrollTop = textareaRef.current.scrollTop;
+    if (textareaRef.current) {
+      const st = textareaRef.current.scrollTop;
+      const sl = textareaRef.current.scrollLeft;
+      if (lineNumRef.current) lineNumRef.current.scrollTop = st;
+      if (highlightRef.current) {
+        highlightRef.current.scrollTop = st;
+        highlightRef.current.scrollLeft = sl;
+      }
     }
   };
 
@@ -289,30 +299,41 @@ export default function PlaygroundPage() {
             >
               <LineNumbers code={code} />
             </div>
-            <textarea
-              ref={textareaRef}
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              onScroll={handleEditorScroll}
-              spellCheck={false}
-              className="flex-1 resize-none bg-surface pt-4 pb-4 pl-4 pr-4 font-mono text-sm leading-relaxed text-foreground outline-none"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                  e.preventDefault();
-                  handleRun();
-                }
-                if (e.key === "Tab") {
-                  e.preventDefault();
-                  const t = e.currentTarget;
-                  const start = t.selectionStart;
-                  const end = t.selectionEnd;
-                  setCode(code.substring(0, start) + "  " + code.substring(end));
-                  setTimeout(() => {
-                    t.selectionStart = t.selectionEnd = start + 2;
-                  }, 0);
-                }
-              }}
-            />
+            <div className="flex-1 relative overflow-hidden">
+              {/* highlighted layer (behind) */}
+              <pre
+                ref={highlightRef}
+                className="absolute inset-0 pt-4 pb-4 pl-4 pr-4 font-mono text-sm leading-relaxed pointer-events-none overflow-hidden whitespace-pre-wrap break-words"
+                aria-hidden="true"
+                dangerouslySetInnerHTML={{ __html: highlighted + "\n" }}
+              />
+              {/* textarea (on top, transparent text, visible caret) */}
+              <textarea
+                ref={textareaRef}
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                onScroll={handleEditorScroll}
+                spellCheck={false}
+                className="absolute inset-0 w-full h-full resize-none bg-transparent pt-4 pb-4 pl-4 pr-4 font-mono text-sm leading-relaxed text-transparent caret-foreground outline-none"
+                style={{ caretColor: "var(--color-foreground)" }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    handleRun();
+                  }
+                  if (e.key === "Tab") {
+                    e.preventDefault();
+                    const t = e.currentTarget;
+                    const start = t.selectionStart;
+                    const end = t.selectionEnd;
+                    setCode(code.substring(0, start) + "  " + code.substring(end));
+                    setTimeout(() => {
+                      t.selectionStart = t.selectionEnd = start + 2;
+                    }, 0);
+                  }
+                }}
+              />
+            </div>
           </div>
         </div>
 
