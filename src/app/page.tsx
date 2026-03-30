@@ -1,11 +1,7 @@
 import { CodeBlock } from "@/components/code-block";
 import Link from "next/link";
 
-const heroCode = `fn greet(name) {
-  println("hello, {name}!")
-}
-
--- pattern matching
+const heroCode = `-- pattern matching
 fn describe(value) {
   match value {
     0          => "zero"
@@ -17,6 +13,10 @@ fn describe(value) {
 -- algebraic effects
 effect Log {
   fn log(msg)
+}
+
+fn greet(name) {
+  perform Log.log("hello, {name}!")
 }
 
 fn main() {

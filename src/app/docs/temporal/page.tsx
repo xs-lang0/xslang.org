@@ -11,10 +11,16 @@ export default function TemporalPage() {
         keywords.
       </p>
 
+      <div className="mb-8 rounded-lg border border-border bg-surface px-4 py-3 text-sm text-muted">
+        <strong className="text-foreground">Interpreter vs transpiled:</strong>{" "}
+        In the interpreter, temporal statements execute their body immediately (once).
+        When transpiled to JS or C, they use real timers (setInterval, setTimeout, etc.).
+        This matches how <code className="text-foreground">spawn</code> works in XS.
+      </div>
+
       <h2 className="mb-4 text-xl font-semibold">every</h2>
       <p className="mb-4 text-muted">
-        Run a block on an interval. In the interpreter, executes once. When
-        transpiled to JS, maps to <code className="text-foreground">setInterval</code>.
+        Run a block on an interval.
       </p>
       <CodeBlock
         code={`use literals duration
@@ -67,6 +73,12 @@ timeout 10s {
 }`}
       />
 
+      <p className="mt-4 text-sm text-muted">
+        Without <code className="text-foreground">else</code>, timeout panics. This is
+        intentional: silent timeouts cause harder bugs than loud ones. Use the else
+        block when you want graceful handling.
+      </p>
+
       <h2 className="mb-4 mt-12 text-xl font-semibold">debounce</h2>
       <p className="mb-4 text-muted">
         Coalesce rapid executions into one. Only the last call within the delay
@@ -75,8 +87,11 @@ timeout 10s {
       <CodeBlock
         code={`use literals duration
 
-debounce 200ms {
-    search(input.value)
+-- only the last call in the 200ms window runs
+fn on_search_input(query) {
+    debounce 200ms {
+        search(query)
+    }
 }
 
 debounce 1s {

@@ -66,7 +66,8 @@ println(orange.g)  -- 102`}
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Date</h2>
       <p className="mb-4 text-muted">
-        ISO 8601 date literals. Stored as a string.
+        ISO 8601 date literals. Stored as a string for now. Date
+        arithmetic and integration with temporal primitives is planned.
       </p>
       <CodeBlock
         code={`use literals date
@@ -130,6 +131,31 @@ if file_size > max_upload {
     println("file too large")
 }`}
       />
+
+      <h2 className="mb-4 mt-12 text-xl font-semibold">Without the pragma</h2>
+      <p className="mb-4 text-muted">
+        Without <code className="text-foreground">use literals</code>, suffixes like{" "}
+        <code className="text-foreground">5s</code> are a syntax error and{" "}
+        <code className="text-foreground">#ff6600</code> is not recognized as a color.
+        This is intentional: literals are opt-in so they never surprise you in
+        files that don&apos;t expect them.
+      </p>
+
+      <h2 className="mb-4 mt-12 text-xl font-semibold">Notes</h2>
+      <ul className="text-muted space-y-2 list-disc list-inside text-sm">
+        <li>
+          Duration, size, and angle literals are syntactic sugar for float values.
+          You can do arithmetic on them: <code className="text-foreground">5s + 200ms</code>,{" "}
+          <code className="text-foreground">4kb + 512</code>.
+        </li>
+        <li>
+          Size literals use binary units: 1kb = 1024 bytes, 1mb = 1024 kb, etc.
+        </li>
+        <li>
+          Angle literals in <code className="text-foreground">deg</code> are converted to radians.{" "}
+          <code className="text-foreground">90deg</code> is just <code className="text-foreground">1.5708</code>.
+        </li>
+      </ul>
     </div>
   );
 }
