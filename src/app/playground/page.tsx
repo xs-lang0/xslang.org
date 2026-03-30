@@ -1,160 +1,163 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 const samples: Record<string, string> = {
-  "Hello world": `fn main() {
-  println("hello, world!")
+  "Hello world": `println("hello, world!")
+
+let name = "XS"
+println("welcome to " + name)`,
+  "FizzBuzz": `for i in 1..=20 {
+    match 0 {
+        _ if i % 15 == 0 => println("FizzBuzz")
+        _ if i % 3 == 0  => println("Fizz")
+        _ if i % 5 == 0  => println("Buzz")
+        _                 => println(str(i))
+    }
 }`,
   "Pattern matching": `fn describe(value) {
-  match value {
-    0          => "zero"
-    n if n > 0 => "positive: " + str(n)
-    _          => "negative"
-  }
+    match value {
+        0          => "zero"
+        n if n > 0 => "positive: " + str(n)
+        _          => "negative"
+    }
 }
 
-fn main() {
-  println(describe(0))
-  println(describe(42))
-  println(describe(-7))
-}`,
-  "Classes": `class Animal {
-  fn new(name, sound) {
-    self.name = name
-    self.sound = sound
-  }
-  fn speak(self) {
-    println(self.name + " says " + self.sound)
-  }
+println(describe(0))
+println(describe(42))
+println(describe(-7))`,
+  "Fibonacci": `fn fib(n) {
+    if n <= 1 { return n }
+    return fib(n - 1) + fib(n - 2)
 }
 
-fn main() {
-  let dog = Animal("Rex", "woof")
-  let cat = Animal("Milo", "meow")
-  dog.speak()
-  cat.speak()
+for i in 0..10 {
+    println("fib(" + str(i) + ") = " + str(fib(i)))
 }`,
   "Closures": `fn make_counter(start) {
-  var n = start
-  return fn() {
-    n = n + 1
-    return n
-  }
+    var n = start
+    return fn() {
+        n = n + 1
+        return n
+    }
 }
 
-fn main() {
-  let count = make_counter(0)
-  println(count())
-  println(count())
-  println(count())
-}`,
+let count = make_counter(0)
+println(count())
+println(count())
+println(count())`,
   "Error handling": `fn safe_divide(a, b) {
-  try {
-    if b == 0 {
-      throw "cannot divide by zero"
+    try {
+        if b == 0 {
+            throw "cannot divide by zero"
+        }
+        return a / b
+    } catch e {
+        println("error: " + e)
+        return null
     }
-    return a / b
-  } catch e {
-    println("error: " + e)
-    return 0
-  }
 }
 
-fn main() {
-  println(safe_divide(10, 3))
-  println(safe_divide(10, 0))
-}`,
-  "FizzBuzz": `fn main() {
-  for i in 1..=20 {
-    match 0 {
-      _ if i % 15 == 0 => println("FizzBuzz")
-      _ if i % 3 == 0  => println("Fizz")
-      _ if i % 5 == 0  => println("Buzz")
-      _                 => println(str(i))
+println(safe_divide(10, 3))
+println(safe_divide(10, 0))
+println(safe_divide(42, 7))`,
+  "Generators": `fn* range_step(start, stop, step) {
+    var i = start
+    while i < stop {
+        yield i
+        i = i + step
     }
-  }
+}
+
+for n in range_step(0, 20, 3) {
+    println(n)
 }`,
+  "Enums": `enum Shape {
+    Circle(r)
+    Rect(w, h)
+}
+
+fn area(s) {
+    match s {
+        Shape::Circle(r) => 3.14159 * r * r
+        Shape::Rect(w, h) => w * h
+    }
+}
+
+println(area(Shape::Circle(5)))
+println(area(Shape::Rect(3, 4)))`,
 };
 
-function runJS(js: string): string {
-  const lines: string[] = [];
-
-  const sandbox = {
-    console: {
-      log: (...args: unknown[]) => {
-        lines.push(args.map((a) => {
-          if (a === null || a === undefined) return String(a);
-          if (typeof a === "object") {
-            try { return JSON.stringify(a); } catch { return String(a); }
-          }
-          return String(a);
-        }).join(" "));
-      },
-    },
-    Math,
-    Array,
-    Object,
-    String,
-    Number,
-    JSON,
-    parseInt,
-    parseFloat,
-    isNaN,
-    isFinite,
-    prompt: () => "",
-    Error,
+type XSModule = {
+  callMain: (args: string[]) => void;
+  FS: {
+    writeFile: (path: string, data: string) => void;
   };
-
-  const keys = Object.keys(sandbox);
-  const vals = Object.values(sandbox);
-
-  try {
-    const fn = new Function(...keys, js);
-    fn(...vals);
-  } catch (e: unknown) {
-    if (e instanceof Error) {
-      lines.push("error: " + e.message);
-    } else {
-      lines.push("error: " + String(e));
-    }
-  }
-
-  return lines.join("\n");
-}
+};
 
 export default function PlaygroundPage() {
   const [selected, setSelected] = useState("Hello world");
   const [code, setCode] = useState(samples["Hello world"]);
   const [output, setOutput] = useState("");
   const [running, setRunning] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const xsRef = useRef<XSModule | null>(null);
 
-  async function handleRun() {
-    setOutput("transpiling...");
+  useEffect(() => {
+    // load WASM module
+    const script = document.createElement("script");
+    script.src = "/xs.js";
+    script.onload = async () => {
+      try {
+        // @ts-expect-error - createXS is loaded by script
+        const mod = await window.createXS({
+          print: () => {},
+          printErr: () => {},
+          locateFile: (path: string) => "/" + path,
+        });
+        xsRef.current = mod;
+        setLoading(false);
+      } catch {
+        setOutput("error: could not load XS runtime");
+        setLoading(false);
+      }
+    };
+    document.head.appendChild(script);
+    return () => { script.remove(); };
+  }, []);
+
+  const handleRun = useCallback(async () => {
+    if (!xsRef.current || running) return;
     setRunning(true);
 
+    const lines: string[] = [];
+
     try {
-      const res = await fetch("/api/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
+      // re-create module for clean state
+      // @ts-expect-error - createXS from loaded script
+      const xs = await window.createXS({
+        print: (text: string) => lines.push(text),
+        printErr: (text: string) => lines.push(text),
+        locateFile: (path: string) => "/" + path,
       });
 
-      const data = await res.json();
+      xs.FS.writeFile("/playground.xs", code);
 
-      if (data.error) {
-        setOutput("error: " + data.error);
-        return;
+      try {
+        xs.callMain(["/playground.xs"]);
+      } catch (e: unknown) {
+        if (e instanceof Error && !e.message.includes("exit")) {
+          lines.push("error: " + e.message);
+        }
       }
 
-      const result = runJS(data.js);
-      setOutput(result || "(no output)");
+      setOutput(lines.join("\n") || "(no output)");
     } catch {
-      setOutput("error: could not connect to server");
+      setOutput("error: runtime crashed, try again");
     } finally {
       setRunning(false);
     }
-  }
+  }, [code, running]);
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-8 h-[calc(100vh-7rem)]">
@@ -178,10 +181,10 @@ export default function PlaygroundPage() {
           </select>
           <button
             onClick={handleRun}
-            disabled={running}
+            disabled={running || loading}
             className="rounded-md bg-accent-dim px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent disabled:opacity-50"
           >
-            {running ? "Running..." : "Run"}
+            {loading ? "Loading..." : running ? "Running..." : "Run"}
           </button>
         </div>
       </div>
@@ -189,7 +192,7 @@ export default function PlaygroundPage() {
       <div className="flex flex-1 gap-4 min-h-0">
         <div className="flex flex-1 flex-col overflow-hidden rounded-lg border border-border">
           <div className="border-b border-border px-4 py-2 text-xs text-muted">
-            main.xs
+            playground.xs
           </div>
           <textarea
             value={code}
@@ -201,7 +204,6 @@ export default function PlaygroundPage() {
                 e.preventDefault();
                 handleRun();
               }
-              // tab inserts 2 spaces
               if (e.key === "Tab") {
                 e.preventDefault();
                 const t = e.currentTarget;
