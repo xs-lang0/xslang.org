@@ -152,10 +152,9 @@ println(evens)    -- [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]
 let sq = #{x: x * x for x in [1, 2, 3, 4, 5]}
 println(sq)       -- {1: 1, 2: 4, 3: 9, 4: 16, 5: 25}
 
--- flatten and transform
-let names = ["alice", "bob", "carol"]
-let upper = [n.upper() for n in names]
-println(upper)`,
+-- nested comprehension
+let pairs = [(x, y) for x in 0..3 for y in 0..3 if x != y]
+println(pairs)`,
   },
   {
     title: "Inline C",
