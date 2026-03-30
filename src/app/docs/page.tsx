@@ -7,7 +7,9 @@ export default function DocsPage() {
     <div>
       <h1 className="mb-4 text-3xl font-bold tracking-tight">Documentation</h1>
       <p className="mb-8 text-muted">
-        Everything you need to get started with XS.
+        XS is a gradually typed language that compiles to C, JavaScript, and
+        WebAssembly. It has algebraic effects, pattern matching, and built-in
+        concurrency, all from a single codebase with zero dependencies.
       </p>
 
       <CodeBlock
@@ -29,6 +31,7 @@ export default function DocsPage() {
             className="rounded-lg border border-border p-4 transition-colors hover:border-muted"
           >
             <span className="text-sm font-medium">{link.label}</span>
+            <p className="mt-1 text-xs text-muted">{link.description}</p>
           </Link>
         ))}
       </div>

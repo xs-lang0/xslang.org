@@ -72,9 +72,9 @@ export default function Home() {
       <section className="flex flex-col gap-10 pt-[12rem] pb-24 md:flex-row md:items-start md:gap-12">
         <div className="flex flex-1 flex-col gap-5">
           <h1 className="text-4xl font-bold tracking-tight">
-            A language that
+            One language for
             <br />
-            <span className="text-accent">you can use anywhere, anytime.</span>
+            <span className="text-accent">scripts, servers, and the browser.</span>
           </h1>
           <p className="max-w-md text-lg leading-relaxed text-muted">
             XS is a fast, expressive language with gradual typing, algebraic
