@@ -19,7 +19,6 @@ for i in 1..=20 {
   },
   {
     title: "Generators",
-    runnable: false,
     desc: "Lazy infinite sequences using fn* and yield. Pull values on demand.",
     code: `fn* fibonacci() {
   var a = 0
@@ -39,7 +38,6 @@ for n in fibonacci() {
   },
   {
     title: "Tagged blocks",
-    runnable: false,
     desc: "Build your own control flow. Retry logic, timing, resource management, whatever you need.",
     code: `-- retry a block up to n times
 tag retry(n) {
