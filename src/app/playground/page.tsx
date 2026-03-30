@@ -227,6 +227,19 @@ export default function PlaygroundPage() {
           </pre>
         </div>
       </div>
+
+      <div className="text-xs text-muted space-y-1">
+        <p>
+          The playground runs the real XS interpreter compiled to WebAssembly.
+          Most features work exactly like the native binary.
+        </p>
+        <p>
+          <span className="text-foreground">Not available here:</span>{" "}
+          networking (http, sockets), file system access, native plugins (.so/.dll),
+          JIT compilation, REPL, LSP/DAP, and profiler timing.
+          The <code className="text-foreground">input()</code> function is also disabled.
+        </p>
+      </div>
     </div>
   );
 }
