@@ -1,4 +1,4 @@
-type Token = { type: string; text: string };
+export type Token = { type: string; text: string };
 
 const KEYWORDS = new Set([
   "fn", "let", "var", "const", "mut", "if", "elif", "else", "match",
@@ -16,7 +16,7 @@ const TYPES = new Set([
   "f32", "f64", "byte", "char", "re", "dyn", "never", "string", "unit",
 ]);
 
-const TOKEN_COLORS: Record<string, string> = {
+export const TOKEN_COLORS: Record<string, string> = {
   keyword: "#c084fc",
   string: "#86efac",
   comment: "#525252",
@@ -28,7 +28,7 @@ const TOKEN_COLORS: Record<string, string> = {
   attr: "#fb923c",
 };
 
-function tokenize(code: string): Token[] {
+export function tokenize(code: string): Token[] {
   const tokens: Token[] = [];
   let i = 0;
 
