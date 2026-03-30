@@ -96,7 +96,7 @@ type XSModule = {
 function LineNumbers({ code }: { code: string }) {
   const count = code.split("\n").length;
   return (
-    <div className="select-none text-right pr-3 pt-4 pb-4 text-xs leading-relaxed text-muted/40 font-mono shrink-0 w-10">
+    <div className="select-none text-right pr-4 pt-4 pb-4 text-xs leading-relaxed text-muted/40 font-mono shrink-0 w-12 border-r border-border">
       {Array.from({ length: count }, (_, i) => (
         <div key={i}>{i + 1}</div>
       ))}
@@ -295,7 +295,7 @@ export default function PlaygroundPage() {
               onChange={(e) => setCode(e.target.value)}
               onScroll={handleEditorScroll}
               spellCheck={false}
-              className="flex-1 resize-none bg-surface pt-4 pb-4 pr-4 font-mono text-sm leading-relaxed text-foreground outline-none"
+              className="flex-1 resize-none bg-surface pt-4 pb-4 pl-4 pr-4 font-mono text-sm leading-relaxed text-foreground outline-none"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
                   e.preventDefault();
