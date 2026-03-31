@@ -65,8 +65,12 @@ main
 const psScript = `#Requires -Version 5.1
 $ErrorActionPreference = "Stop"
 
-$Repo = "${REPO}"
-$TmpDir = Join-Path $env:TEMP "xsi-install"
+$XsRepo = "xs-lang0/xs"
+$XsiRepo = "xs-lang0/xsi"
+$InstallDir = "C:\\xs"
+$BinDir = "$InstallDir\\bin"
+$LibDir = "$InstallDir\\lib"
+$CacheDir = "$InstallDir\\cache"
 
 $Arch = if ([Environment]::Is64BitOperatingSystem) {
   if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "aarch64" } else { "x86_64" }
@@ -74,22 +78,50 @@ $Arch = if ([Environment]::Is64BitOperatingSystem) {
   Write-Error "xs requires a 64-bit system"; exit 1
 }
 
-$Url = "https://github.com/$Repo/releases/latest/download/xsi-windows-$Arch.exe"
-
 Write-Host "installing xs..."
 Write-Host "  os:   windows"
 Write-Host "  arch: $Arch"
 Write-Host ""
 
-Remove-Item -Recurse -Force $TmpDir -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force -Path $TmpDir | Out-Null
-
-try {
-  Invoke-WebRequest -Uri $Url -OutFile "$TmpDir\\xsi.exe" -UseBasicParsing
-  Start-Process -FilePath "$TmpDir\\xsi.exe" -ArgumentList "install","--auto" -Wait -Verb RunAs
-} finally {
-  Remove-Item -Recurse -Force $TmpDir -ErrorAction SilentlyContinue
+# create directories
+foreach ($d in @($BinDir, $LibDir, $CacheDir)) {
+  New-Item -ItemType Directory -Force -Path $d | Out-Null
 }
+
+# download xs
+$XsUrl = "https://github.com/$XsRepo/releases/latest/download/xs-windows-$Arch.exe"
+Write-Host "  downloading xs..."
+Invoke-WebRequest -Uri $XsUrl -OutFile "$BinDir\\xs.exe" -UseBasicParsing
+
+# download xsi
+$XsiUrl = "https://github.com/$XsiRepo/releases/latest/download/xsi-windows-$Arch.exe"
+Write-Host "  downloading xsi..."
+Invoke-WebRequest -Uri $XsiUrl -OutFile "$BinDir\\xsi.exe" -UseBasicParsing
+
+# add to system PATH
+$SysPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+if ($SysPath -notlike "*$BinDir*") {
+  try {
+    [Environment]::SetEnvironmentVariable("Path", "$BinDir;$SysPath", "Machine")
+    [Microsoft.Win32.Registry]::SetValue("HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment", "Path", "$BinDir;$SysPath", [Microsoft.Win32.RegistryValueKind]::ExpandString)
+    Write-Host "  added $BinDir to system PATH"
+  } catch {
+    Write-Host "  could not update system PATH (need admin)"
+    Write-Host "  run this in an elevated PowerShell, or add $BinDir to PATH manually"
+  }
+} else {
+  Write-Host "  PATH already contains $BinDir"
+}
+
+Write-Host ""
+Write-Host "setup complete!"
+Write-Host "  install dir: $InstallDir"
+Write-Host "  xs binary:   $BinDir\\xs.exe"
+Write-Host "  xsi binary:  $BinDir\\xsi.exe"
+Write-Host "  lib dir:     $LibDir"
+Write-Host "  cache dir:   $CacheDir"
+Write-Host ""
+Write-Host "restart your terminal, then run: xs --version"
 `;
 
 export async function GET(request: NextRequest) {
