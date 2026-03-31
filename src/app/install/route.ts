@@ -94,15 +94,23 @@ foreach ($d in @($BinDir, $LibDir, $CacheDir)) {
   New-Item -ItemType Directory -Force -Path $d | Out-Null
 }
 
+# download function using .NET to bypass antivirus hooks on powershell/curl
+function Download($url, $out) {
+  [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+  $wc = New-Object System.Net.WebClient
+  $wc.Headers.Add("User-Agent", "xsi-installer")
+  $wc.DownloadFile($url, $out)
+}
+
 # download xs
 $XsUrl = "https://github.com/$XsRepo/releases/latest/download/xs-windows-$Arch.exe"
 Write-Host "  downloading xs..."
-curl.exe -fsSL --ssl-no-revoke $XsUrl -o "$BinDir\\xs.exe"
+Download $XsUrl "$BinDir\\xs.exe"
 
 # download xsi
 $XsiUrl = "https://github.com/$XsiRepo/releases/latest/download/xsi-windows-$Arch.exe"
 Write-Host "  downloading xsi..."
-curl.exe -fsSL --ssl-no-revoke $XsiUrl -o "$BinDir\\xsi.exe"
+Download $XsiUrl "$BinDir\\xsi.exe"
 
 # add to system PATH
 $SysPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
