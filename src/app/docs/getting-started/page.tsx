@@ -20,8 +20,9 @@ export default function GettingStartedPage() {
       </div>
 
       <p className="mb-4 text-sm text-muted">
-        This installs the <code className="text-foreground">xs</code> compiler, the VM, and all
-        built-in tools. Supports Linux, macOS, and Windows.
+        This downloads the XS installer, which sets up{" "}
+        <code className="text-foreground">~/.xs/</code> with the compiler, VM,
+        package manager, and all built-in tools.
       </p>
 
       <p className="mb-2 text-sm text-muted">Verify the installation:</p>

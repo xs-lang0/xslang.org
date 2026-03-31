@@ -1,13 +1,12 @@
 import { type NextRequest } from "next/server";
 
-const REPO = "xs-lang0/xs";
+const REPO = "xs-lang0/xsi";
 
 const shScript = `#!/bin/sh
 set -e
 
 REPO="${REPO}"
-INSTALL_DIR="\${XS_INSTALL_DIR:-\$HOME/.xs}"
-BIN_DIR="\$INSTALL_DIR/bin"
+TMP_DIR="\$(mktemp -d)"
 
 main() {
   need_cmd curl
@@ -29,41 +28,19 @@ main() {
     *)             err "unsupported architecture: \$arch" ;;
   esac
 
-  local url="https://github.com/\$REPO/releases/latest/download/xs-\$os-\$arch"
+  local url="https://github.com/\$REPO/releases/latest/download/xsi-\$os-\$arch"
 
   echo "installing xs..."
   echo "  os:   \$os"
   echo "  arch: \$arch"
   echo ""
 
-  mkdir -p "\$BIN_DIR"
+  curl -fsSL "\$url" -o "\$TMP_DIR/xsi"
+  chmod +x "\$TMP_DIR/xsi"
 
-  curl -fsSL "\$url" -o "\$BIN_DIR/xs"
-  chmod +x "\$BIN_DIR/xs"
+  "\$TMP_DIR/xsi" install --auto
 
-  echo "xs installed to \$BIN_DIR/xs"
-  echo ""
-
-  if ! echo "\$PATH" | grep -q "\$BIN_DIR"; then
-    local shell_name=\$(basename "\$SHELL")
-    local rc=""
-    case "\$shell_name" in
-      bash) rc="\$HOME/.bashrc" ;;
-      zsh)  rc="\$HOME/.zshrc" ;;
-      fish) rc="\$HOME/.config/fish/config.fish" ;;
-    esac
-
-    if [ -n "\$rc" ]; then
-      echo "export PATH=\\"\$BIN_DIR:\\\$PATH\\"" >> "\$rc"
-      echo "added \$BIN_DIR to PATH in \$rc"
-      echo "run 'source \$rc' or restart your shell"
-    else
-      echo "add \$BIN_DIR to your PATH manually"
-    fi
-  fi
-
-  echo ""
-  "\$BIN_DIR/xs" --version
+  rm -rf "\$TMP_DIR"
 }
 
 need_cmd() {
@@ -77,6 +54,11 @@ err() {
   exit 1
 }
 
+cleanup() {
+  rm -rf "\$TMP_DIR" 2>/dev/null
+}
+
+trap cleanup EXIT
 main
 `;
 
@@ -84,8 +66,7 @@ const psScript = `#Requires -Version 5.1
 $ErrorActionPreference = "Stop"
 
 $Repo = "${REPO}"
-$InstallDir = if ($env:XS_INSTALL_DIR) { $env:XS_INSTALL_DIR } else { "$env:USERPROFILE\\.xs" }
-$BinDir = "$InstallDir\\bin"
+$TmpDir = Join-Path $env:TEMP "xsi-install"
 
 $Arch = if ([Environment]::Is64BitOperatingSystem) {
   if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "aarch64" } else { "x86_64" }
@@ -93,29 +74,21 @@ $Arch = if ([Environment]::Is64BitOperatingSystem) {
   Write-Error "xs requires a 64-bit system"; exit 1
 }
 
-$Url = "https://github.com/$Repo/releases/latest/download/xs-windows-$Arch.exe"
+$Url = "https://github.com/$Repo/releases/latest/download/xsi-windows-$Arch.exe"
 
 Write-Host "installing xs..."
 Write-Host "  os:   windows"
 Write-Host "  arch: $Arch"
 Write-Host ""
 
-New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
+New-Item -ItemType Directory -Force -Path $TmpDir | Out-Null
 
-Invoke-WebRequest -Uri $Url -OutFile "$BinDir\\xs.exe" -UseBasicParsing
-
-Write-Host "xs installed to $BinDir\\xs.exe"
-Write-Host ""
-
-$UserPath = [Environment]::GetEnvironmentVariable("PATH", "User")
-if ($UserPath -notlike "*$BinDir*") {
-  [Environment]::SetEnvironmentVariable("PATH", "$BinDir;$UserPath", "User")
-  Write-Host "added $BinDir to user PATH"
-  Write-Host "restart your terminal for PATH changes to take effect"
+try {
+  Invoke-WebRequest -Uri $Url -OutFile "$TmpDir\\xsi.exe" -UseBasicParsing
+  & "$TmpDir\\xsi.exe" install --auto
+} finally {
+  Remove-Item -Recurse -Force $TmpDir -ErrorAction SilentlyContinue
 }
-
-Write-Host ""
-& "$BinDir\\xs.exe" --version
 `;
 
 export async function GET(request: NextRequest) {
