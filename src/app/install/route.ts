@@ -94,41 +94,24 @@ foreach ($d in @($BinDir, $LibDir, $CacheDir)) {
   New-Item -ItemType Directory -Force -Path $d | Out-Null
 }
 
-# download binaries - try multiple methods since AV may block some
-function Download-File($url, $dest) {
-  # method 1: Invoke-WebRequest
-  try {
-    Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing -ErrorAction Stop
-    if (Test-Path $dest) { return }
-  } catch {}
-  # method 2: .NET WebClient
-  try {
-    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    (New-Object Net.WebClient).DownloadFile($url, $dest)
-    if (Test-Path $dest) { return }
-  } catch {}
-  # method 3: curl
-  try {
-    curl.exe -fsSL --ssl-no-revoke $url -o $dest 2>$null
-    if (Test-Path $dest) { return }
-  } catch {}
-  # all methods failed
-  Write-Host ""
-  Write-Host "  download blocked by antivirus." -ForegroundColor Red
-  Write-Host "  add C:\\xs to your antivirus exclusions, then retry." -ForegroundColor Yellow
-  Write-Host "  or download manually from:" -ForegroundColor Yellow
-  Write-Host "    $url" -ForegroundColor Cyan
-  Write-Host "  and place it at: $dest" -ForegroundColor Cyan
-  throw "download blocked"
-}
+# download as zip to avoid antivirus blocking exe writes
+$XsZip = "$CacheDir\\xs.zip"
+$XsiZip = "$CacheDir\\xsi.zip"
 
-$XsUrl = "https://github.com/$XsRepo/releases/latest/download/xs-windows-$Arch.exe"
+$XsUrl = "https://github.com/$XsRepo/releases/latest/download/xs-windows-$Arch.zip"
 Write-Host "  downloading xs..."
-Download-File $XsUrl "$BinDir\\xs.exe"
+Invoke-WebRequest -Uri $XsUrl -OutFile $XsZip -UseBasicParsing
 
-$XsiUrl = "https://github.com/$XsiRepo/releases/latest/download/xsi-windows-$Arch.exe"
+$XsiUrl = "https://github.com/$XsiRepo/releases/latest/download/xsi-windows-$Arch.zip"
 Write-Host "  downloading xsi..."
-Download-File $XsiUrl "$BinDir\\xsi.exe"
+Invoke-WebRequest -Uri $XsiUrl -OutFile $XsiZip -UseBasicParsing
+
+Write-Host "  extracting..."
+Expand-Archive -Path $XsZip -DestinationPath $CacheDir -Force
+Expand-Archive -Path $XsiZip -DestinationPath $CacheDir -Force
+Move-Item -Force "$CacheDir\\xs-windows-$Arch.exe" "$BinDir\\xs.exe"
+Move-Item -Force "$CacheDir\\xsi-windows-$Arch.exe" "$BinDir\\xsi.exe"
+Remove-Item -Force $XsZip, $XsiZip -ErrorAction SilentlyContinue
 
 # add to system PATH
 $SysPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
