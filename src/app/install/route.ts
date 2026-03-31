@@ -109,8 +109,9 @@ Invoke-WebRequest -Uri $XsiUrl -OutFile $XsiZip -UseBasicParsing
 Write-Host "  extracting..."
 Expand-Archive -Path $XsZip -DestinationPath $BinDir -Force
 Expand-Archive -Path $XsiZip -DestinationPath $BinDir -Force
-Rename-Item "$BinDir\\xs-windows-$Arch.exe" "xs.exe" -Force
-Rename-Item "$BinDir\\xsi-windows-$Arch.exe" "xsi.exe" -Force
+Remove-Item -Force "$BinDir\\xs.exe","$BinDir\\xsi.exe" -ErrorAction SilentlyContinue
+Rename-Item "$BinDir\\xs-windows-$Arch.exe" "xs.exe"
+Rename-Item "$BinDir\\xsi-windows-$Arch.exe" "xsi.exe"
 Remove-Item -Force $XsZip, $XsiZip -ErrorAction SilentlyContinue
 
 # add to system PATH
