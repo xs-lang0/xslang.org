@@ -94,23 +94,23 @@ foreach ($d in @($BinDir, $LibDir, $CacheDir)) {
   New-Item -ItemType Directory -Force -Path $d | Out-Null
 }
 
-# download function using .NET to bypass antivirus hooks on powershell/curl
-function Download($url, $out) {
-  [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-  $wc = New-Object System.Net.WebClient
-  $wc.Headers.Add("User-Agent", "xsi-installer")
-  $wc.DownloadFile($url, $out)
-}
+# temporarily exclude install dir from antivirus scanning
+try { Add-MpPreference -ExclusionPath $InstallDir -ErrorAction SilentlyContinue } catch {}
 
 # download xs
 $XsUrl = "https://github.com/$XsRepo/releases/latest/download/xs-windows-$Arch.exe"
 Write-Host "  downloading xs..."
-Download $XsUrl "$BinDir\\xs.exe"
+curl.exe -fsSL --ssl-no-revoke $XsUrl -o "$BinDir\\xs.exe"
+if (-not (Test-Path "$BinDir\\xs.exe")) { Write-Error "failed to download xs" }
 
 # download xsi
 $XsiUrl = "https://github.com/$XsiRepo/releases/latest/download/xsi-windows-$Arch.exe"
 Write-Host "  downloading xsi..."
-Download $XsiUrl "$BinDir\\xsi.exe"
+curl.exe -fsSL --ssl-no-revoke $XsiUrl -o "$BinDir\\xsi.exe"
+if (-not (Test-Path "$BinDir\\xsi.exe")) { Write-Error "failed to download xsi" }
+
+# remove exclusion
+try { Remove-MpPreference -ExclusionPath $InstallDir -ErrorAction SilentlyContinue } catch {}
 
 # add to system PATH
 $SysPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
