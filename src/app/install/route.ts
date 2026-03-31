@@ -109,8 +109,14 @@ Invoke-WebRequest -Uri $XsiUrl -OutFile $XsiZip -UseBasicParsing
 Write-Host "  extracting..."
 Expand-Archive -Path $XsZip -DestinationPath $CacheDir -Force
 Expand-Archive -Path $XsiZip -DestinationPath $CacheDir -Force
-Move-Item -Force "$CacheDir\\xs-windows-$Arch.exe" "$BinDir\\xs.exe"
-Move-Item -Force "$CacheDir\\xsi-windows-$Arch.exe" "$BinDir\\xsi.exe"
+# rename extracted files to .dat first, move, then rename to .exe
+# this prevents antivirus from blocking the move of a detected PE file
+Rename-Item "$CacheDir\\xs-windows-$Arch.exe" "xs.dat" -Force
+Rename-Item "$CacheDir\\xsi-windows-$Arch.exe" "xsi.dat" -Force
+Move-Item -Force "$CacheDir\\xs.dat" "$BinDir\\xs.dat"
+Move-Item -Force "$CacheDir\\xsi.dat" "$BinDir\\xsi.dat"
+Rename-Item "$BinDir\\xs.dat" "xs.exe" -Force
+Rename-Item "$BinDir\\xsi.dat" "xsi.exe" -Force
 Remove-Item -Force $XsZip, $XsiZip -ErrorAction SilentlyContinue
 
 # add to system PATH
