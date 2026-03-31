@@ -81,11 +81,12 @@ Write-Host "  os:   windows"
 Write-Host "  arch: $Arch"
 Write-Host ""
 
+Remove-Item -Recurse -Force $TmpDir -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $TmpDir | Out-Null
 
 try {
   Invoke-WebRequest -Uri $Url -OutFile "$TmpDir\\xsi.exe" -UseBasicParsing
-  & "$TmpDir\\xsi.exe" install --auto
+  Start-Process -FilePath "$TmpDir\\xsi.exe" -ArgumentList "install","--auto" -Wait -Verb RunAs
 } finally {
   Remove-Item -Recurse -Force $TmpDir -ErrorAction SilentlyContinue
 }
