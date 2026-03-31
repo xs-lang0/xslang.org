@@ -65,6 +65,13 @@ main
 const psScript = `#Requires -Version 5.1
 $ErrorActionPreference = "Stop"
 
+# self-elevate to admin
+if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+  $script = [System.Net.WebClient]::new().DownloadString("https://xslang.org/install.ps1")
+  Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile","-ExecutionPolicy","Bypass","-Command",$script
+  exit
+}
+
 $XsRepo = "xs-lang0/xs"
 $XsiRepo = "xs-lang0/xsi"
 $InstallDir = "C:\\xs"
@@ -101,14 +108,8 @@ Invoke-WebRequest -Uri $XsiUrl -OutFile "$BinDir\\xsi.exe" -UseBasicParsing
 # add to system PATH
 $SysPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
 if ($SysPath -notlike "*$BinDir*") {
-  try {
-    [Environment]::SetEnvironmentVariable("Path", "$BinDir;$SysPath", "Machine")
-    [Microsoft.Win32.Registry]::SetValue("HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment", "Path", "$BinDir;$SysPath", [Microsoft.Win32.RegistryValueKind]::ExpandString)
-    Write-Host "  added $BinDir to system PATH"
-  } catch {
-    Write-Host "  could not update system PATH (need admin)"
-    Write-Host "  run this in an elevated PowerShell, or add $BinDir to PATH manually"
-  }
+  [Environment]::SetEnvironmentVariable("Path", "$BinDir;$SysPath", "Machine")
+  Write-Host "  added $BinDir to system PATH"
 } else {
   Write-Host "  PATH already contains $BinDir"
 }
@@ -122,6 +123,8 @@ Write-Host "  lib dir:     $LibDir"
 Write-Host "  cache dir:   $CacheDir"
 Write-Host ""
 Write-Host "restart your terminal, then run: xs --version"
+Write-Host ""
+Read-Host "press enter to close"
 `;
 
 export async function GET(request: NextRequest) {
