@@ -21,8 +21,8 @@ export default function GettingStartedPage() {
 
       <p className="mb-4 text-sm text-muted">
         This downloads the XS installer, which sets up{" "}
-        <code className="text-foreground">~/.xs/</code> with the compiler, VM,
-        package manager, and all built-in tools.
+        <code className="text-foreground">/usr/local/xs/</code> with the compiler, VM,
+        package manager, and all built-in tools. Requires sudo/admin.
       </p>
 
       <p className="mb-2 text-sm text-muted">Verify the installation:</p>
