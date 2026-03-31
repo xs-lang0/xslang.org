@@ -65,11 +65,10 @@ main
 const psScript = `#Requires -Version 5.1
 $ErrorActionPreference = "Stop"
 
-# self-elevate to admin
+# require admin
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-  $script = [System.Net.WebClient]::new().DownloadString("https://xslang.org/install.ps1")
-  Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile","-ExecutionPolicy","Bypass","-Command",$script
-  exit
+  Write-Error "run this from an elevated (admin) PowerShell"
+  exit 1
 }
 
 $XsRepo = "xs-lang0/xs"
