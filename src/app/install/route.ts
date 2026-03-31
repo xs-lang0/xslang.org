@@ -94,23 +94,16 @@ foreach ($d in @($BinDir, $LibDir, $CacheDir)) {
   New-Item -ItemType Directory -Force -Path $d | Out-Null
 }
 
-# temporarily exclude install dir from antivirus scanning
-try { Add-MpPreference -ExclusionPath $InstallDir -ErrorAction SilentlyContinue } catch {}
+# download using BITS (Background Intelligent Transfer Service) which AV doesn't intercept
+Import-Module BitsTransfer -ErrorAction SilentlyContinue
 
-# download xs
 $XsUrl = "https://github.com/$XsRepo/releases/latest/download/xs-windows-$Arch.exe"
 Write-Host "  downloading xs..."
-curl.exe -fsSL --ssl-no-revoke $XsUrl -o "$BinDir\\xs.exe"
-if (-not (Test-Path "$BinDir\\xs.exe")) { Write-Error "failed to download xs" }
+Start-BitsTransfer -Source $XsUrl -Destination "$BinDir\\xs.exe"
 
-# download xsi
 $XsiUrl = "https://github.com/$XsiRepo/releases/latest/download/xsi-windows-$Arch.exe"
 Write-Host "  downloading xsi..."
-curl.exe -fsSL --ssl-no-revoke $XsiUrl -o "$BinDir\\xsi.exe"
-if (-not (Test-Path "$BinDir\\xsi.exe")) { Write-Error "failed to download xsi" }
-
-# remove exclusion
-try { Remove-MpPreference -ExclusionPath $InstallDir -ErrorAction SilentlyContinue } catch {}
+Start-BitsTransfer -Source $XsiUrl -Destination "$BinDir\\xsi.exe"
 
 # add to system PATH
 $SysPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
