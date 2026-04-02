@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 
 const TIMEOUT_MS = 5000;
 const BASE_URL = "https://static.xslang.org";
@@ -64,13 +64,15 @@ async function runXS(code: string): Promise<string> {
   });
 }
 
-export function RunButton({ code }: { code: string }) {
+export function RunnableBlock({ code: original }: { code: string }) {
+  const [code, setCode] = useState(original);
   const [state, setState] = useState<"idle" | "running" | "done">("idle");
   const [output, setOutput] = useState("");
   const [error, setError] = useState(false);
-  const outputRef = useRef<HTMLPreElement>(null);
+  const [edited, setEdited] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleRun = async () => {
+  const handleRun = useCallback(async () => {
     setState("running");
     setError(false);
     try {
@@ -84,20 +86,76 @@ export function RunButton({ code }: { code: string }) {
       setError(true);
       setState("done");
     }
-  };
+  }, [code]);
+
+  const handleReset = useCallback(() => {
+    setCode(original);
+    setEdited(false);
+    setOutput("");
+    setState("idle");
+    if (textareaRef.current) {
+      textareaRef.current.value = original;
+    }
+  }, [original]);
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setCode(e.target.value);
+    setEdited(e.target.value !== original);
+  }, [original]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const ta = e.currentTarget;
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      ta.value = ta.value.substring(0, start) + "  " + ta.value.substring(end);
+      ta.selectionStart = ta.selectionEnd = start + 2;
+      setCode(ta.value);
+      setEdited(ta.value !== original);
+    }
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      handleRun();
+    }
+  }, [original, handleRun]);
+
+  const lines = code.split("\n").length;
 
   return (
-    <>
-      <button
-        onClick={handleRun}
-        disabled={state === "running"}
-        className="absolute right-14 top-2 rounded px-1.5 py-0.5 text-xs text-accent transition-colors hover:text-foreground disabled:opacity-50"
-      >
-        {state === "running" ? "running..." : "run"}
-      </button>
+    <div className="overflow-hidden rounded-lg border border-border bg-surface">
+      <div className="flex items-center justify-end gap-2 border-b border-border px-3 py-1.5">
+        {edited && (
+          <button
+            onClick={handleReset}
+            className="rounded px-1.5 py-0.5 text-xs text-muted transition-colors hover:text-foreground"
+          >
+            reset
+          </button>
+        )}
+        <button
+          onClick={handleRun}
+          disabled={state === "running"}
+          className="rounded px-1.5 py-0.5 text-xs text-accent transition-colors hover:text-foreground disabled:opacity-50"
+        >
+          {state === "running" ? "running..." : "run"}
+        </button>
+      </div>
+      <textarea
+        ref={textareaRef}
+        defaultValue={original}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        spellCheck={false}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        rows={Math.max(lines + 1, 3)}
+        className="block w-full resize-y border-none bg-transparent p-4 font-mono text-sm leading-relaxed text-foreground outline-none"
+        style={{ tabSize: 2 }}
+      />
       {state === "done" && (
         <pre
-          ref={outputRef}
           className={`border-t border-border px-4 py-3 text-sm leading-relaxed ${
             error ? "text-red-400" : "text-muted"
           }`}
@@ -106,6 +164,6 @@ export function RunButton({ code }: { code: string }) {
           {output || "(no output)"}
         </pre>
       )}
-    </>
+    </div>
   );
 }
