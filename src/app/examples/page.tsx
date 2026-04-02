@@ -19,6 +19,7 @@ for i in 1..=20 {
   },
   {
     title: "Generators",
+    runnable: false,
     desc: "Lazy infinite sequences using fn* and yield. Pull values on demand.",
     code: `fn* fibonacci() {
   var a = 0
@@ -38,6 +39,7 @@ for n in fibonacci() {
   },
   {
     title: "Tagged blocks",
+    runnable: false,
     desc: "Build your own control flow. Retry logic, timing, resource management, whatever you need.",
     code: `-- retry a block up to n times
 tag retry(n) {
@@ -151,12 +153,14 @@ println(evens)    -- [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]
 let sq = #{x: x * x for x in [1, 2, 3, 4, 5]}
 println(sq)       -- {1: 1, 2: 4, 3: 9, 4: 16, 5: 25}
 
--- nested with destructuring
-let pairs = [(x, y) for x in 0..3 for y in 0..3 if x != y]
-println(pairs)`,
+-- flatten and transform
+let names = ["alice", "bob", "carol"]
+let upper = [n.upper() for n in names]
+println(upper)`,
   },
   {
     title: "Inline C",
+    runnable: false,
     desc: "Drop to C when you need raw performance. The inline block compiles directly to native code.",
     code: `fn fast_hash(data) {
   inline c {
@@ -294,7 +298,7 @@ export default function ExamplesPage() {
           <section key={ex.title}>
             <h2 className="mb-1 text-lg font-semibold">{ex.title}</h2>
             <p className="mb-4 text-sm text-muted">{ex.desc}</p>
-            <CodeBlock code={ex.code} runnable />
+            <CodeBlock code={ex.code} runnable={ex.runnable !== false} />
           </section>
         ))}
       </div>
