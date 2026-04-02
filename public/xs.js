@@ -324,7 +324,7 @@
     };
   }
 
-  var DEFAULT_WASM_URL = "https://xslang.org/xs.wasm";
+  var DEFAULT_WASM_URL = "https://static.xslang.org/xs.wasm";
 
   // ---- WASM binary cache ----
 
