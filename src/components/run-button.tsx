@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
+import { tokenize, TOKEN_COLORS } from "@/components/code-block";
 
 const TIMEOUT_MS = 5000;
 const BASE_URL = "https://static.xslang.org";
@@ -62,6 +63,23 @@ async function runXS(code: string): Promise<string> {
 
     worker.postMessage(code);
   });
+}
+
+function Highlighted({ code }: { code: string }) {
+  const tokens = useMemo(() => tokenize(code), [code]);
+  return (
+    <>
+      {tokens.map((token, i) => {
+        const color = TOKEN_COLORS[token.type];
+        return color ? (
+          <span key={i} style={{ color }}>{token.text}</span>
+        ) : (
+          <span key={i}>{token.text}</span>
+        );
+      })}
+      {"\n"}
+    </>
+  );
 }
 
 export function RunnableBlock({ code: original }: { code: string }) {
@@ -141,19 +159,27 @@ export function RunnableBlock({ code: original }: { code: string }) {
           {state === "running" ? "running..." : "run"}
         </button>
       </div>
-      <textarea
-        ref={textareaRef}
-        defaultValue={original}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        spellCheck={false}
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        rows={Math.max(lines + 1, 3)}
-        className="block w-full resize-y border-none bg-transparent p-4 font-mono text-sm leading-relaxed text-foreground outline-none"
-        style={{ tabSize: 2 }}
-      />
+      <div className="relative overflow-x-auto">
+        <pre
+          className="pointer-events-none absolute inset-0 p-4 font-mono text-sm leading-relaxed"
+          aria-hidden="true"
+        >
+          <code><Highlighted code={code} /></code>
+        </pre>
+        <textarea
+          ref={textareaRef}
+          defaultValue={original}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          spellCheck={false}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          rows={Math.max(lines + 1, 3)}
+          className="relative block w-full resize-y border-none bg-transparent p-4 font-mono text-sm leading-relaxed text-transparent caret-foreground outline-none"
+          style={{ tabSize: 2 }}
+        />
+      </div>
       {state === "done" && (
         <pre
           className={`border-t border-border px-4 py-3 text-sm leading-relaxed ${
