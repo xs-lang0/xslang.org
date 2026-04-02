@@ -129,7 +129,6 @@ for x in count_up(5) {
         User-defined control structures. Define a tag, then call it with a trailing block.
       </p>
       <CodeBlock
-        runnable
         code={`tag retry(n) {
   var attempts = 0
   loop {
