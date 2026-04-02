@@ -76,11 +76,12 @@ tag timed() {
   return result
 }
 
-timed() {
+let total = timed() {
   var sum = 0
   for i in 0..1000 { sum = sum + i }
-  println("sum: {sum}")
-}`,
+  sum
+}
+println("sum: {total}")`,
   },
   {
     title: "Error handling with effects",
