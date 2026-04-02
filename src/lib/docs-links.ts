@@ -10,5 +10,6 @@ export const docsLinks = [
   { href: "/docs/temporal", label: "Temporal primitives", description: "Built-in time, duration, and scheduling" },
   { href: "/docs/concurrency", label: "Concurrency", description: "Spawn, channels, actors, nurseries, async/await" },
   { href: "/docs/interop", label: "Interop", description: "Inline C, FFI, and calling into JS or WASM" },
+  { href: "/docs/browser-sdk", label: "Browser SDK", description: "Run XS in any webpage with one script tag" },
   { href: "/docs/tooling", label: "Tooling", description: "LSP, debugger, formatter, test runner, and plugins" },
 ];
