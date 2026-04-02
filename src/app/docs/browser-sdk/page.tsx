@@ -231,6 +231,100 @@ const output = await xs.run(\`
   })()
 <\/script>`}
       />
+
+      <h2 className="mb-4 mt-12 text-xl font-semibold">Embed SDK (xs-embed.js)</h2>
+      <p className="mb-4 text-muted">
+        For simpler use cases that don{"'"}t need JavaScript, there{"'"}s xs-embed.js.
+        It provides HTML components that handle everything automatically.
+      </p>
+      <CodeBlock
+        code={`<script src="https://static.xslang.org/xs-embed.js"><\/script>`}
+      />
+
+      <h3 className="mb-3 mt-8 text-lg font-medium">{"<xs-editor>"} - Interactive editor</h3>
+      <p className="mb-4 text-muted">
+        A customizable code editor with a run button. Supports Tab for indentation
+        and Ctrl+Enter to run.
+      </p>
+      <CodeBlock
+        filename="editor.html"
+        code={`<xs-editor title="Demo">
+  println("edit me and click Run")
+  for i in 1..5 {
+    println("count: {i}")
+  }
+<\/xs-editor>`}
+      />
+      <p className="mb-2 mt-6 text-sm font-medium text-foreground">Attributes</p>
+      <ul className="mb-6 list-disc pl-6 text-muted">
+        <li><code className="text-foreground">title</code> - shown in the toolbar</li>
+        <li><code className="text-foreground">run-on-load</code> - auto-run when the page loads</li>
+        <li><code className="text-foreground">readonly</code> - disable editing</li>
+      </ul>
+
+      <p className="mb-2 text-sm font-medium text-foreground">CSS customization via custom properties</p>
+      <CodeBlock
+        code={`xs-editor {
+  --xs-bg: #1a1b26;
+  --xs-color: #c0caf5;
+  --xs-btn-bg: #7aa2f7;
+  --xs-border: 1px solid #292e42;
+  --xs-radius: 8px;
+  --xs-font-size: 13px;
+  --xs-output-bg: #16161e;
+}`}
+      />
+
+      <p className="mb-4 mt-6 text-muted">
+        JS API: <code className="text-foreground">.run()</code>,{" "}
+        <code className="text-foreground">.getCode()</code>,{" "}
+        <code className="text-foreground">.setCode(code)</code>,{" "}
+        <code className="text-foreground">.getOutput()</code>.
+        Fires <code className="text-foreground">xs-run</code> event with{" "}
+        <code className="text-foreground">{"{ code, output, error }"}</code> detail.
+      </p>
+
+      <h3 className="mb-3 mt-8 text-lg font-medium">{"<xs-code>"} - Auto-running code block</h3>
+      <p className="mb-4 text-muted">
+        Shows code and runs it immediately. Output appears below the code.
+      </p>
+      <CodeBlock
+        filename="code.html"
+        code={`<xs-code>
+  println("runs automatically")
+  println(2 + 2)
+<\/xs-code>`}
+      />
+
+      <h3 className="mb-3 mt-8 text-lg font-medium">{'<script type="text/xs">'} - Inline execution</h3>
+      <p className="mb-4 text-muted">
+        Executes on page load, output appears after the script tag.
+      </p>
+      <CodeBlock
+        filename="inline.html"
+        code={`<script type="text/xs">
+  let items = ["one", "two", "three"]
+  for item in items { println(item) }
+<\/script>`}
+      />
+
+      <h3 className="mb-3 mt-8 text-lg font-medium">Auto-enhance existing code blocks</h3>
+      <p className="mb-4 text-muted">
+        Add <code className="text-foreground">data-auto</code> to the script tag to automatically
+        add {'"'}Run{'"'} buttons to any <code className="text-foreground">{'<code class="language-xs">'}</code> blocks
+        on the page. Works with markdown-generated code blocks.
+      </p>
+      <CodeBlock
+        code={`<script src="https://static.xslang.org/xs-embed.js" data-auto><\/script>`}
+      />
+
+      <h3 className="mb-3 mt-8 text-lg font-medium">When to use which</h3>
+      <ul className="mb-6 list-disc pl-6 text-muted">
+        <li><code className="text-foreground">xs.js + loadXS()</code> - full control, custom apps, playgrounds</li>
+        <li><code className="text-foreground">xs-embed.js + {"<xs-editor>"}</code> - interactive docs, tutorials, blog posts</li>
+        <li><code className="text-foreground">xs-embed.js + {"<xs-code>"}</code> - auto-running examples</li>
+        <li><code className="text-foreground">xs-embed.js + data-auto</code> - add run buttons to existing markdown docs</li>
+      </ul>
     </div>
   );
 }
