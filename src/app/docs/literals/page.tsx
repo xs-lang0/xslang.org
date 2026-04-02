@@ -25,6 +25,7 @@ export default function LiteralsPage() {
         Number followed by a time unit. Stored as milliseconds.
       </p>
       <CodeBlock
+        runnable
         code={`use literals duration
 
 let quick = 200ms
@@ -53,6 +54,7 @@ let runtime = 2m + 30s   -- 150000ms`}
         Hex color literals. Returns a map with r, g, b, a fields (0-255).
       </p>
       <CodeBlock
+        runnable
         code={`use literals color
 
 let red = #ff0000
@@ -70,6 +72,7 @@ println(orange.g)  -- 102`}
         arithmetic and integration with temporal primitives is planned.
       </p>
       <CodeBlock
+        runnable
         code={`use literals date
 
 let release = 2024-03-15
@@ -83,6 +86,7 @@ println(release)   -- 2024-03-15`}
         Byte size literals. Stored as a float in bytes.
       </p>
       <CodeBlock
+        runnable
         code={`use literals size
 
 let config = 4kb       -- 4096
@@ -103,6 +107,7 @@ println(10kb)   -- 10240`}
         Angle literals. Stored as radians.
       </p>
       <CodeBlock
+        runnable
         code={`use literals angle
 
 let right = 90deg      -- 1.5708 (pi/2)
@@ -121,6 +126,7 @@ println(90deg)  -- 1.5708`}
         Enable multiple types in one pragma. They compose naturally.
       </p>
       <CodeBlock
+        runnable
         code={`use literals duration, color, size
 
 let timeout = 30s

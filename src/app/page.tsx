@@ -19,12 +19,10 @@ fn greet(name) {
   perform Log.log("hello, {name}!")
 }
 
-fn main() {
-  handle greet("world") {
-    Log.log(msg) => {
-      println(msg)
-      resume(null)
-    }
+handle greet("world") {
+  Log.log(msg) => {
+    println(msg)
+    resume(null)
   }
 }`;
 

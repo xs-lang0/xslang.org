@@ -11,6 +11,7 @@ export default function FunctionsPage() {
 
       <h2 className="mb-4 text-xl font-semibold">Basics</h2>
       <CodeBlock
+        runnable
         code={`-- basic function
 fn greet(name) {
   println("Hello, {name}!")
@@ -33,6 +34,7 @@ fn square(x) { x * x }`}
         Multiple functions with the same name, dispatched by argument count.
       </p>
       <CodeBlock
+        runnable
         code={`fn greet() { println("hello!") }
 fn greet(name) { println("hello, {name}!") }
 fn greet(name, greeting) { println("{greeting}, {name}!") }
@@ -44,6 +46,7 @@ greet("Bob", "hey")      -- hey, Bob!`}
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Default and variadic</h2>
       <CodeBlock
+        runnable
         code={`-- default parameters
 fn connect(host, port = 8080) {
   println("connecting to {host}:{port}")
@@ -61,6 +64,7 @@ println(sum(1, 2, 3))     -- 6`}
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Lambdas and closures</h2>
       <CodeBlock
+        runnable
         code={`-- anonymous function
 let sq = fn(x) { x * x }
 
@@ -85,6 +89,7 @@ let result = 5 |> double |> double  -- 20`}
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Attributes</h2>
       <CodeBlock
+        runnable
         code={`-- @pure: sema-checked, no side effects allowed
 @pure
 fn add(a, b) { return a + b }
@@ -105,6 +110,7 @@ pub fn helper() { return 42 }`}
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Generators</h2>
       <CodeBlock
+        runnable
         code={`fn* count_up(n) {
   var i = 0
   while i < n {
@@ -123,6 +129,7 @@ for x in count_up(5) {
         User-defined control structures. Define a tag, then call it with a trailing block.
       </p>
       <CodeBlock
+        runnable
         code={`tag retry(n) {
   var attempts = 0
   loop {

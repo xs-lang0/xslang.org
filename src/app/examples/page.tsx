@@ -13,10 +13,8 @@ const examples = [
   }
 }
 
-fn main() {
-  for i in 1..=100 {
-    println(fizzbuzz(i))
-  }
+for i in 1..=20 {
+  println(fizzbuzz(i))
 }`,
   },
   {
@@ -33,11 +31,9 @@ fn main() {
   }
 }
 
-fn main() {
-  for n in fibonacci() {
-    if n > 100 { break }
-    println(n)
-  }
+for n in fibonacci() {
+  if n > 100 { break }
+  println(n)
 }`,
   },
   {
@@ -55,12 +51,20 @@ tag retry(n) {
       if attempts >= n {
         throw "failed after {n} attempts: {e}"
       }
+      println("retry {attempts}...")
     }
   }
 }
 
-retry(3) {
-  http.get("https://flaky-api.com")
+var tries = 0
+try {
+  retry(3) {
+    tries = tries + 1
+    if tries < 3 { throw "fail" }
+    println("success on attempt {tries}")
+  }
+} catch e {
+  println(e)
 }
 
 -- measure execution time
@@ -73,7 +77,9 @@ tag timed() {
 }
 
 timed() {
-  heavy_computation()
+  var sum = 0
+  for i in 0..1000 { sum = sum + i }
+  println("sum: {sum}")
 }`,
   },
   {
@@ -92,24 +98,24 @@ fn parse_int(s) {
   return s.parse_int()
 }
 
-fn main() {
-  let result = handle {
-    let n = parse_int("42")
-    let m = parse_int("abc")
-    n + m
-  } {
-    Fail.fail(msg) => {
-      println("error: {msg}")
-      resume(0)
-    }
+let result = handle {
+  let n = parse_int("42")
+  let m = parse_int("abc")
+  n + m
+} {
+  Fail.fail(msg) => {
+    println("error: {msg}")
+    resume(0)
   }
-  println(result)  -- 42
-}`,
+}
+println(result)  -- 42`,
   },
   {
     title: "Structs and operator overloading",
     desc: "Define custom types and make them work with +, -, and other operators.",
-    code: `struct Vec2 { x, y }
+    code: `import math
+
+struct Vec2 { x, y }
 
 impl Vec2 {
   static fn new(x, y) {
@@ -121,16 +127,14 @@ impl Vec2 {
   }
 
   fn magnitude(self) {
-    return sqrt(self.x * self.x + self.y * self.y)
+    return math.sqrt(self.x * self.x + self.y * self.y)
   }
 }
 
-fn main() {
-  let a = Vec2.new(3.0, 4.0)
-  let b = Vec2.new(1.0, 2.0)
-  let c = a + b
-  println("magnitude: {c.magnitude()}")
-}`,
+let a = Vec2.new(3.0, 4.0)
+let b = Vec2.new(1.0, 2.0)
+let c = a + b
+println("magnitude: {c.magnitude()}")`,
   },
   {
     title: "List comprehensions",
@@ -148,7 +152,8 @@ let sq = #{x: x * x for x in [1, 2, 3, 4, 5]}
 println(sq)       -- {1: 1, 2: 4, 3: 9, 4: 16, 5: 25}
 
 -- nested with destructuring
-let pairs = [(x, y) for x in 0..3 for y in 0..3 if x != y]`,
+let pairs = [(x, y) for x in 0..3 for y in 0..3 if x != y]
+println(pairs)`,
   },
   {
     title: "Inline C",
@@ -163,9 +168,7 @@ let pairs = [(x, y) for x in 0..3 for y in 0..3 if x != y]`,
   return 0  -- fallback for interpreter mode
 }
 
-fn main() {
-  println(fast_hash("hello world"))
-}`,
+println(fast_hash("hello world"))`,
   },
   {
     title: "Nurseries",

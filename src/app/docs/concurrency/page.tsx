@@ -10,6 +10,7 @@ export default function ConcurrencyPage() {
 
       <h2 className="mb-4 text-xl font-semibold">Spawn</h2>
       <CodeBlock
+        runnable
         code={`var done = false
 spawn { done = true }
 println(done)  -- true
@@ -22,6 +23,7 @@ println(t["_status"])  -- done`}
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Async / await</h2>
       <CodeBlock
+        runnable
         code={`async fn compute(x) {
   return x * 2
 }
@@ -42,6 +44,7 @@ println(user["name"])  -- User 42`}
         FIFO message queues. Unbounded by default, or bounded with a capacity.
       </p>
       <CodeBlock
+        runnable
         code={`-- unbounded
 let ch = channel()
 ch.send("ping")
@@ -62,6 +65,7 @@ println(bch.recv())     -- a`}
         Actors encapsulate state and respond to method calls or raw messages.
       </p>
       <CodeBlock
+        runnable
         code={`actor BankAccount {
   var balance = 0
 
@@ -99,6 +103,7 @@ println(acct.get_balance())  -- 0`}
         No tasks leak out.
       </p>
       <CodeBlock
+        runnable
         code={`var results = []
 nursery {
   spawn { results.push("a") }

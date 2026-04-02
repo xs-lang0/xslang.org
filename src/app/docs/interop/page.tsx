@@ -15,6 +15,7 @@ export default function InteropPage() {
         In the interpreter, inline C blocks are skipped with a warning -- use the C transpiler target to compile them.
       </p>
       <CodeBlock
+        runnable
         filename="hash.xs"
         code={`fn fast_hash(data) {
   inline c {
@@ -41,6 +42,7 @@ xs transpile --target wasm main.xs   -- emit WebAssembly`}
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Modules and imports</h2>
       <CodeBlock
+        runnable
         code={`-- standard library
 import math
 println(math.sqrt(16))  -- 4

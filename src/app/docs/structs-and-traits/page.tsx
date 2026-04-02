@@ -11,6 +11,7 @@ export default function StructsPage() {
 
       <h2 className="mb-4 text-xl font-semibold">Structs</h2>
       <CodeBlock
+        runnable
         code={`struct Point { x, y }
 
 -- with type annotations
@@ -36,6 +37,7 @@ let p2 = Point { ...p, y: 30 }`}
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Impl blocks</h2>
       <CodeBlock
+        runnable
         code={`impl Point {
   fn distance(self) {
     return sqrt(self.x * self.x + self.y * self.y)
@@ -57,6 +59,7 @@ let o = Point.origin()`}
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Operator overloading</h2>
       <CodeBlock
+        runnable
         code={`impl Vec2 {
   fn +(self, other) {
     return Vec2 { x: self.x + other.x, y: self.y + other.y }
@@ -71,6 +74,7 @@ let c = Vec2 { x: 1, y: 2 } + Vec2 { x: 3, y: 4 }`}
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Traits</h2>
       <CodeBlock
+        runnable
         code={`trait Describe {
   fn describe(self) -> str
 }
@@ -106,6 +110,7 @@ trait PrettyPrint: Display {
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Enums</h2>
       <CodeBlock
+        runnable
         code={`-- simple enum
 enum Color { Red, Green, Blue }
 let c = Color::Red
@@ -134,6 +139,7 @@ fn describe(shape) {
         Classes support constructors, fields with defaults, and single inheritance.
       </p>
       <CodeBlock
+        runnable
         code={`class Animal {
   name = ""
   sound = "..."

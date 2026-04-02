@@ -41,10 +41,9 @@ make install`}
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Hello world</h2>
       <CodeBlock
+        runnable
         filename="hello.xs"
-        code={`fn main() {
-  println("hello, world")
-}`}
+        code={`println("hello, world")`}
       />
       <p className="mt-4 text-sm text-muted">
         Run it with <code className="text-foreground">xs run hello.xs</code>.
@@ -53,6 +52,7 @@ make install`}
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Variables</h2>
       <CodeBlock
+        runnable
         filename="variables.xs"
         code={`let x = 42          -- immutable binding
 var y = "hello"     -- mutable binding
@@ -69,6 +69,7 @@ var name: str = "XS"`}
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Control flow</h2>
       <CodeBlock
+        runnable
         filename="control.xs"
         code={`-- if/elif/else (braces required)
 if x > 0 {
@@ -103,6 +104,7 @@ outer: for i in range(5) {
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Strings</h2>
       <CodeBlock
+        runnable
         filename="strings.xs"
         code={`-- both quotes work, both support interpolation
 let s = "hello {name}!"
@@ -127,6 +129,7 @@ let ok  = c"green;Success"`}
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Error handling</h2>
       <CodeBlock
+        runnable
         filename="errors.xs"
         code={`-- try/catch/finally
 try {

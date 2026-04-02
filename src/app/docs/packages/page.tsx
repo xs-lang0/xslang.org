@@ -48,6 +48,7 @@ export default function PackagesPage() {
         Import an installed package with <code className="text-foreground">use</code>:
       </p>
       <CodeBlock
+        runnable
         filename="app.xs"
         code={`use "http-server"
 use "json-utils"

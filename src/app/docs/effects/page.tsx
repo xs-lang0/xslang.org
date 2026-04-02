@@ -11,6 +11,7 @@ export default function EffectsPage() {
 
       <h2 className="mb-4 text-xl font-semibold">Basic usage</h2>
       <CodeBlock
+        runnable
         code={`-- declare an effect
 effect Ask {
   fn prompt(msg) -> str
@@ -36,6 +37,7 @@ println(result)  -- Hello, World!`}
 
       <h2 className="mb-4 text-xl font-semibold">Accumulation</h2>
       <CodeBlock
+        runnable
         code={`effect Log {
   fn log(msg)
 }
@@ -56,6 +58,7 @@ println(logs)  -- ["first", "second", "third"]`}
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Multiple effects</h2>
       <CodeBlock
+        runnable
         code={`effect Fail {
   fn fail(msg)
 }

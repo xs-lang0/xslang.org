@@ -11,6 +11,7 @@ export default function TypesPage() {
 
       <h2 className="mb-4 text-xl font-semibold">Basics</h2>
       <CodeBlock
+        runnable
         filename="types.xs"
         code={`-- untyped, works fine
 let x = 42
@@ -73,6 +74,7 @@ fn display<T: Describe>(item: T) -> str {
 
       <h2 className="mb-4 text-xl font-semibold">Composite types</h2>
       <CodeBlock
+        runnable
         code={`-- arrays
 let nums: [int] = [1, 2, 3]
 
@@ -95,6 +97,7 @@ let grid: [[int]] = [[1, 2], [3, 4]]`}
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Type aliases</h2>
       <CodeBlock
+        runnable
         code={`type UserId = i64
 type Handler = fn(str) -> bool`}
       />
