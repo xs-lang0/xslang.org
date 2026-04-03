@@ -8,6 +8,7 @@ const KEYWORDS = new Set([
   "pub", "type", "true", "false", "null", "self", "super", "module",
   "actor", "nursery", "try", "catch", "finally", "throw", "defer",
   "tag", "not", "and", "or", "is", "as", "inline", "unsafe", "static",
+  "pause", "del",
 ]);
 
 const TYPES = new Set([

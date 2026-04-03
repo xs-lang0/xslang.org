@@ -160,6 +160,42 @@ panic("fatal: invariant violated")`}
    block comment -}`}
       />
 
+      <h2 className="mb-4 mt-12 text-xl font-semibold">Pause</h2>
+      <p className="mb-4 text-sm text-muted">
+        Pause execution for a given number of milliseconds. Works with duration literals too.
+      </p>
+      <CodeBlock
+        filename="pause.xs"
+        code={`println("start")
+pause 1000
+println("after 1 second")
+
+-- with duration literals
+use literals duration
+pause 500ms
+println("after 500ms")
+pause 2s
+println("after 2s")`}
+      />
+
+      <h2 className="mb-4 mt-12 text-xl font-semibold">Deleting variables</h2>
+      <p className="mb-4 text-sm text-muted">
+        Remove a variable from scope with <code className="text-foreground">del</code>. Accessing it after throws a runtime error.
+      </p>
+      <CodeBlock
+        runnable
+        filename="del.xs"
+        code={`var x = 42
+println(x)    -- 42
+del x
+
+try {
+  println(x)
+} catch e {
+  println("x was deleted")
+}`}
+      />
+
       <h2 className="mb-4 mt-12 text-xl font-semibold">What&apos;s next?</h2>
       <div className="flex flex-col gap-2 text-sm">
         <Link href="/docs/functions" className="text-muted transition-colors hover:text-foreground">
