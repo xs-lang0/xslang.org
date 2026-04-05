@@ -18,15 +18,15 @@ const TYPES = new Set([
 ]);
 
 export const TOKEN_COLORS: Record<string, string> = {
-  keyword: "#c084fc",
-  string: "#86efac",
-  comment: "#525252",
-  type: "#67e8f9",
-  fn: "#fbbf24",
-  number: "#f9a8d4",
-  op: "#94a3b8",
-  punct: "#525252",
-  attr: "#fb923c",
+  keyword: "#f6b8a4",
+  string:  "#b8d6a8",
+  comment: "#7a7361",
+  type:    "#cdc6a8",
+  fn:      "#f1d59a",
+  number:  "#e9b292",
+  op:      "#a6a08c",
+  punct:   "#86806c",
+  attr:    "#f0a070",
 };
 
 export function tokenize(code: string): Token[] {
@@ -34,7 +34,6 @@ export function tokenize(code: string): Token[] {
   let i = 0;
 
   while (i < code.length) {
-    // line comments (--)
     if (code[i] === "-" && code[i + 1] === "-") {
       let end = code.indexOf("\n", i);
       if (end === -1) end = code.length;
@@ -43,7 +42,6 @@ export function tokenize(code: string): Token[] {
       continue;
     }
 
-    // block comments ({- ... -})
     if (code[i] === "{" && code[i + 1] === "-") {
       let depth = 1;
       let j = i + 2;
@@ -57,7 +55,6 @@ export function tokenize(code: string): Token[] {
       continue;
     }
 
-    // shell comments (#) at start of line for shebang / build commands
     if (code[i] === "#" && (i === 0 || code[i - 1] === "\n")) {
       let end = code.indexOf("\n", i);
       if (end === -1) end = code.length;
@@ -66,7 +63,6 @@ export function tokenize(code: string): Token[] {
       continue;
     }
 
-    // attributes (@word or #[...])
     if (code[i] === "@" && i + 1 < code.length && /[a-zA-Z]/.test(code[i + 1])) {
       let j = i + 1;
       while (j < code.length && /[a-zA-Z0-9_]/.test(code[j])) j++;
@@ -75,10 +71,8 @@ export function tokenize(code: string): Token[] {
       continue;
     }
 
-    // strings (double or single quoted)
     if (code[i] === '"' || code[i] === "'") {
       const quote = code[i];
-      // triple-quoted
       if (code[i + 1] === quote && code[i + 2] === quote) {
         let j = i + 3;
         while (j < code.length) {
@@ -101,7 +95,6 @@ export function tokenize(code: string): Token[] {
       continue;
     }
 
-    // numbers
     if (/[0-9]/.test(code[i])) {
       let j = i;
       if (code[j] === "0" && (code[j + 1] === "x" || code[j + 1] === "b" || code[j + 1] === "o")) {
@@ -115,13 +108,11 @@ export function tokenize(code: string): Token[] {
       continue;
     }
 
-    // identifiers / keywords
     if (/[a-zA-Z_]/.test(code[i])) {
       let j = i;
       while (j < code.length && /[a-zA-Z0-9_]/.test(code[j])) j++;
       const word = code.slice(i, j);
 
-      // check for fn* (generator)
       if (word === "fn" && code[j] === "*") {
         tokens.push({ type: "keyword", text: "fn*" });
         i = j + 1;
@@ -143,7 +134,6 @@ export function tokenize(code: string): Token[] {
       continue;
     }
 
-    // operators
     if ("=<>!+-*/%&|^~?".includes(code[i])) {
       let j = i;
       while (j < code.length && "=<>!+-*/%&|^~?".includes(code[j])) j++;
@@ -152,21 +142,18 @@ export function tokenize(code: string): Token[] {
       continue;
     }
 
-    // double colon
     if (code[i] === ":" && code[i + 1] === ":") {
       tokens.push({ type: "punct", text: "::" });
       i += 2;
       continue;
     }
 
-    // punctuation
     if ("(){}[];:,.@#".includes(code[i])) {
       tokens.push({ type: "punct", text: code[i] });
       i++;
       continue;
     }
 
-    // whitespace / other
     tokens.push({ type: "plain", text: code[i] });
     i++;
   }
@@ -181,10 +168,12 @@ export function CodeBlock({
   code,
   filename,
   runnable,
+  bare,
 }: {
   code: string;
   filename?: string;
   runnable?: boolean;
+  bare?: boolean;
 }) {
   const trimmed = code.trim();
 
@@ -194,11 +183,14 @@ export function CodeBlock({
 
   const tokens = tokenize(trimmed);
 
-  return (
-    <div className="overflow-hidden rounded-lg border border-border bg-surface">
+  const inner = (
+    <>
       {filename && (
-        <div className="border-b border-border px-4 py-2 text-xs text-muted">
-          {filename}
+        <div className="flex items-center justify-between border-b border-paper/15 px-4 py-2">
+          <div className="flex items-center gap-2 smallcaps text-paper/55">
+            <span className="inline-block w-2 h-2 rounded-full bg-accent" />
+            {filename}
+          </div>
         </div>
       )}
       <div className="relative">
@@ -218,6 +210,16 @@ export function CodeBlock({
           </code>
         </pre>
       </div>
-    </div>
+    </>
   );
+
+  if (bare) {
+    return (
+      <div className="overflow-hidden rounded-sm border border-paper/15 bg-surface text-paper">
+        {inner}
+      </div>
+    );
+  }
+
+  return <div className="code-card overflow-hidden">{inner}</div>;
 }
