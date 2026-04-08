@@ -110,8 +110,8 @@ Write-Host "  extracting..."
 Expand-Archive -Path $XsZip -DestinationPath $BinDir -Force
 Expand-Archive -Path $XsiZip -DestinationPath $BinDir -Force
 Remove-Item -Force "$BinDir\\xs.exe","$BinDir\\xsi.exe" -ErrorAction SilentlyContinue
-Rename-Item "$BinDir\\xs-windows-$Arch.exe" "xs.exe"
-Rename-Item "$BinDir\\xsi-windows-$Arch.exe" "xsi.exe"
+Move-Item -Force "$BinDir\\xs-windows-$Arch.exe" "$BinDir\\xs.exe"
+Move-Item -Force "$BinDir\\xsi-windows-$Arch.exe" "$BinDir\\xsi.exe"
 Remove-Item -Force $XsZip, $XsiZip -ErrorAction SilentlyContinue
 
 # add to system PATH
