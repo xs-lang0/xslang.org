@@ -107,11 +107,19 @@ Write-Host "  downloading xsi..."
 Invoke-WebRequest -Uri $XsiUrl -OutFile $XsiZip -UseBasicParsing
 
 Write-Host "  extracting..."
-Expand-Archive -Path $XsZip -DestinationPath $BinDir -Force
-Expand-Archive -Path $XsiZip -DestinationPath $BinDir -Force
-Remove-Item -Force "$BinDir\\xs.exe","$BinDir\\xsi.exe" -ErrorAction SilentlyContinue
-Move-Item -Force "$BinDir\\xs-windows-$Arch.exe" "$BinDir\\xs.exe"
-Move-Item -Force "$BinDir\\xsi-windows-$Arch.exe" "$BinDir\\xsi.exe"
+# extract to temp dir to avoid conflicts with existing files
+$ExtractDir = "$CacheDir\\extract"
+Remove-Item -Recurse -Force $ExtractDir -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force -Path $ExtractDir | Out-Null
+Expand-Archive -Path $XsZip -DestinationPath $ExtractDir -Force
+Expand-Archive -Path $XsiZip -DestinationPath $ExtractDir -Force
+# remove old binaries first
+Remove-Item -Force "$BinDir\\xs.exe" -ErrorAction SilentlyContinue
+Remove-Item -Force "$BinDir\\xsi.exe" -ErrorAction SilentlyContinue
+# copy fresh binaries with correct names
+Copy-Item -Force "$ExtractDir\\xs-windows-$Arch.exe" "$BinDir\\xs.exe"
+Copy-Item -Force "$ExtractDir\\xsi-windows-$Arch.exe" "$BinDir\\xsi.exe"
+Remove-Item -Recurse -Force $ExtractDir -ErrorAction SilentlyContinue
 Remove-Item -Force $XsZip, $XsiZip -ErrorAction SilentlyContinue
 
 # add to system PATH
