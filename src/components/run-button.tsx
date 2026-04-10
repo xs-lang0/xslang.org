@@ -142,26 +142,22 @@ export function RunnableBlock({ code: original }: { code: string }) {
 
   return (
     <div className="code-card overflow-hidden">
-      <div className="flex items-center justify-between gap-2 border-b border-paper/15 px-4 py-2">
-        <div className="smallcaps text-paper/40">specimen · runnable</div>
-        <div className="flex items-center gap-3">
-          {edited && (
-            <button
-              onClick={handleReset}
-              className="smallcaps text-paper/55 hover:text-paper transition-colors"
-            >
-              reset
-            </button>
-          )}
+      <div className="flex items-center justify-end gap-2 border-b border-paper/15 px-3 py-1.5">
+        {edited && (
           <button
-            onClick={handleRun}
-            disabled={state === "running"}
-            className="inline-flex items-center gap-1.5 smallcaps text-accent hover:text-paper transition-colors disabled:opacity-50"
+            onClick={handleReset}
+            className="rounded px-1.5 py-0.5 text-xs font-mono text-paper/55 hover:text-paper transition-colors"
           >
-            <span className={`inline-block w-1.5 h-1.5 rounded-full ${state === "running" ? "bg-accent animate-pulse" : "bg-accent"}`} />
-            {state === "running" ? "running…" : "run"}
+            reset
           </button>
-        </div>
+        )}
+        <button
+          onClick={handleRun}
+          disabled={state === "running"}
+          className="rounded px-1.5 py-0.5 text-xs font-mono text-accent hover:text-paper transition-colors disabled:opacity-50"
+        >
+          {state === "running" ? "running..." : "run"}
+        </button>
       </div>
       <div className="relative overflow-x-auto">
         <pre

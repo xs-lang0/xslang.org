@@ -186,11 +186,8 @@ export function CodeBlock({
   const inner = (
     <>
       {filename && (
-        <div className="flex items-center justify-between border-b border-paper/15 px-4 py-2">
-          <div className="flex items-center gap-2 smallcaps text-paper/55">
-            <span className="inline-block w-2 h-2 rounded-full bg-accent" />
-            {filename}
-          </div>
+        <div className="border-b border-paper/15 px-4 py-2 text-xs font-mono text-paper/55">
+          {filename}
         </div>
       )}
       <div className="relative">

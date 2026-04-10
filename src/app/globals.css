@@ -9,13 +9,9 @@
   --color-muted: #6e6855;
   --color-faded: #a39b81;
   --color-border: #d3c9b0;
-  --color-border-strong: #1a1810;
   --color-surface: #1a1810;
-  --color-surface-deep: #0f0d08;
   --color-accent: #d8331b;
   --color-accent-dim: #b32915;
-  --color-accent-soft: #f5d2c9;
-  --color-stamp: #d8331b;
 
   --font-sans: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-fraunces), ui-serif, Georgia, serif;
@@ -23,112 +19,25 @@
 }
 
 @layer base {
-  html {
-    background: var(--color-paper);
-    color: var(--color-ink);
-  }
-
+  html { background: var(--color-paper); color: var(--color-ink); }
   body {
     background: var(--color-paper);
     color: var(--color-ink);
     font-family: var(--font-sans);
-    font-feature-settings: "ss01", "cv11";
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
-
-  ::selection {
-    background: var(--color-ink);
-    color: var(--color-paper);
-  }
-
-  pre, code, kbd {
-    font-family: var(--font-mono);
-    font-feature-settings: "calt", "ss01";
-  }
-
+  ::selection { background: var(--color-ink); color: var(--color-paper); }
+  pre, code, kbd { font-family: var(--font-mono); }
   h1, h2, h3, h4 {
     font-family: var(--font-serif);
-    font-variation-settings: "opsz" 144, "SOFT" 30, "WONK" 0;
     letter-spacing: -0.02em;
   }
 }
 
 @layer utilities {
-  .font-serif {
-    font-family: var(--font-serif);
-  }
-
-  .font-mono {
-    font-family: var(--font-mono);
-  }
-
-  .display {
-    font-family: var(--font-serif);
-    font-variation-settings: "opsz" 144, "SOFT" 80, "WONK" 0;
-    letter-spacing: -0.045em;
-    line-height: 0.85;
-  }
-
-  .display-italic {
-    font-family: var(--font-serif);
-    font-style: italic;
-    font-variation-settings: "opsz" 144, "SOFT" 60, "WONK" 1;
-    letter-spacing: -0.03em;
-    line-height: 0.95;
-  }
-
-  .smallcaps {
-    font-family: var(--font-mono);
-    text-transform: uppercase;
-    letter-spacing: 0.18em;
-    font-size: 0.7rem;
-    font-weight: 500;
-  }
-
-  .marginalia {
-    font-family: var(--font-serif);
-    font-style: italic;
-    font-variation-settings: "opsz" 14, "SOFT" 40, "WONK" 1;
-    color: var(--color-muted);
-    font-size: 0.82rem;
-    line-height: 1.45;
-  }
-
-  .ledger {
-    background-image: linear-gradient(
-      to right,
-      var(--color-ink) 0,
-      var(--color-ink) 6px,
-      transparent 6px,
-      transparent 14px,
-      var(--color-ink) 14px,
-      var(--color-ink) 16px
-    );
-    background-size: 16px 100%;
-    background-repeat: repeat-x;
-    background-position: left center;
-    height: 2px;
-  }
-
-  .stamp {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35em;
-    border: 1.5px solid var(--color-stamp);
-    color: var(--color-stamp);
-    padding: 0.2em 0.65em;
-    text-transform: uppercase;
-    letter-spacing: 0.18em;
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
-    font-weight: 500;
-    border-radius: 2px;
-    transform: rotate(-1.5deg);
-  }
-
-  .ink-rule { border-top: 1.5px solid var(--color-ink); }
-  .ink-rule-thin { border-top: 1px solid var(--color-ink); }
+  .font-serif { font-family: var(--font-serif); }
+  .font-mono { font-family: var(--font-mono); }
 }
 
 .grain { position: relative; isolation: isolate; }
@@ -138,95 +47,18 @@
   inset: 0;
   pointer-events: none;
   z-index: -1;
-  opacity: 0.5;
+  opacity: 0.4;
   mix-blend-mode: multiply;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.08  0 0 0 0 0.07  0 0 0 0 0.05  0 0 0 0.18 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   background-size: 240px 240px;
 }
 
-.nav-link {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  color: var(--color-ink);
-  transition: color 200ms ease;
-}
-.nav-link::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 100%;
-  bottom: -4px;
-  height: 1.5px;
-  background: var(--color-ink);
-  transition: right 280ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.nav-link:hover::after,
-.nav-link[data-active="true"]::after { right: 0; }
-
-@keyframes ink-rise {
-  0%   { opacity: 0; transform: translateY(28px) rotate(-1.5deg); filter: blur(6px); }
-  60%  { opacity: 1; filter: blur(0); }
-  100% { opacity: 1; transform: translateY(0) rotate(0); filter: blur(0); }
-}
-@keyframes fade-up {
-  0%   { opacity: 0; transform: translateY(12px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-@keyframes draw-line {
-  0%   { transform: scaleX(0); }
-  100% { transform: scaleX(1); }
-}
-
-.reveal { animation: fade-up 700ms cubic-bezier(0.16, 1, 0.3, 1) both; }
-.reveal-letter { animation: ink-rise 900ms cubic-bezier(0.16, 1, 0.3, 1) both; display: inline-block; }
-.draw-rule { animation: draw-line 900ms cubic-bezier(0.65, 0, 0.35, 1) both; transform-origin: left center; }
-
 .code-card {
-  position: relative;
   background: var(--color-surface);
   color: #f3ead8;
-  border: 1.5px solid var(--color-ink);
+  border: 1px solid var(--color-ink);
   border-radius: 2px;
-  box-shadow:
-    8px 8px 0 -1.5px var(--color-paper),
-    8px 8px 0 0 var(--color-ink);
-  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 220ms;
-}
-.code-card:hover {
-  transform: translate(-2px, -2px);
-  box-shadow:
-    10px 10px 0 -1.5px var(--color-paper),
-    10px 10px 0 0 var(--color-ink);
-}
-
-.feature-row {
-  position: relative;
-  transition: padding-left 240ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.feature-row::before {
-  content: "→";
-  position: absolute;
-  left: 0;
-  top: 0;
-  font-family: var(--font-mono);
-  color: var(--color-accent);
-  opacity: 0;
-  transform: translateX(-8px);
-  transition: opacity 200ms, transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.feature-row:hover { padding-left: 28px; }
-.feature-row:hover::before { opacity: 1; transform: translateX(0); }
-
-.dropcap::first-letter {
-  font-family: var(--font-serif);
-  font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1;
-  font-size: 4.4em;
-  line-height: 0.85;
-  float: left;
-  padding: 0.05em 0.12em 0 0;
-  color: var(--color-accent);
-  font-weight: 500;
+  box-shadow: 4px 4px 0 0 var(--color-ink);
 }
 
 .prose { font-family: var(--font-sans); color: var(--color-ink); font-size: 1rem; line-height: 1.65; }

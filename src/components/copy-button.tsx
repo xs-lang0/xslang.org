@@ -15,9 +15,9 @@ export function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="absolute right-3 top-3 smallcaps text-paper/40 hover:text-accent transition-colors"
+      className="absolute right-2 top-2 px-1.5 py-0.5 text-xs font-mono text-paper/40 hover:text-paper transition-colors"
     >
-      {copied ? "copied ✓" : "copy"}
+      {copied ? "copied!" : "copy"}
     </button>
   );
 }
