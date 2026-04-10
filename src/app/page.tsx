@@ -27,119 +27,109 @@ handle greet("world") {
 }`;
 
 const features = [
-  { title: "Gradual typing", desc: "Start untyped, add types where they matter. The type system stays out of your way until you need it." },
-  { title: "Algebraic effects", desc: "First-class effects for error handling, async, logging, and more. Composable and resumable." },
-  { title: "Pattern matching", desc: "Deep structural matching with guards, destructuring, ranges, regex, and exhaustiveness checking." },
-  { title: "Zero dependencies", desc: "The compiler is pure C. No LLVM, no runtime bloat. Builds in seconds." },
-  { title: "Multi-target", desc: "Transpile to C, JavaScript, or WebAssembly from a single codebase." },
-  { title: "Full concurrency", desc: "Spawn, async/await, actors, channels, nurseries. Pick the model that fits." },
-  { title: "Package registry", desc: "Install packages with xsi, publish your own, and browse everything at reg.xslang.org." },
-  { title: "Reactive bindings", desc: "Variables that auto-update when dependencies change. Add contracts to enforce invariants at runtime." },
+  { title: "gradual typing", desc: "Start untyped, add types where they matter. The type system stays out of your way until you need it." },
+  { title: "algebraic effects", desc: "First-class effects for error handling, async, logging. Composable and resumable." },
+  { title: "pattern matching", desc: "Deep structural matching with guards, destructuring, ranges, regex, and exhaustiveness checking." },
+  { title: "zero dependencies", desc: "The compiler is pure C. No LLVM, no runtime bloat. Builds in seconds." },
+  { title: "multi-target", desc: "Transpile to C, JavaScript, or WebAssembly from a single codebase." },
+  { title: "full concurrency", desc: "Spawn, async/await, actors, channels, nurseries. Pick the model that fits." },
+  { title: "package registry", desc: "Install packages with xsi, publish your own, browse at reg.xslang.org." },
+  { title: "reactive bindings", desc: "Variables that auto-update when dependencies change. Add contracts to enforce invariants." },
 ];
 
 const tooling = [
-  "Bytecode VM + JIT compiler",
+  "bytecode VM + JIT compiler",
   "LSP with completions and diagnostics",
   "DAP debugger",
-  "Formatter and linter",
-  "Test runner",
+  "formatter and linter",
+  "test runner",
   "VSCode extension",
-  "Plugin system",
-  "Package registry (xsi)",
+  "plugin system",
+  "package registry (xsi)",
 ];
 
 export default function Home() {
   return (
     <div className="mx-auto max-w-6xl px-6">
       {/* hero */}
-      <section className="grid gap-10 pt-20 pb-20 md:grid-cols-2 md:gap-12 md:items-start">
-        <div className="flex flex-col gap-5">
-          <h1
-            className="font-serif text-ink leading-[0.95]"
-            style={{ fontSize: "clamp(2.6rem, 5.6vw, 4.2rem)", fontVariationSettings: '"opsz" 144, "SOFT" 70', letterSpacing: "-0.035em" }}
-          >
+      <section className="grid gap-10 pt-16 pb-20 lg:pt-24 lg:pb-28 md:grid-cols-12 md:gap-10 fade-in">
+        <div className="md:col-span-7 flex flex-col gap-6">
+          <div className="label">-- the language</div>
+          <h1 className="text-[clamp(2.4rem,5.4vw,4rem)] font-semibold tracking-tight leading-[1.02] text-foreground">
             One language for{" "}
-            <span className="text-accent italic" style={{ fontVariationSettings: '"opsz" 144, "SOFT" 80, "WONK" 1' }}>
-              scripts, servers, and the browser.
-            </span>
+            <span className="text-accent">scripts, servers, and the&nbsp;browser.</span>
           </h1>
-          <p className="max-w-md text-lg leading-relaxed text-ink/70">
+          <p className="max-w-xl text-lg leading-relaxed text-foreground/70">
             XS is a fast, expressive language with gradual typing, algebraic effects, and a strong toolchain. Written in C with no dependencies.
           </p>
-          <div className="font-mono text-sm text-ink/60 border-y border-ink/15 py-2.5">
-            <span className="text-accent">$</span> curl -fsSL https://xslang.org/install | sh
+
+          <div className="flex items-center gap-2 font-mono text-sm border border-border bg-surface px-3 py-2.5 max-w-fit">
+            <span className="text-accent">$</span>
+            <span className="text-foreground/85">curl -fsSL https://xslang.org/install | sh</span>
           </div>
-          <div className="flex flex-wrap gap-3">
+
+          <div className="flex flex-wrap gap-3 mt-1">
             <Link
               href="/docs"
-              className="inline-flex items-center gap-2 bg-ink text-paper px-5 py-2.5 text-sm font-medium hover:bg-accent transition-colors"
+              className="inline-flex items-center gap-1.5 bg-accent text-background px-4 py-2 text-sm font-medium hover:bg-foreground transition-colors"
             >
-              Get started <span aria-hidden>→</span>
+              get started <span aria-hidden>→</span>
             </Link>
             <Link
               href="/playground"
-              className="inline-flex items-center border border-ink/30 px-5 py-2.5 text-sm font-medium text-ink hover:border-ink transition-colors"
+              className="inline-flex items-center gap-1.5 border border-border-2 px-4 py-2 text-sm font-medium text-foreground hover:border-accent hover:text-accent transition-colors"
             >
-              Try it online
+              try in browser
             </Link>
           </div>
         </div>
-        <div className="min-w-0">
-          <CodeBlock code={heroCode} runnable />
+
+        <div className="md:col-span-5 min-w-0">
+          <CodeBlock code={heroCode} runnable filename="hello.xs" />
         </div>
       </section>
 
-      {/* features */}
-      <section className="border-t border-ink/15 py-20">
-        <h2
-          className="font-serif text-ink mb-12"
-          style={{ fontSize: "clamp(1.8rem, 3.2vw, 2.4rem)", fontVariationSettings: '"opsz" 144, "SOFT" 50', letterSpacing: "-0.025em" }}
-        >
-          Features
-        </h2>
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      <SectionDivider label="features" />
+      <section className="py-16">
+        <div className="grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
           {features.map((f) => (
-            <div key={f.title}>
-              <h3 className="font-serif text-lg text-ink mb-2" style={{ fontVariationSettings: '"opsz" 30, "SOFT" 50' }}>
-                {f.title}
-              </h3>
-              <p className="text-sm leading-relaxed text-ink/70">{f.desc}</p>
-            </div>
+            <article key={f.title}>
+              <h3 className="text-base font-semibold text-foreground mb-2">{f.title}</h3>
+              <p className="text-sm leading-relaxed text-foreground/65">{f.desc}</p>
+            </article>
           ))}
         </div>
       </section>
 
-      {/* tooling */}
-      <section className="border-t border-ink/15 py-20">
-        <h2
-          className="font-serif text-ink mb-3"
-          style={{ fontSize: "clamp(1.8rem, 3.2vw, 2.4rem)", fontVariationSettings: '"opsz" 144, "SOFT" 50', letterSpacing: "-0.025em" }}
-        >
-          Tooling
-        </h2>
-        <p className="mb-8 text-ink/70">Everything you need, built in. No third-party toolchain required.</p>
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {tooling.map((item) => (
-            <li key={item} className="flex items-center gap-2 text-sm text-ink/85">
-              <span className="text-accent">→</span>
-              {item}
-            </li>
-          ))}
-        </ul>
+      <SectionDivider label="tooling" />
+      <section className="py-16">
+        <div className="grid md:grid-cols-12 gap-10">
+          <div className="md:col-span-5">
+            <h2 className="text-2xl font-semibold text-foreground mb-3 tracking-tight">
+              The tooling comes built in.
+            </h2>
+            <p className="text-foreground/70 leading-relaxed">
+              No third-party toolchain to wire up. No version drift between editor, runtime, and CI.
+            </p>
+          </div>
+          <ul className="md:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 self-center">
+            {tooling.map((item) => (
+              <li key={item} className="flex items-center gap-3 py-2 border-b border-border text-sm text-foreground/85">
+                <span className="text-accent font-mono">→</span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
 
-      {/* install */}
-      <section className="border-t border-ink/15 py-20">
-        <h2
-          className="font-serif text-ink mb-12"
-          style={{ fontSize: "clamp(1.8rem, 3.2vw, 2.4rem)", fontVariationSettings: '"opsz" 144, "SOFT" 50', letterSpacing: "-0.025em" }}
-        >
-          Works everywhere
-        </h2>
-        <div className="grid gap-8 lg:grid-cols-2">
+      <SectionDivider label="install" />
+      <section className="py-16">
+        <div className="grid lg:grid-cols-2 gap-8">
           <div>
-            <p className="mb-4 text-ink/70">
-              Install on any platform with a single command. No dependencies, no runtime, no setup.
+            <h3 className="font-semibold text-foreground mb-3">Install the toolchain</h3>
+            <p className="text-foreground/70 mb-4 text-sm leading-relaxed">
+              One binary on every desk. No runtime to install separately.
             </p>
             <CodeBlock
               code={`# linux / macos
@@ -154,8 +144,9 @@ cd xs && make && make install`}
             />
           </div>
           <div>
-            <p className="mb-4 text-ink/70">
-              Manage packages with the built-in installer. Browse the registry at reg.xslang.org.
+            <h3 className="font-semibold text-foreground mb-3">Install a package</h3>
+            <p className="text-foreground/70 mb-4 text-sm leading-relaxed">
+              Use xsi to fetch from <a href="https://reg.xslang.org" className="text-accent hover:underline">reg.xslang.org</a>.
             </p>
             <CodeBlock
               code={`# install a package
@@ -173,19 +164,22 @@ xsi search http`}
         </div>
       </section>
 
-      {/* concurrency */}
-      <section className="border-t border-ink/15 py-20">
-        <h2
-          className="font-serif text-ink mb-12"
-          style={{ fontSize: "clamp(1.8rem, 3.2vw, 2.4rem)", fontVariationSettings: '"opsz" 144, "SOFT" 50', letterSpacing: "-0.025em" }}
-        >
-          Concurrency that makes sense
-        </h2>
-        <div className="grid gap-8 lg:grid-cols-2">
-          <CodeBlock
-            filename="channels.xs"
-            runnable
-            code={`let ch = channel()
+      <SectionDivider label="concurrency" />
+      <section className="py-16">
+        <div className="grid lg:grid-cols-12 gap-10">
+          <div className="lg:col-span-4">
+            <h2 className="text-2xl font-semibold text-foreground mb-3 tracking-tight">
+              Concurrency that makes sense.
+            </h2>
+            <p className="text-foreground/70 leading-relaxed text-sm">
+              Spawn lightweight tasks. Send messages over channels. Model state with actors. Pick the shape, keep the speed.
+            </p>
+          </div>
+          <div className="lg:col-span-8 grid md:grid-cols-2 gap-6">
+            <CodeBlock
+              filename="channels.xs"
+              runnable
+              code={`let ch = channel()
 
 spawn {
   for i in 0..10 {
@@ -196,11 +190,11 @@ spawn {
 for i in 0..10 {
   println(ch.recv())
 }`}
-          />
-          <CodeBlock
-            filename="actors.xs"
-            runnable
-            code={`actor Counter {
+            />
+            <CodeBlock
+              filename="actors.xs"
+              runnable
+              code={`actor Counter {
   var count = 0
 
   fn increment() {
@@ -213,37 +207,45 @@ for i in 0..10 {
 let c = spawn Counter
 c.increment()
 c.increment()
-println(c.get())  -- 2`}
-          />
+println(c.get())`}
+            />
+          </div>
         </div>
       </section>
 
-      {/* cta */}
-      <section className="border-t border-ink/15 py-20 text-center">
-        <h2
-          className="font-serif text-ink mb-4"
-          style={{ fontSize: "clamp(1.8rem, 3.2vw, 2.4rem)", fontVariationSettings: '"opsz" 144, "SOFT" 50', letterSpacing: "-0.025em" }}
-        >
+      <SectionDivider label="get started" />
+      <section className="py-20 text-center">
+        <h2 className="text-3xl font-semibold tracking-tight text-foreground mb-3">
           Ready to try it?
         </h2>
-        <p className="mb-8 text-ink/70">XS is open source and actively developed.</p>
+        <p className="text-foreground/70 mb-8">
+          XS is open source and actively developed.
+        </p>
         <div className="flex justify-center gap-3">
           <Link
             href="/docs"
-            className="inline-flex items-center gap-2 bg-ink text-paper px-5 py-2.5 text-sm font-medium hover:bg-accent transition-colors"
+            className="inline-flex items-center gap-1.5 bg-accent text-background px-5 py-2.5 text-sm font-medium hover:bg-foreground transition-colors"
           >
-            Read the docs <span aria-hidden>→</span>
+            read the docs <span aria-hidden>→</span>
           </Link>
           <a
             href="https://github.com/xs-lang0/xs"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center border border-ink/30 px-5 py-2.5 text-sm font-medium text-ink hover:border-ink transition-colors"
+            className="inline-flex items-center gap-1.5 border border-border-2 px-5 py-2.5 text-sm font-medium text-foreground hover:border-accent hover:text-accent transition-colors"
           >
-            View on GitHub
+            view on github
           </a>
         </div>
       </section>
+    </div>
+  );
+}
+
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 border-t border-border pt-3">
+      <span className="label-accent">-- {label}</span>
     </div>
   );
 }

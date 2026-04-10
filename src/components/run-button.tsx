@@ -82,7 +82,7 @@ function Highlighted({ code }: { code: string }) {
   );
 }
 
-export function RunnableBlock({ code: original }: { code: string }) {
+export function RunnableBlock({ code: original, filename }: { code: string; filename?: string }) {
   const [code, setCode] = useState(original);
   const [state, setState] = useState<"idle" | "running" | "done">("idle");
   const [output, setOutput] = useState("");
@@ -141,23 +141,28 @@ export function RunnableBlock({ code: original }: { code: string }) {
   const lines = code.split("\n").length;
 
   return (
-    <div className="code-card overflow-hidden">
-      <div className="flex items-center justify-end gap-2 border-b border-paper/15 px-3 py-1.5">
-        {edited && (
+    <div className="border border-border bg-surface">
+      <div className="flex items-center justify-between gap-2 border-b border-border px-3.5 py-1.5">
+        <span className="font-mono text-xs text-foreground/55">
+          <span className="text-faded">--</span> {filename ?? "scratch.xs"}
+        </span>
+        <div className="flex items-center gap-3">
+          {edited && (
+            <button
+              onClick={handleReset}
+              className="font-mono text-xs text-foreground/55 hover:text-accent transition-colors"
+            >
+              reset
+            </button>
+          )}
           <button
-            onClick={handleReset}
-            className="rounded px-1.5 py-0.5 text-xs font-mono text-paper/55 hover:text-paper transition-colors"
+            onClick={handleRun}
+            disabled={state === "running"}
+            className="font-mono text-xs text-accent hover:text-foreground transition-colors disabled:opacity-50"
           >
-            reset
+            {state === "running" ? "running..." : "run →"}
           </button>
-        )}
-        <button
-          onClick={handleRun}
-          disabled={state === "running"}
-          className="rounded px-1.5 py-0.5 text-xs font-mono text-accent hover:text-paper transition-colors disabled:opacity-50"
-        >
-          {state === "running" ? "running..." : "run"}
-        </button>
+        </div>
       </div>
       <div className="relative overflow-x-auto">
         <pre
@@ -176,14 +181,14 @@ export function RunnableBlock({ code: original }: { code: string }) {
           autoCorrect="off"
           autoCapitalize="off"
           rows={Math.max(lines + 1, 3)}
-          className="relative block w-full resize-y border-none bg-transparent p-4 font-mono text-sm leading-relaxed text-transparent caret-paper outline-none"
+          className="relative block w-full resize-y border-none bg-transparent p-4 font-mono text-sm leading-relaxed text-transparent caret-foreground outline-none"
           style={{ tabSize: 2 }}
         />
       </div>
       {state === "done" && (
         <pre
-          className={`border-t border-paper/15 px-4 py-3 text-sm leading-relaxed ${
-            error ? "text-accent" : "text-paper/70"
+          className={`border-t border-border px-4 py-3 text-sm leading-relaxed ${
+            error ? "text-accent" : "text-foreground/70"
           }`}
           style={{ maxHeight: 200, overflowY: "auto" }}
         >

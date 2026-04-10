@@ -5,11 +5,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
-  { href: "/docs", label: "Docs" },
-  { href: "/examples", label: "Examples" },
-  { href: "/playground", label: "Playground" },
-  { href: "https://reg.xslang.org", label: "Registry", external: true },
-  { href: "https://github.com/xs-lang0/xs", label: "GitHub", external: true },
+  { href: "/docs", label: "docs" },
+  { href: "/examples", label: "examples" },
+  { href: "/playground", label: "playground" },
+  { href: "https://reg.xslang.org", label: "registry", external: true },
+  { href: "https://github.com/xs-lang0/xs", label: "github", external: true },
 ];
 
 export function MobileNav() {
@@ -20,7 +20,7 @@ export function MobileNav() {
     <div className="md:hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="flex h-8 w-8 items-center justify-center text-ink/70"
+        className="flex h-8 w-8 items-center justify-center text-foreground/70 hover:text-accent"
         aria-label="Toggle menu"
       >
         {open ? (
@@ -35,7 +35,7 @@ export function MobileNav() {
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 top-14 z-50 border-b border-ink/15 bg-paper px-6 py-4">
+        <div className="absolute left-0 right-0 top-14 z-50 border-b border-border bg-background px-6 py-4">
           <nav className="flex flex-col gap-3">
             {links.map((link) => {
               const active = pathname.startsWith(link.href) && !link.external;
@@ -45,7 +45,7 @@ export function MobileNav() {
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-ink/70 hover:text-ink"
+                  className="font-mono text-sm text-foreground/80 hover:text-accent"
                   onClick={() => setOpen(false)}
                 >
                   {link.label}
@@ -54,7 +54,7 @@ export function MobileNav() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`text-sm ${active ? "text-ink font-medium" : "text-ink/70 hover:text-ink"}`}
+                  className={`font-mono text-sm ${active ? "text-accent" : "text-foreground/80 hover:text-accent"}`}
                   onClick={() => setOpen(false)}
                 >
                   {link.label}

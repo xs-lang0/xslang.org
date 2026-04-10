@@ -18,14 +18,14 @@ const TYPES = new Set([
 ]);
 
 export const TOKEN_COLORS: Record<string, string> = {
-  keyword: "#f6b8a4",
-  string:  "#b8d6a8",
-  comment: "#7a7361",
-  type:    "#cdc6a8",
-  fn:      "#f1d59a",
-  number:  "#e9b292",
-  op:      "#a6a08c",
-  punct:   "#86806c",
+  keyword: "#ffc14d",
+  string:  "#a3c490",
+  comment: "#5e5b54",
+  type:    "#cec7b0",
+  fn:      "#e8d590",
+  number:  "#e6b78a",
+  op:      "#9b9482",
+  punct:   "#7a7466",
   attr:    "#f0a070",
 };
 
@@ -168,26 +168,24 @@ export function CodeBlock({
   code,
   filename,
   runnable,
-  bare,
 }: {
   code: string;
   filename?: string;
   runnable?: boolean;
-  bare?: boolean;
 }) {
   const trimmed = code.trim();
 
   if (runnable) {
-    return <RunnableBlock code={trimmed} />;
+    return <RunnableBlock code={trimmed} filename={filename} />;
   }
 
   const tokens = tokenize(trimmed);
 
-  const inner = (
-    <>
+  return (
+    <div className="border border-border bg-surface">
       {filename && (
-        <div className="border-b border-paper/15 px-4 py-2 text-xs font-mono text-paper/55">
-          {filename}
+        <div className="border-b border-border px-3.5 py-1.5 text-xs font-mono text-foreground/55">
+          <span className="text-faded">--</span> {filename}
         </div>
       )}
       <div className="relative">
@@ -197,9 +195,7 @@ export function CodeBlock({
             {tokens.map((token, i) => {
               const color = TOKEN_COLORS[token.type];
               return color ? (
-                <span key={i} style={{ color }}>
-                  {token.text}
-                </span>
+                <span key={i} style={{ color }}>{token.text}</span>
               ) : (
                 token.text
               );
@@ -207,16 +203,6 @@ export function CodeBlock({
           </code>
         </pre>
       </div>
-    </>
+    </div>
   );
-
-  if (bare) {
-    return (
-      <div className="overflow-hidden rounded-sm border border-paper/15 bg-surface text-paper">
-        {inner}
-      </div>
-    );
-  }
-
-  return <div className="code-card overflow-hidden">{inner}</div>;
 }
