@@ -141,16 +141,17 @@ export function RunnableBlock({ code: original, filename }: { code: string; file
   const lines = code.split("\n").length;
 
   return (
-    <div className="border border-border bg-surface">
-      <div className="flex items-center justify-between gap-2 border-b border-border px-3.5 py-1.5">
-        <span className="font-mono text-xs text-foreground/55">
-          <span className="text-faded">--</span> {filename ?? "scratch.xs"}
-        </span>
+    <div className="border border-border-2 bg-surface">
+      <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-accent" />
+          <span className="font-mono text-xs text-foreground/60">{filename ?? "scratch.xs"}</span>
+        </div>
         <div className="flex items-center gap-3">
           {edited && (
             <button
               onClick={handleReset}
-              className="font-mono text-xs text-foreground/55 hover:text-accent transition-colors"
+              className="font-mono text-[0.7rem] uppercase tracking-wider text-foreground/55 hover:text-accent transition-colors"
             >
               reset
             </button>
@@ -158,9 +159,9 @@ export function RunnableBlock({ code: original, filename }: { code: string; file
           <button
             onClick={handleRun}
             disabled={state === "running"}
-            className="font-mono text-xs text-accent hover:text-foreground transition-colors disabled:opacity-50"
+            className="font-mono text-[0.7rem] uppercase tracking-wider text-accent hover:text-foreground transition-colors disabled:opacity-50"
           >
-            {state === "running" ? "running..." : "run →"}
+            {state === "running" ? "running…" : "run →"}
           </button>
         </div>
       </div>
@@ -181,7 +182,7 @@ export function RunnableBlock({ code: original, filename }: { code: string; file
           autoCorrect="off"
           autoCapitalize="off"
           rows={Math.max(lines + 1, 3)}
-          className="relative block w-full resize-y border-none bg-transparent p-4 font-mono text-sm leading-relaxed text-transparent caret-foreground outline-none"
+          className="relative block w-full resize-y border-none bg-transparent p-4 font-mono text-sm leading-relaxed text-transparent caret-accent outline-none"
           style={{ tabSize: 2 }}
         />
       </div>

@@ -18,15 +18,15 @@ const TYPES = new Set([
 ]);
 
 export const TOKEN_COLORS: Record<string, string> = {
-  keyword: "#ffc14d",
-  string:  "#a3c490",
-  comment: "#5e5b54",
-  type:    "#cec7b0",
-  fn:      "#e8d590",
-  number:  "#e6b78a",
-  op:      "#9b9482",
-  punct:   "#7a7466",
-  attr:    "#f0a070",
+  keyword: "#cdff00",
+  string:  "#a2e3b0",
+  comment: "#5d6168",
+  type:    "#9fd5ff",
+  fn:      "#fffd9c",
+  number:  "#ffb088",
+  op:      "#a8acb3",
+  punct:   "#787c84",
+  attr:    "#ff8edc",
 };
 
 export function tokenize(code: string): Token[] {
@@ -182,10 +182,11 @@ export function CodeBlock({
   const tokens = tokenize(trimmed);
 
   return (
-    <div className="border border-border bg-surface">
+    <div className="border border-border-2 bg-surface">
       {filename && (
-        <div className="border-b border-border px-3.5 py-1.5 text-xs font-mono text-foreground/55">
-          <span className="text-faded">--</span> {filename}
+        <div className="flex items-center gap-2 border-b border-border px-4 py-2">
+          <span className="w-2 h-2 rounded-full bg-accent" />
+          <span className="font-mono text-xs text-foreground/60">{filename}</span>
         </div>
       )}
       <div className="relative">
