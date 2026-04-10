@@ -63,7 +63,7 @@
 .scratch:hover::after { opacity: 1; transform: translateY(0); }
 .scratch[data-active="true"]::after { opacity: 1; transform: translateY(0); }
 
-/* solid orange button — no shadow, no stamp */
+/* solid orange button, no shadow, no stamp */
 .btn-solid {
   display: inline-flex;
   align-items: center;

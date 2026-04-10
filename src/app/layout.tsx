@@ -17,9 +17,9 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "XS — A small programming language",
+  title: "XS - A programming language",
   description:
-    "A small, fast programming language with gradual typing, algebraic effects, and zero dependencies. Written in C.",
+    "A fast, expressive programming language with gradual typing, algebraic effects, and zero dependencies. Written in C.",
 };
 
 const navLinks = [

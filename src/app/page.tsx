@@ -37,10 +37,10 @@ const features = [
   ["Gradual typing", "Start untyped. Add types where they earn their keep. The type checker stays out of your way until you ask."],
   ["Algebraic effects", "First-class effects for errors, async, logging, and more. Composable. Resumable. Worth the curve."],
   ["Pattern matching", "Deep structural matching with guards, ranges, regex, and exhaustiveness checks. The compiler tells you what you missed."],
-  ["Zero dependencies", "The compiler is pure C. No LLVM, no runtime, no version drift. It builds in seconds and ships in kilobytes."],
+  ["Zero dependencies", "The compiler is pure C. No LLVM, no runtime, no version drift. Builds in seconds."],
   ["Multi-target", "One source. Three backends: native C, JavaScript, WebAssembly. No conditional code paths."],
   ["Full concurrency", "Spawn, async/await, actors, channels, nurseries. Pick the model that fits the problem in front of you."],
-  ["Package registry", "Install with xsi. Publish in seconds. Browse the catalog at reg.xslang.org."],
+  ["Package registry", "Install packages with xsi, publish your own, and browse everything at reg.xslang.org."],
   ["Reactive bindings", "Variables that auto-update with their dependencies. Add contracts to enforce invariants at runtime."],
 ];
 
@@ -64,10 +64,10 @@ export default function Home() {
           <div className="lg:col-span-7">
             <h1 className="text-[clamp(2.4rem,5.4vw,3.8rem)] font-bold tracking-tight leading-[1.05]">
               <span className="relative inline-block">
-                xs
+                One
                 <CircleMark className="absolute -inset-3 w-[calc(100%+1.5rem)] h-[calc(100%+1.5rem)] text-accent pointer-events-none" />
               </span>{" "}
-              is a small programming language for{" "}
+              language for{" "}
               <span className="relative inline-block">
                 scripts, servers, and the browser.
                 <UnderlineMark className="absolute -bottom-1 left-0 w-full h-2 text-accent" />
@@ -75,7 +75,7 @@ export default function Home() {
             </h1>
 
             <p className="mt-7 text-lg leading-relaxed text-ink/75 max-w-2xl">
-              Gradual typing. Algebraic effects. Pattern matching. Three compile targets from a single codebase. Written in C, ships in about fifty kilobytes, no runtime to install.
+              A fast, expressive language with gradual typing, algebraic effects, and a strong toolchain. Written in C with no dependencies.
             </p>
 
             {/* install line */}
@@ -226,7 +226,7 @@ println(c.get())`}
 
         <div className="mt-10 grid lg:grid-cols-2 gap-8">
           <div>
-            <div className="font-mono text-xs uppercase tracking-wider text-ink/55 mb-2">a — toolchain</div>
+            <div className="font-mono text-xs uppercase tracking-wider text-ink/55 mb-2">a / toolchain</div>
             <CodeBlock
               code={`# linux / macos
 curl -fsSL https://xslang.org/install | sh
@@ -240,7 +240,7 @@ cd xs && make && make install`}
             />
           </div>
           <div>
-            <div className="font-mono text-xs uppercase tracking-wider text-ink/55 mb-2">b — packages</div>
+            <div className="font-mono text-xs uppercase tracking-wider text-ink/55 mb-2">b / packages</div>
             <CodeBlock
               code={`# install a package
 xsi get json-utils
@@ -267,10 +267,10 @@ xsi search http`}
               <br />
               Apache-2.0.
               <br />
-              <span className="text-accent">Built in the open.</span>
+              <span className="text-accent">Actively developed.</span>
             </h2>
             <p className="mt-5 text-ink/70 max-w-xl">
-              XS is small but it isn&apos;t a toy. The compiler runs in production. Pull requests welcome.
+              XS is open source and built in the open.
             </p>
             <div className="flex flex-wrap gap-3 mt-7">
               <Link href="/docs" className="btn-solid">
