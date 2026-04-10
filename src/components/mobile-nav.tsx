@@ -5,11 +5,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
-  { href: "/docs", label: "docs" },
-  { href: "/examples", label: "examples" },
-  { href: "/playground", label: "playground" },
-  { href: "https://reg.xslang.org", label: "registry", external: true },
-  { href: "https://github.com/xs-lang0/xs", label: "github", external: true },
+  { href: "/docs", label: "Docs" },
+  { href: "/examples", label: "Examples" },
+  { href: "/playground", label: "Playground" },
+  { href: "https://reg.xslang.org", label: "Registry", external: true },
+  { href: "https://github.com/xs-lang0/xs", label: "GitHub", external: true },
 ];
 
 export function MobileNav() {
@@ -20,7 +20,7 @@ export function MobileNav() {
     <div className="md:hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="flex h-9 w-9 items-center justify-center text-foreground border border-border-2"
+        className="flex h-9 w-9 items-center justify-center text-ink hover:text-accent border-[1.5px] border-rule"
         aria-label="Toggle menu"
       >
         {open ? (
@@ -35,8 +35,8 @@ export function MobileNav() {
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 top-16 z-50 border-y-2 border-accent bg-background px-6 py-6">
-          <nav className="flex flex-col gap-4">
+        <div className="absolute left-0 right-0 top-16 z-50 border-b-[1.5px] border-rule bg-paper px-6 py-6">
+          <nav className="flex flex-col gap-3">
             {links.map((link) => {
               const active = pathname.startsWith(link.href) && !link.external;
               return link.external ? (
@@ -45,7 +45,7 @@ export function MobileNav() {
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-display text-3xl text-foreground hover:text-accent"
+                  className="text-xl font-bold text-ink hover:text-accent"
                   onClick={() => setOpen(false)}
                 >
                   {link.label} <span className="text-accent">↗</span>
@@ -54,7 +54,7 @@ export function MobileNav() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`font-display text-3xl ${active ? "text-accent" : "text-foreground hover:text-accent"}`}
+                  className={`text-xl font-bold ${active ? "text-accent" : "text-ink hover:text-accent"}`}
                   onClick={() => setOpen(false)}
                 >
                   {link.label}

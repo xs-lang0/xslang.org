@@ -141,17 +141,14 @@ export function RunnableBlock({ code: original, filename }: { code: string; file
   const lines = code.split("\n").length;
 
   return (
-    <div className="border border-border-2 bg-surface">
-      <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-accent" />
-          <span className="font-mono text-xs text-foreground/60">{filename ?? "scratch.xs"}</span>
-        </div>
+    <div className="code-box bg-soft">
+      <div className="flex items-center justify-between gap-2 border-b-[1.5px] border-rule px-3.5 py-1.5">
+        <span className="font-mono text-xs text-ink/60">{filename ?? "scratch.xs"}</span>
         <div className="flex items-center gap-3">
           {edited && (
             <button
               onClick={handleReset}
-              className="font-mono text-[0.7rem] uppercase tracking-wider text-foreground/55 hover:text-accent transition-colors"
+              className="font-mono text-xs text-ink/55 hover:text-accent transition-colors"
             >
               reset
             </button>
@@ -159,7 +156,7 @@ export function RunnableBlock({ code: original, filename }: { code: string; file
           <button
             onClick={handleRun}
             disabled={state === "running"}
-            className="font-mono text-[0.7rem] uppercase tracking-wider text-accent hover:text-foreground transition-colors disabled:opacity-50"
+            className="font-mono text-xs font-medium text-accent hover:text-ink transition-colors disabled:opacity-50"
           >
             {state === "running" ? "running…" : "run →"}
           </button>
@@ -167,7 +164,7 @@ export function RunnableBlock({ code: original, filename }: { code: string; file
       </div>
       <div className="relative overflow-x-auto">
         <pre
-          className="pointer-events-none absolute inset-0 p-4 font-mono text-sm leading-relaxed"
+          className="pointer-events-none absolute inset-0 p-4 font-mono text-sm leading-relaxed text-ink/85"
           aria-hidden="true"
         >
           <code><Highlighted code={code} /></code>
@@ -188,8 +185,8 @@ export function RunnableBlock({ code: original, filename }: { code: string; file
       </div>
       {state === "done" && (
         <pre
-          className={`border-t border-border px-4 py-3 text-sm leading-relaxed ${
-            error ? "text-accent" : "text-foreground/70"
+          className={`border-t-[1.5px] border-rule px-4 py-3 text-sm leading-relaxed ${
+            error ? "text-accent" : "text-ink/70"
           }`}
           style={{ maxHeight: 200, overflowY: "auto" }}
         >

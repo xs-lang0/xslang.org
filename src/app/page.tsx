@@ -1,5 +1,12 @@
 import { CodeBlock } from "@/components/code-block";
 import Link from "next/link";
+import {
+  CircleMark,
+  UnderlineMark,
+  ArrowMark,
+  StarMark,
+  BracketMark,
+} from "@/components/sketch-marks";
 
 const heroCode = `-- pattern matching
 fn describe(value) {
@@ -27,123 +34,133 @@ handle greet("world") {
 }`;
 
 const features = [
-  { n: "01", title: "Gradual typing", desc: "Start untyped, add types where they matter. The type system stays out of your way until you need it." },
-  { n: "02", title: "Algebraic effects", desc: "First-class effects for error handling, async, logging. Composable and resumable." },
-  { n: "03", title: "Pattern matching", desc: "Deep structural matching with guards, ranges, regex, and exhaustiveness checking." },
-  { n: "04", title: "Zero dependencies", desc: "The compiler is pure C. No LLVM, no runtime bloat. Builds in seconds." },
-  { n: "05", title: "Multi-target", desc: "Transpile to C, JavaScript, or WebAssembly from a single codebase." },
-  { n: "06", title: "Full concurrency", desc: "Spawn, async/await, actors, channels, nurseries. Pick the model that fits." },
-  { n: "07", title: "Package registry", desc: "Install with xsi, publish your own, browse at reg.xslang.org." },
-  { n: "08", title: "Reactive bindings", desc: "Variables that auto-update with their dependencies. Add contracts at runtime." },
+  ["Gradual typing", "Start untyped. Add types where they earn their keep. The type checker stays out of your way until you ask."],
+  ["Algebraic effects", "First-class effects for errors, async, logging, and more. Composable. Resumable. Worth the curve."],
+  ["Pattern matching", "Deep structural matching with guards, ranges, regex, and exhaustiveness checks. The compiler tells you what you missed."],
+  ["Zero dependencies", "The compiler is pure C. No LLVM, no runtime, no version drift. It builds in seconds and ships in kilobytes."],
+  ["Multi-target", "One source. Three backends: native C, JavaScript, WebAssembly. No conditional code paths."],
+  ["Full concurrency", "Spawn, async/await, actors, channels, nurseries. Pick the model that fits the problem in front of you."],
+  ["Package registry", "Install with xsi. Publish in seconds. Browse the catalog at reg.xslang.org."],
+  ["Reactive bindings", "Variables that auto-update with their dependencies. Add contracts to enforce invariants at runtime."],
 ];
 
 const tooling = [
-  "bytecode VM + JIT compiler",
+  "bytecode VM with JIT compiler",
   "LSP with completions and diagnostics",
-  "DAP debugger",
-  "formatter and linter",
-  "test runner",
-  "VSCode extension",
-  "plugin system",
-  "package registry (xsi)",
+  "DAP debugger for any editor",
+  "built-in formatter and linter",
+  "test runner with coverage",
+  "first-party VSCode extension",
+  "plugin system for extensions",
+  "package registry via xsi",
 ];
 
 export default function Home() {
   return (
-    <div>
+    <div className="mx-auto max-w-5xl px-6 lg:px-8">
       {/* HERO */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 dotgrid opacity-60" />
-        <div className="halo" style={{ width: 720, height: 720, top: -240, left: -180 }} />
-        <div className="halo" style={{ width: 480, height: 480, top: 280, right: -120, opacity: 0.35 }} />
+      <section className="pt-16 pb-20 lg:pt-24 lg:pb-24">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-start">
+          <div className="lg:col-span-7">
+            <h1 className="text-[clamp(2.4rem,5.4vw,3.8rem)] font-bold tracking-tight leading-[1.05]">
+              <span className="relative inline-block">
+                xs
+                <CircleMark className="absolute -inset-3 w-[calc(100%+1.5rem)] h-[calc(100%+1.5rem)] text-accent pointer-events-none" />
+              </span>{" "}
+              is a small programming language for{" "}
+              <span className="relative inline-block">
+                scripts, servers, and the browser.
+                <UnderlineMark className="absolute -bottom-1 left-0 w-full h-2 text-accent" />
+              </span>
+            </h1>
 
-        <div className="relative mx-auto max-w-[1400px] px-6 lg:px-10 pt-20 pb-28 lg:pt-28 lg:pb-32">
-          <div className="grid grid-cols-12 gap-8 items-start">
-            <div className="col-span-12 lg:col-span-7 fade-up">
-              <div className="label-lime mb-5 flex items-center gap-2">
-                <span className="pulse-dot" /> xs / v0.2.3 — april 2026
+            <p className="mt-7 text-lg leading-relaxed text-ink/75 max-w-2xl">
+              Gradual typing. Algebraic effects. Pattern matching. Three compile targets from a single codebase. Written in C, ships in about fifty kilobytes, no runtime to install.
+            </p>
+
+            {/* install line */}
+            <div className="mt-8 relative inline-flex items-center max-w-full">
+              <div className="absolute -left-12 -top-3 hidden lg:block">
+                <ArrowMark className="w-12 h-12 text-accent" />
               </div>
-              <h1
-                className="font-display text-foreground"
-                style={{ fontSize: "clamp(3rem, 8.5vw, 7rem)", lineHeight: 0.92, letterSpacing: "-0.04em" }}
-              >
-                one language.
-                <br />
-                <span className="text-accent">three targets.</span>
-                <br />
-                zero deps.
-              </h1>
-              <p className="mt-7 max-w-xl text-lg lg:text-xl leading-relaxed text-foreground/75">
-                XS is a fast, expressive language with gradual typing, algebraic effects, and a strong toolchain. Compile to C, JavaScript, or WebAssembly from a single codebase.
-              </p>
-
-              <div className="mt-8 inline-flex items-center gap-3 font-mono text-sm border border-border-2 bg-surface px-4 py-3 select-all">
-                <span className="text-accent">$</span>
-                <span className="text-foreground/90">curl&nbsp;-fsSL&nbsp;https://xslang.org/install&nbsp;|&nbsp;sh</span>
-                <span className="caret" />
-              </div>
-
-              <div className="mt-7 flex flex-wrap gap-3">
-                <Link href="/docs" className="btn-lime">get started <span aria-hidden>→</span></Link>
-                <Link href="/playground" className="btn-ghost">try in browser</Link>
+              <div className="font-mono text-sm bg-soft border-[1.5px] border-rule px-4 py-2.5 select-all">
+                <span className="text-accent font-medium">$</span>{" "}
+                <span className="text-ink">curl -fsSL https://xslang.org/install | sh</span>
               </div>
             </div>
 
-            <div className="col-span-12 lg:col-span-5 min-w-0 fade-up" style={{ animationDelay: "180ms" }}>
-              <CodeBlock code={heroCode} runnable filename="hello.xs" />
+            <div className="flex flex-wrap gap-3 mt-7">
+              <Link href="/docs" className="btn-solid">
+                Get started <span aria-hidden>→</span>
+              </Link>
+              <Link href="/playground" className="btn-line">
+                Try it in the browser
+              </Link>
             </div>
           </div>
 
-          {/* metric strip */}
-          <div className="relative mt-20 grid grid-cols-2 md:grid-cols-4 border-t-2 border-accent">
-            {[
-              ["~50kb", "compiler binary"],
-              ["3", "compile targets"],
-              ["0", "external deps"],
-              ["~7s", "cold build"],
-            ].map(([k, v], i) => (
-              <div
-                key={k}
-                className={`px-5 py-7 ${i > 0 ? "border-l border-border" : ""}`}
-              >
-                <div className="font-display text-4xl lg:text-5xl text-foreground leading-none">{k}</div>
-                <div className="label mt-3">{v}</div>
-              </div>
-            ))}
+          <div className="lg:col-span-5 min-w-0 mt-2">
+            <CodeBlock code={heroCode} runnable filename="hello.xs" />
+          </div>
+        </div>
+      </section>
+
+      {/* TARGETS DIAGRAM */}
+      <section className="py-12 border-t-[1.5px] border-rule">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+          <div className="md:col-span-4">
+            <h2 className="text-2xl font-bold tracking-tight">
+              Write once<span className="text-accent">.</span>
+              <br />
+              Ship anywhere.
+            </h2>
+            <p className="mt-3 text-ink/70 leading-relaxed">
+              The XS compiler emits idiomatic output for three different runtimes from the same source.
+            </p>
+          </div>
+
+          <div className="md:col-span-8">
+            <TargetsDiagram />
           </div>
         </div>
       </section>
 
       {/* FEATURES */}
-      <section className="relative mx-auto max-w-[1400px] px-6 lg:px-10 py-24">
-        <SectionHead kicker="01 / what you get" title="Features" lead="Eight ideas that hold the language together." />
-        <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {features.map((f) => (
-            <article key={f.n} className="feat" data-n={f.n}>
-              <div className="label-lime mb-4">{f.n}</div>
-              <h3 className="font-display text-xl text-foreground mb-2 leading-tight">{f.title}</h3>
-              <p className="text-sm leading-relaxed text-foreground/70 relative z-10">{f.desc}</p>
-            </article>
-          ))}
+      <section className="py-16 border-t-[1.5px] border-rule">
+        <div className="flex items-baseline gap-4 mb-10">
+          <h2 className="text-3xl font-bold tracking-tight">Eight ideas</h2>
+          <StarMark className="w-5 h-5 text-accent" />
         </div>
+        <ul className="grid sm:grid-cols-2 gap-x-12 gap-y-8">
+          {features.map(([title, desc]) => (
+            <li key={title} className="flex gap-4">
+              <span className="font-mono text-sm text-accent pt-1.5 select-none">→</span>
+              <div>
+                <h3 className="font-bold text-lg mb-1.5 text-ink">{title}</h3>
+                <p className="text-sm text-ink/70 leading-relaxed">{desc}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
       </section>
 
       {/* TOOLING */}
-      <section className="relative bg-surface border-y border-border">
-        <div className="absolute inset-0 dotgrid opacity-40" />
-        <div className="relative mx-auto max-w-[1400px] px-6 lg:px-10 py-24">
-          <div className="grid lg:grid-cols-12 gap-10">
-            <div className="lg:col-span-5">
-              <SectionHead kicker="02 / batteries in" title="The whole toolchain. One binary." lead="No third-party setup. No version drift between editor, runtime, and CI. Everything ships together." compact />
-            </div>
-            <ul className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-0 self-center">
-              {tooling.map((item, i) => (
-                <li
-                  key={item}
-                  className="flex items-baseline gap-4 py-3.5 border-b border-border text-base text-foreground/85"
-                >
-                  <span className="font-mono text-xs text-accent w-8">{String(i + 1).padStart(2, "0")}</span>
-                  <span>{item}</span>
+      <section className="py-16 border-t-[1.5px] border-rule">
+        <div className="grid md:grid-cols-12 gap-10">
+          <div className="md:col-span-5">
+            <h2 className="text-3xl font-bold tracking-tight">
+              Toolchain in one binary.
+            </h2>
+            <p className="mt-3 text-ink/70 leading-relaxed">
+              No LSP server to wire up separately. No formatter to install. No debugger to configure. Everything ships with the compiler.
+            </p>
+          </div>
+          <div className="md:col-span-7">
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
+              {tooling.map((item) => (
+                <li key={item} className="py-2.5 border-b border-rule/15 text-ink/85 flex items-baseline gap-3">
+                  <span className="text-accent font-bold">·</span>
+                  {item}
                 </li>
               ))}
             </ul>
@@ -152,9 +169,18 @@ export default function Home() {
       </section>
 
       {/* CONCURRENCY */}
-      <section className="relative mx-auto max-w-[1400px] px-6 lg:px-10 py-24">
-        <SectionHead kicker="03 / parallelism" title="Concurrency that holds up." lead="Lightweight tasks. Channels. Actors. Nurseries. Pick the shape, keep the speed." />
-        <div className="mt-14 grid gap-6 lg:grid-cols-2">
+      <section className="py-16 border-t-[1.5px] border-rule">
+        <div className="relative">
+          <h2 className="text-3xl font-bold tracking-tight inline-block relative">
+            Concurrency that
+            <span className="text-accent"> fits the problem</span>.
+          </h2>
+        </div>
+        <p className="mt-3 text-ink/70 leading-relaxed max-w-2xl">
+          Lightweight tasks. Channels. Actors. Nurseries. Pick whichever shape suits the work.
+        </p>
+
+        <div className="mt-10 grid lg:grid-cols-2 gap-6">
           <CodeBlock
             filename="channels.xs"
             runnable
@@ -192,15 +218,17 @@ println(c.get())`}
       </section>
 
       {/* INSTALL */}
-      <section className="relative bg-surface border-y border-border">
-        <div className="absolute inset-0 dotgrid opacity-40" />
-        <div className="relative mx-auto max-w-[1400px] px-6 lg:px-10 py-24">
-          <SectionHead kicker="04 / ship it" title="Works everywhere." lead="One binary. One package manager. Every platform." />
-          <div className="mt-14 grid gap-8 lg:grid-cols-2">
-            <div>
-              <div className="label-lime mb-3">a / install the toolchain</div>
-              <CodeBlock
-                code={`# linux / macos
+      <section className="py-16 border-t-[1.5px] border-rule">
+        <h2 className="text-3xl font-bold tracking-tight">Install it.</h2>
+        <p className="mt-3 text-ink/70 leading-relaxed max-w-2xl">
+          One binary on every platform. No runtime to install separately. Manage packages with the built-in installer.
+        </p>
+
+        <div className="mt-10 grid lg:grid-cols-2 gap-8">
+          <div>
+            <div className="font-mono text-xs uppercase tracking-wider text-ink/55 mb-2">a — toolchain</div>
+            <CodeBlock
+              code={`# linux / macos
 curl -fsSL https://xslang.org/install | sh
 
 # windows (powershell)
@@ -209,12 +237,12 @@ irm https://xslang.org/install.ps1 | iex
 # build from source
 git clone https://github.com/xs-lang0/xs
 cd xs && make && make install`}
-              />
-            </div>
-            <div>
-              <div className="label-lime mb-3">b / install a package</div>
-              <CodeBlock
-                code={`# install a package
+            />
+          </div>
+          <div>
+            <div className="font-mono text-xs uppercase tracking-wider text-ink/55 mb-2">b — packages</div>
+            <CodeBlock
+              code={`# install a package
 xsi get json-utils
 
 # use it
@@ -224,56 +252,103 @@ println(data.name)
 
 # search the registry
 xsi search http`}
-              />
-            </div>
+            />
           </div>
         </div>
       </section>
 
       {/* CTA */}
-      <section className="relative overflow-hidden">
-        <div className="halo" style={{ width: 720, height: 720, bottom: -300, left: "50%", transform: "translateX(-50%)" }} />
-        <div className="relative mx-auto max-w-[1400px] px-6 lg:px-10 py-32 text-center">
-          <h2
-            className="font-display text-foreground inline-block"
-            style={{ fontSize: "clamp(3rem, 9vw, 8rem)", lineHeight: 0.9, letterSpacing: "-0.04em" }}
-          >
-            start writing<span className="text-accent">.</span>
-          </h2>
-          <p className="mt-6 text-lg text-foreground/75 max-w-md mx-auto">
-            Open source. Apache-2.0. Actively developed in the open.
-          </p>
-          <div className="mt-10 flex justify-center gap-3">
-            <Link href="/docs" className="btn-lime">read the docs <span aria-hidden>→</span></Link>
-            <a href="https://github.com/xs-lang0/xs" target="_blank" rel="noopener noreferrer" className="btn-ghost">view on github ↗</a>
+      <section className="py-20 border-t-[1.5px] border-rule">
+        <div className="flex items-start gap-6">
+          <BracketMark className="w-6 h-32 text-accent shrink-0 mt-2" side="left" />
+          <div className="flex-1">
+            <h2 className="text-[clamp(2.2rem,5vw,3.6rem)] font-bold tracking-tight leading-[1.05]">
+              Open source.
+              <br />
+              Apache-2.0.
+              <br />
+              <span className="text-accent">Built in the open.</span>
+            </h2>
+            <p className="mt-5 text-ink/70 max-w-xl">
+              XS is small but it isn&apos;t a toy. The compiler runs in production. Pull requests welcome.
+            </p>
+            <div className="flex flex-wrap gap-3 mt-7">
+              <Link href="/docs" className="btn-solid">
+                Read the docs <span aria-hidden>→</span>
+              </Link>
+              <a href="https://github.com/xs-lang0/xs" target="_blank" rel="noopener noreferrer" className="btn-line">
+                View on GitHub
+              </a>
+            </div>
           </div>
+          <BracketMark className="w-6 h-32 text-accent shrink-0 mt-2" side="right" />
         </div>
       </section>
     </div>
   );
 }
 
-function SectionHead({
-  kicker,
-  title,
-  lead,
-  compact,
-}: {
-  kicker: string;
-  title: string;
-  lead?: string;
-  compact?: boolean;
-}) {
+function TargetsDiagram() {
   return (
-    <div className={compact ? "" : "max-w-3xl"}>
-      <div className="label-lime mb-4">{kicker}</div>
-      <h2
-        className="font-display text-foreground"
-        style={{ fontSize: compact ? "clamp(2rem,4vw,3rem)" : "clamp(2.4rem,5.4vw,4.4rem)", letterSpacing: "-0.035em", lineHeight: 0.95 }}
-      >
-        {title}
-      </h2>
-      {lead && <p className="mt-5 text-base lg:text-lg text-foreground/70 max-w-2xl leading-relaxed">{lead}</p>}
-    </div>
+    <svg viewBox="0 0 600 200" className="w-full h-auto" aria-label="XS compiles to C, JavaScript, and WebAssembly">
+      {/* SOURCE node */}
+      <g>
+        <rect
+          x="30" y="80" width="120" height="50"
+          fill="#fdfbf4"
+          stroke="#1a1815"
+          strokeWidth="1.8"
+        />
+        <text x="90" y="110" textAnchor="middle" fontFamily="var(--font-jetbrains), monospace" fontSize="14" fill="#1a1815" fontWeight="500">
+          hello.xs
+        </text>
+      </g>
+
+      {/* arrows fan out */}
+      <g stroke="#ff6b00" strokeWidth="1.7" fill="none" strokeLinecap="round" strokeLinejoin="round">
+        {/* to C */}
+        <path d="M150 95 Q 250 60, 360 50" />
+        <path d="M353 44 L 363 50 L 354 56" />
+        {/* to JS */}
+        <path d="M150 105 Q 250 105, 360 105" />
+        <path d="M353 99 L 363 105 L 354 111" />
+        {/* to Wasm */}
+        <path d="M150 115 Q 250 150, 360 162" />
+        <path d="M353 156 L 363 162 L 354 168" />
+      </g>
+
+      {/* target nodes */}
+      <g>
+        <rect x="370" y="30" width="180" height="40" fill="#fdfbf4" stroke="#1a1815" strokeWidth="1.5" />
+        <text x="385" y="55" fontFamily="var(--font-hanken), sans-serif" fontSize="14" fontWeight="600" fill="#1a1815">
+          native C
+        </text>
+        <text x="540" y="55" textAnchor="end" fontFamily="var(--font-jetbrains), monospace" fontSize="11" fill="#6c655a">
+          .c
+        </text>
+
+        <rect x="370" y="85" width="180" height="40" fill="#fdfbf4" stroke="#1a1815" strokeWidth="1.5" />
+        <text x="385" y="110" fontFamily="var(--font-hanken), sans-serif" fontSize="14" fontWeight="600" fill="#1a1815">
+          JavaScript
+        </text>
+        <text x="540" y="110" textAnchor="end" fontFamily="var(--font-jetbrains), monospace" fontSize="11" fill="#6c655a">
+          .js
+        </text>
+
+        <rect x="370" y="142" width="180" height="40" fill="#fdfbf4" stroke="#1a1815" strokeWidth="1.5" />
+        <text x="385" y="167" fontFamily="var(--font-hanken), sans-serif" fontSize="14" fontWeight="600" fill="#1a1815">
+          WebAssembly
+        </text>
+        <text x="540" y="167" textAnchor="end" fontFamily="var(--font-jetbrains), monospace" fontSize="11" fill="#6c655a">
+          .wasm
+        </text>
+      </g>
+
+      {/* tiny scribble next to source */}
+      <g stroke="#ff6b00" strokeWidth="1.4" fill="none" strokeLinecap="round">
+        <path d="M55 55 Q 65 50, 75 56 Q 80 62, 70 67" />
+        <path d="M68 65 L 72 70 L 65 71" />
+      </g>
+    </svg>
   );
 }

@@ -18,15 +18,15 @@ const TYPES = new Set([
 ]);
 
 export const TOKEN_COLORS: Record<string, string> = {
-  keyword: "#cdff00",
-  string:  "#a2e3b0",
-  comment: "#5d6168",
-  type:    "#9fd5ff",
-  fn:      "#fffd9c",
-  number:  "#ffb088",
-  op:      "#a8acb3",
-  punct:   "#787c84",
-  attr:    "#ff8edc",
+  keyword: "#c4451c",
+  string:  "#3f6e2c",
+  comment: "#9a8f74",
+  type:    "#6f4524",
+  fn:      "#a05a14",
+  number:  "#a85a26",
+  op:      "#5d544a",
+  punct:   "#7c7468",
+  attr:    "#b04826",
 };
 
 export function tokenize(code: string): Token[] {
@@ -182,16 +182,15 @@ export function CodeBlock({
   const tokens = tokenize(trimmed);
 
   return (
-    <div className="border border-border-2 bg-surface">
+    <div className="code-box bg-soft">
       {filename && (
-        <div className="flex items-center gap-2 border-b border-border px-4 py-2">
-          <span className="w-2 h-2 rounded-full bg-accent" />
-          <span className="font-mono text-xs text-foreground/60">{filename}</span>
+        <div className="border-b-[1.5px] border-rule px-3.5 py-1.5 font-mono text-xs text-ink/60 flex items-center justify-between">
+          <span>{filename}</span>
         </div>
       )}
       <div className="relative">
         <CopyButton text={trimmed} />
-        <pre className="overflow-x-auto p-4 text-sm leading-relaxed">
+        <pre className="overflow-x-auto p-4 text-sm leading-relaxed text-ink/85">
           <code>
             {tokens.map((token, i) => {
               const color = TOKEN_COLORS[token.type];
