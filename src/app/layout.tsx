@@ -81,7 +81,7 @@ export default function RootLayout({
             <div>
               <span className="font-bold text-ink">xs<span className="text-accent">.</span></span>
               <span className="mx-3 text-ink/30">·</span>
-              v0.4.0
+              v0.5.0
               <span className="mx-3 text-ink/30">·</span>
               apache-2.0
             </div>
