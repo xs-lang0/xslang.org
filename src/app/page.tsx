@@ -42,6 +42,7 @@ const features = [
   ["Full concurrency", "Spawn, async/await, actors, channels, nurseries. Pick the model that fits the problem in front of you."],
   ["Package registry", "Install packages with xsi, publish your own, and browse everything at reg.xslang.org."],
   ["Reactive bindings", "Variables that auto-update with their dependencies. Add contracts to enforce invariants at runtime."],
+  ["Plugin system", "Plugins are XS scripts with direct access to the lexer, parser, and runtime. Add keywords, hook evaluation, override syntax."],
 ];
 
 const tooling = [
@@ -75,7 +76,7 @@ export default function Home() {
             </h1>
 
             <p className="mt-7 text-lg leading-relaxed text-ink/75 max-w-2xl">
-              A fast, expressive language with gradual typing, algebraic effects, and a strong toolchain. Written in C with no dependencies.
+              A general-purpose language with gradual typing, multiple execution backends, and a plugin system that lets you modify anything. Written in C with zero dependencies.
             </p>
 
             {/* install line */}
@@ -128,7 +129,7 @@ export default function Home() {
       {/* FEATURES */}
       <section className="py-16 border-t-[1.5px] border-rule">
         <div className="flex items-baseline gap-4 mb-10">
-          <h2 className="text-3xl font-bold tracking-tight">Eight ideas</h2>
+          <h2 className="text-3xl font-bold tracking-tight">What you get</h2>
           <StarMark className="w-5 h-5 text-accent" />
         </div>
         <ul className="grid sm:grid-cols-2 gap-x-12 gap-y-8">
