@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // fetch xs.wasm from the latest GitHub release of xs-lang0/xs
-import { writeFileSync, existsSync } from "fs";
+import { writeFileSync, statSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -9,9 +9,15 @@ const ASSET = "xs.wasm";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dest = join(__dirname, "..", "public", ASSET);
 
-if (existsSync(dest)) {
-  console.log(`${ASSET} already exists, skipping fetch`);
-  process.exit(0);
+try {
+  const st = statSync(dest);
+  if (st.size > 0) {
+    console.log(`${ASSET} already exists (${(st.size / 1024).toFixed(0)} KB), skipping fetch`);
+    process.exit(0);
+  }
+  console.log(`${ASSET} is 0 bytes, re-fetching`);
+} catch {
+  // file doesn't exist, proceed with fetch
 }
 
 async function fetchWasm() {
