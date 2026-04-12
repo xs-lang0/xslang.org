@@ -335,11 +335,11 @@ var arr = [1, 2, 3, 4, 5]
 arr[0]                           -- 1
 arr[-1]                          -- 5 (negative indexing)
 
--- mutating methods (modify in-place, return null)
-arr.push(6)                      -- append element
+-- mutating methods (modify in-place)
+arr.push(6)                      -- append element, returns null
 arr.pop()                        -- remove and return last element
-arr.reverse()                    -- reverse in-place
-arr.sort()                       -- sort in-place (ascending)
+arr.reverse()                    -- reverse in-place, returns the array
+arr.sort()                       -- sort in-place (ascending), returns the array
 arr.sort(fn(a, b) { a - b })    -- sort with comparator
 
 -- non-mutating methods (return new values)
@@ -381,7 +381,7 @@ let combined = [...arr, 6, 7, 8]
 
 **`reduce` vs `fold`:** Same operation, different argument order. `reduce(fn, init)` puts the function first; `fold(init, fn)` puts the initial value first.
 
-**Mutating vs non-mutating:** `.reverse()` and `.sort()` modify in-place and return `null`. `.reversed()` and `.sorted()` return a new array.
+**Mutating vs non-mutating:** `.reverse()` and `.sort()` modify in-place and return the array itself. `.reversed()` and `.sorted()` return a new array. `.push()` returns `null`.
 
 ---
 
@@ -1456,7 +1456,7 @@ The semantic analyzer enforces trait implementations:
 
 ## Classes
 
-Classes support constructors, methods, fields with defaults, and single inheritance.
+Classes support constructors, methods, fields with defaults, and inheritance (one or more base classes after `:`).
 
 ```xs
 class Animal {
@@ -1565,7 +1565,7 @@ const PI: f64 = 3.14159
 | `str` / `string` | String |
 | `bool` | Boolean |
 | `char` | Character |
-| `byte` | Alias for `u8` |
+| `byte` | Byte type |
 | `re` | Regex |
 | `any` / `dyn` | Any type (disables checking) |
 | `void` / `unit` | No value |
@@ -1670,7 +1670,7 @@ fn foo(a, b) { return a + b }
 xs script.xs            -- normal: type check annotated code, then run
 xs --check script.xs    -- check only, don't execute
 xs --strict script.xs   -- require annotations on all variables, params, and return types
-xs --lenient script.xs  -- downgrade type errors to warnings
+xs --lenient script.xs  -- downgrade sema errors to warnings
 ```
 
 **Strict mode** enforces annotations everywhere:
@@ -2174,9 +2174,9 @@ let p2 = Point { ...p, y: 30 }
 | Function | Description |
 |----------|-------------|
 | `println(args...)` | Print with newline. Supports `{}` placeholders |
-| `print(args...)` | Print without trailing newline |
-| `eprint(args...)` | Print to stderr without newline |
-| `eprintln(args...)` | Print to stderr with newline |
+| `print(args...)` | Alias for `println` (also adds newline) |
+| `print_no_nl(args...)` | Print without trailing newline |
+| `eprint(args...)` / `eprintln(args...)` | Print to stderr (both add a newline) |
 | `input(prompt?)` | Read line from stdin |
 | `clear()` | Clear terminal screen |
 
@@ -2299,7 +2299,7 @@ println(reduce([1, 2, 3], fn(a, b) { a + b }, 0))  -- 6
 
 ```xs
 println(Ok(42))                  -- Ok(42)
-println(Err("bad"))              -- Err(bad)
+println(Err("bad"))              -- Err("bad")
 println(Some(10))                -- Some(10)
 println(None())                  -- null
 ```
@@ -2394,6 +2394,7 @@ println(math.hypot(3, 4))        -- 5
 |----------|-------------|
 | `now()` | Current Unix time as float (seconds since epoch) |
 | `now_ms()` | Current time in milliseconds |
+| `now_ns()` | Current time in nanoseconds |
 | `clock()` / `monotonic()` | Monotonic clock (for timing) |
 | `sleep(secs)` | Sleep for seconds (float OK) |
 | `sleep_ms(ms)` | Sleep for milliseconds |
@@ -2401,6 +2402,9 @@ println(math.hypot(3, 4))        -- 5
 | `stopwatch()` | Returns a stopwatch map with `elapsed()` method |
 | `format(t, fmt)` | Format a timestamp as a string |
 | `parse(s, fmt)` | Parse a string into a timestamp |
+| `date(t?)` | Broken-down date/time components |
+| `to_iso(t)` | Format as ISO-8601 |
+| `from_iso(s)` | Parse ISO-8601 into a timestamp |
 | `year(t)` | Year component of timestamp |
 | `month(t)` | Month component |
 | `day(t)` | Day component |
@@ -2537,6 +2541,7 @@ println(os.env("HOME"))          -- /home/user
 | Function | Description |
 |----------|-------------|
 | `parse(str)` | Parse JSON string into XS value |
+| `parse_safe(str)` | Parse and return null on invalid input |
 | `stringify(val)` | Serialize XS value to JSON string |
 | `pretty(val)` | Serialize with indentation |
 | `valid(str)` | Check if string is valid JSON |
@@ -2635,10 +2640,16 @@ println(re.test("^\\d+$", "123"))              -- true
 |----------|-------------|
 | `int(min, max)` | Random integer in [min, max] |
 | `float()` | Random float in [0.0, 1.0) |
+| `uniform(a, b)` | Uniform float in [a, b) |
+| `gauss(mu, sigma)` | Gaussian (normal) distribution sample |
 | `bool()` | Random boolean |
 | `choice(arr)` | Random element from array |
+| `choices(arr, n)` | n random elements with replacement |
 | `shuffle(arr)` | Shuffle array in-place |
+| `shuffled(arr)` | Return a shuffled copy |
 | `sample(arr, n)` | n random elements without replacement |
+| `bytes(n)` | Random bytes |
+| `hex_str(n)` | Random hex string of length n |
 | `seed(n)` | Set random seed |
 
 ```xs
@@ -2656,16 +2667,15 @@ println(random.choice(["a", "b", "c"]))  -- random element
 | Function | Description |
 |----------|-------------|
 | `md5(data)` | MD5 hex digest |
-| `sha1(data)` | SHA-1 hex digest |
 | `sha256(data)` | SHA-256 hex digest |
-| `sha512(data)` | SHA-512 hex digest |
-| `hmac(key, data)` | HMAC-SHA256 hex digest |
 
 ```xs
 import hash
 println(hash.sha256("hello"))    -- 2cf24dba5fb0a30e...
 println(hash.md5("hello"))       -- 5d41402abc4b2a76...
 ```
+
+For SHA-1, HMAC-SHA256, HKDF, PBKDF2, and AES, use the `crypto` module.
 
 ---
 
@@ -2674,10 +2684,20 @@ println(hash.md5("hello"))       -- 5d41402abc4b2a76...
 | Function | Description |
 |----------|-------------|
 | `sha256(data)` | SHA-256 hex digest |
+| `sha1(data)` | SHA-1 hex digest |
 | `md5(data)` | MD5 hex digest |
+| `hash(algo, data)` | Generic hash dispatcher |
+| `hmac_sha256(key, data)` | HMAC-SHA256 hex digest |
+| `hkdf(key, salt, info, len)` | HKDF key derivation |
+| `pbkdf2(pw, salt, iters, len)` | PBKDF2 key derivation |
+| `aes_encrypt(key, iv, data)` | AES encrypt |
+| `aes_decrypt(key, iv, data)` | AES decrypt |
+| `hex_encode(data)` / `hex_decode(data)` | Hex |
+| `base64_encode(data)` / `base64_decode(data)` | Base64 |
 | `random_bytes(n)` | n random bytes as hex string |
 | `random_int(min, max)` | Cryptographically random integer |
 | `uuid4()` | Generate UUID v4 |
+| `constant_time_eq(a, b)` | Constant-time string compare |
 
 ```xs
 import crypto
@@ -2703,7 +2723,7 @@ import encode
 println(encode.base64_encode("hello"))  -- aGVsbG8=
 println(encode.base64_decode("aGVsbG8="))  -- hello
 println(encode.hex_encode("AB"))        -- 4142
-println(encode.url_encode("a b+c"))     -- a+b%2Bc
+println(encode.url_encode("a b+c"))     -- a%20b%2Bc
 ```
 
 Note: there's also a standalone `base64` module with `encode()` and `decode()`, and a `uuid` module with `v4()`.
@@ -2742,10 +2762,13 @@ println(stack.pop())             -- 20
 
 | Function | Description |
 |----------|-------------|
+| `sprintf(fmt, args...)` | printf-style formatting |
 | `number(n, decimals)` | Format number with fixed decimal places |
 | `hex(n)` | Format integer as hex string (e.g. `"0xff"`) |
 | `bin(n)` | Format integer as binary string (e.g. `"0b1010"`) |
+| `oct(n)` | Format integer as octal string |
 | `pad(s, n)` | Pad string to width |
+| `pad_left(s, n)` / `pad_right(s, n)` / `center(s, n)` | Padding variants |
 | `comma(n)` | Format number with comma separators |
 | `filesize(n)` | Human-readable file size (e.g. `"1.2 MB"`) |
 | `ordinal(n)` | Ordinal string (e.g. `"1st"`, `"2nd"`, `"3rd"`) |
@@ -2772,6 +2795,7 @@ println(fmt.number(3.14159, 2))  -- 3.14
 | `info(msg)` | Log info message |
 | `warn(msg)` | Log warning message |
 | `error(msg)` | Log error message |
+| `fatal(msg)` | Log fatal message |
 | `set_level(level)` | Set minimum log level |
 
 ```xs
@@ -2791,6 +2815,10 @@ log.set_level("warn")           -- only warn and above
 | `assert(cond)` | Assert truthy |
 | `assert_eq(a, b)` | Assert equal |
 | `assert_ne(a, b)` | Assert not equal |
+| `assert_gt(a, b)` | Assert `a > b` |
+| `assert_lt(a, b)` | Assert `a < b` |
+| `assert_close(a, b, tol?)` | Assert float approximately equal |
+| `assert_throws(fn)` | Assert that calling `fn` throws |
 | `run(name, fn)` | Register a named test |
 | `summary()` | Print test results summary |
 
@@ -2809,7 +2837,9 @@ test.summary()
 | Function | Description |
 |----------|-------------|
 | `parse(str)` | Parse CSV string into array of arrays |
+| `parse_with_headers(str)` | Parse CSV, treating the first row as headers |
 | `stringify(rows)` | Serialize array of arrays to CSV string |
+| `stringify_with_headers(rows)` | Serialize with headers from first row |
 
 ```xs
 import csv
@@ -2826,6 +2856,8 @@ println(rows[0])                 -- ["a", "b", "c"]
 | `parse(str)` | Parse URL string into component map |
 | `encode(s)` | URL-encode a string |
 | `decode(s)` | URL-decode a string |
+| `encode_query(map)` | Encode a map as a query string |
+| `parse_query(str)` | Parse a query string into a map |
 
 ---
 
@@ -2847,6 +2879,11 @@ println(rows[0])                 -- ["a", "b", "c"]
 | `tcp_connect(host, port)` | Open a TCP connection |
 | `tcp_listen(port)` | Listen on a TCP port |
 | `resolve(host)` | DNS lookup |
+| `url_parse(str)` | Parse a URL |
+| `http_get(url)` / `http_post(url, body)` / `http(method, url, ...)` | Simple HTTP helpers |
+| `udp_bind(port)` / `udp_send(sock, host, port, data)` / `udp_recv(sock)` | UDP |
+| `set_timeout(sock, ms)` / `set_nodelay(sock)` | Socket options |
+| `send(sock, data)` / `recv(sock)` / `close(sock)` | Socket I/O |
 
 ---
 
@@ -2871,6 +2908,12 @@ println(rows[0])                 -- ["a", "b", "c"]
 |----------|-------------|
 | `pid()` | Current process ID |
 | `run(cmd)` | Run shell command; returns map with `ok`, `stdout`, `code` |
+| `exec(cmd)` | Exec a command |
+| `spawn(cmd)` | Spawn a subprocess with stdin/stdout/stderr handles |
+| `on_signal(sig, fn)` | Install a signal handler |
+| `env(key)` | Get an environment variable |
+| `cwd()` | Current working directory |
+| `exit(code)` | Exit the process |
 
 ```xs
 import process
@@ -2886,10 +2929,12 @@ println(r["code"])               -- 0
 
 | Function | Description |
 |----------|-------------|
-| `spawn(fn)` | Spawn a thread |
+| `spawn(fn)` | Spawn a thread, returns a handle |
+| `join(handle)` | Wait for a thread to finish |
 | `id()` | Current thread ID |
 | `cpu_count()` | Number of CPU cores |
 | `sleep(secs)` | Sleep current thread |
+| `mutex()` | Create a mutex |
 
 ---
 
@@ -2900,8 +2945,9 @@ Binary buffer for low-level I/O.
 | Function | Description |
 |----------|-------------|
 | `new(cap)` | Create buffer with initial capacity |
-| `write_u8(v)` | Append a byte |
-| `read_u8()` | Read a byte |
+| `write_u8(v)` / `write_u16(v)` / `write_u32(v)` / `write_u64(v)` | Append fixed-width ints |
+| `read_u8()` / `read_u16()` / `read_u32()` / `read_u64()` | Read fixed-width ints |
+| `write_str(s)` | Append a string |
 | `to_str()` | Convert buffer to string |
 | `to_hex()` | Convert buffer to hex string |
 | `len()` | Buffer length |
@@ -2931,6 +2977,9 @@ Manual control of the garbage collector.
 | `disable()` | Disable automatic collection |
 | `enable()` | Re-enable automatic collection |
 | `stats()` | Return GC statistics map |
+| `set_threshold(n)` | Set collection threshold |
+| `freeze(val)` | Pin a value so it isn't collected |
+| `tracked()` | Number of tracked allocations |
 
 ---
 
@@ -2943,7 +2992,6 @@ Reactive state primitives.
 | `signal(val)` | Create a reactive signal (observable value) |
 | `derived(fn)` | Create a derived signal computed from others |
 | `effect(fn)` | Run side effect when dependencies change |
-| `batch(fn)` | Batch multiple signal updates |
 
 These are also available as top-level builtins: `signal(val)` and `derived(fn)`.
 
@@ -2953,17 +3001,82 @@ These are also available as top-level builtins: `signal(val)` and `derived(fn)`.
 
 Additional filesystem operations (mirrors much of `io`).
 
+| Function | Description |
+|----------|-------------|
+| `read(path)` / `read_bytes(path)` / `read_lines(path)` | Read files |
+| `write(path, data)` / `write_bytes(...)` / `append(path, data)` | Write files |
+| `exists(path)` / `is_file(path)` / `is_dir(path)` / `size(path)` / `stat(path)` | File info |
+| `remove(path)` / `rename(old, new)` / `copy(src, dst)` | Manipulation |
+| `mkdir(path)` / `mkdir_p(path)` / `rmdir(path)` | Directories |
+| `list(path)` / `ls(path)` / `walk(path)` / `glob(pattern)` | Enumeration |
+| `join(...)` / `basename(p)` / `dirname(p)` / `ext(p)` / `abs(p)` | Path helpers |
+| `temp_dir()` / `temp_file()` | Temporary paths |
+| `chmod(path, mode)` / `symlink(target, link)` / `readlink(p)` / `realpath(p)` | Low-level |
+| `read_stream(path)` / `write_stream(path)` | Streaming I/O |
+| `watch(path, fn)` | Watch a path for changes |
+
 ---
 
 ### `cli`
 
-Command-line argument parsing utilities.
+Command-line argument parsing utilities. Parse `argv` into flags and positional args.
 
 ---
 
 ### `ffi`
 
 Foreign function interface for calling native C code.
+
+---
+
+### `http`
+
+HTTP client.
+
+| Function | Description |
+|----------|-------------|
+| `get(url)` / `post(url, body)` / `put(url, body)` / `patch(url, body)` / `delete(url)` | HTTP methods |
+| `request(method, url, opts?)` | Generic request |
+
+---
+
+### `toml`
+
+`parse(str)` parses a TOML document into a map.
+
+---
+
+### `msgpack`
+
+MessagePack binary serialization. `encode(val)` and `decode(bytes)`.
+
+---
+
+### `base64`
+
+`encode(data)` and `decode(data)`.
+
+---
+
+### `uuid`
+
+`v4()` generates a UUID v4 string. `is_valid(str)` checks a UUID string.
+
+---
+
+### `Promise`
+
+Promise primitives for async code.
+
+| Function | Description |
+|----------|-------------|
+| `new(fn)` | Create a new promise |
+| `resolve(val)` / `reject(err)` | Already-settled promise |
+| `all(arr)` / `all_settled(arr)` / `race(arr)` / `any(arr)` | Combinators |
+| `then(p, fn)` / `catch_err(p, fn)` / `finally_do(p, fn)` | Chain |
+| `sleep(secs)` / `timeout(p, ms)` | Time helpers |
+| `state(p)` / `value(p)` | Inspect |
+| `drain()` | Run the event loop until idle |
 
 ---
 
@@ -2990,16 +3103,24 @@ xs <file.xs>                     -- run a script
 xs run <file.xs|file.xsc>        -- run source or compiled bytecode
 xs repl                          -- interactive REPL
 xs test [pattern]                -- run test files matching pattern
+xs bench [pattern]               -- run benchmarks
 xs check <file.xs>               -- type-check only, no execution
 xs build <file.xs> [-o out.xsc]  -- compile to bytecode
 xs lint [file|dir] [--fix]       -- lint source files
 xs fmt [file|dir] [--check]      -- format source (--check to just verify)
 xs doc [dir]                     -- generate documentation
+xs coverage <file.xs>            -- run with coverage tracking
+xs profile <file.xs>             -- run with profiler
 xs transpile --target <js|c|wasm32|wasi> <file.xs>
 xs new <name>                    -- scaffold a new project
+xs init                          -- init a project in the current directory
+xs install [pkg]                 -- install packages from the manifest
+xs add <pkg> / remove <pkg> / update [pkg] / list / publish / search <q>
+xs pkg <subcommand>              -- package manager
 xs lsp [-s <lsp.xs>]             -- start LSP server
 xs dap                           -- start DAP debug server
 xs replay <trace.xst>            -- replay a recorded execution trace
+xs explain <error-code>          -- expand a diagnostic code
 ```
 
 **Flags:**
@@ -3010,7 +3131,7 @@ xs replay <trace.xst>            -- replay a recorded execution trace
 | `--jit` | Use JIT backend |
 | `--check` | Type-check without running |
 | `--strict` | Require type annotations everywhere |
-| `--lenient` | Skip some static checks |
+| `--lenient` | Downgrade errors to warnings |
 | `--optimize` | Enable optimizations |
 | `--watch` | Re-run on file changes |
 | `--no-color` | Disable colored output |

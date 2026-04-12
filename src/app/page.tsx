@@ -36,11 +36,11 @@ handle greet("world") {
 const features = [
   ["Gradual typing", "Start untyped. Add types where they earn their keep. The type checker stays out of your way until you ask."],
   ["Algebraic effects", "First-class effects for errors, async, logging, and more. Composable. Resumable. Worth the curve."],
-  ["Pattern matching", "Deep structural matching with guards, ranges, regex, and exhaustiveness checks. The compiler tells you what you missed."],
+  ["Pattern matching", "Deep structural matching on tuples, arrays, structs, enums, and maps with guards, ranges, and regex."],
   ["Zero dependencies", "The compiler is pure C. No LLVM, no runtime, no version drift. Builds in seconds."],
-  ["Multi-target", "One source. Three backends: native C, JavaScript, WebAssembly. No conditional code paths."],
+  ["Fast startup", "~4 ms to spin up a script. Beats Node and Python for small CLI tools. The VM is roughly on par with CPython for compute."],
   ["Full concurrency", "Spawn, async/await, actors, channels, nurseries. Pick the model that fits the problem in front of you."],
-  ["Package registry", "Install packages with xsi, publish your own, and browse everything at reg.xslang.org."],
+  ["Multi-target (preview)", "One source, three backends: native C, JavaScript, WebAssembly. The JS and WASM transpilers are still maturing; see STATUS for gaps."],
   ["Reactive bindings", "Variables that auto-update with their dependencies. Add contracts to enforce invariants at runtime."],
   ["Plugin system", "Plugins are XS scripts with direct access to the lexer, parser, and runtime. Add keywords, hook evaluation, override syntax."],
 ];
@@ -76,7 +76,7 @@ export default function Home() {
             </h1>
 
             <p className="mt-7 text-lg leading-relaxed text-ink/75 max-w-2xl">
-              A general-purpose language with gradual typing, multiple execution backends, and a plugin system that lets you modify anything. Written in C with zero dependencies.
+              Why XS instead of Python or Node? <strong>Faster startup, a real type system when you want one, and the same code runs natively, in the VM, or in your browser.</strong> Pre-1.0: see the <Link href="/docs/status" className="underline">status page</Link> for what's solid and what still has sharp edges.
             </p>
 
             {/* install line */}
