@@ -40,9 +40,12 @@ const features = [
   ["Zero dependencies", "The compiler is pure C. No LLVM, no runtime, no version drift. Builds in seconds."],
   ["Fast startup", "~4 ms to spin up a script. Beats Node and Python for small CLI tools. The VM is roughly on par with CPython for compute."],
   ["Full concurrency", "Spawn, async/await, actors, channels, nurseries. Pick the model that fits the problem in front of you."],
-  ["Multi-target (preview)", "One source, three backends: native C, JavaScript, WebAssembly. The JS and WASM transpilers are still maturing; see STATUS for gaps."],
+  ["Multi-target", "One source, native C, JavaScript, WebAssembly, plus iOS / Android / ESP32 cross-compile targets out of the box."],
   ["Reactive bindings", "Variables that auto-update with their dependencies. Add contracts to enforce invariants at runtime."],
   ["Plugin system", "Plugins are XS scripts with direct access to the lexer, parser, and runtime. Add keywords, hook evaluation, override syntax."],
+  ["Concurrent GC", "Generational refcount with cycle detection; XS_GC_CONCURRENT moves the sweep onto a worker thread so pause time stays bounded."],
+  ["Procedural macros", "@[macro] markers turn ordinary functions into compile-time macros, with reflection-driven derive helpers as worked examples."],
+  ["Scoped data", "@scoped lets a binding skip the GC when escape analysis proves it can't outlive its block. Systems-programming subset, no syntax tax."],
 ];
 
 const tooling = [
@@ -70,13 +73,13 @@ export default function Home() {
               </span>{" "}
               language for{" "}
               <span className="relative inline-block">
-                scripts, servers, and the browser.
+                scripts, servers, browsers, and mobile.
                 <UnderlineMark className="absolute -bottom-1 left-0 w-full h-2 text-accent" />
               </span>
             </h1>
 
             <p className="mt-7 text-lg leading-relaxed text-ink/75 max-w-2xl">
-              Why XS instead of Python or Node? <strong>Faster startup, a real type system when you want one, and the same code runs natively, in the VM, or in your browser.</strong> Pre-1.0: see the <Link href="/docs/status" className="underline">status page</Link> for what's solid and what still has sharp edges.
+              Why XS instead of Python or Node? <strong>Faster startup, a real type system when you want one, and the same code runs natively, in the VM, or in your browser.</strong> Pre-1.0: see the <Link href="/docs/status" className="underline">status page</Link> for what&rsquo;s solid and what still has sharp edges.
             </p>
 
             {/* install line */}
