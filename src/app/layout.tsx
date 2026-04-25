@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import Link from "next/link";
 import { MobileNav } from "@/components/mobile-nav";
+import { XS_VERSION } from "@/lib/version";
 import "./globals.css";
 
 const hanken = Hanken_Grotesk({
@@ -81,7 +82,7 @@ export default function RootLayout({
             <div>
               <span className="font-bold text-ink">xs<span className="text-accent">.</span></span>
               <span className="mx-3 text-ink/30">·</span>
-              v0.7.0
+              v{XS_VERSION}
               <span className="mx-3 text-ink/30">·</span>
               apache-2.0
             </div>
