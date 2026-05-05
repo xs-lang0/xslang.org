@@ -102,16 +102,17 @@ println((5s).ns)      -- 5000000000`}
         <code className="text-foreground">Duration</code> type.
       </p>
       <CodeBlock
-        code={`after 1s {
+        runnable
+        code={`after 100ms {
     println("ready")
 }
 
 every 100ms {
-    update_display()
+    println("tick")
 }
 
-@delayed(500ms) fn warmup() {
-    prefetch()
+@delayed(50ms) fn warmup() {
+    println("warm")
 }`}
       />
     </div>

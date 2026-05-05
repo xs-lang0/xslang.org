@@ -18,7 +18,8 @@ export default function DecoratorsPage() {
       <h2 className="mb-4 text-xl font-semibold">Lifecycle</h2>
       <p className="mb-4 text-muted">
         <code className="text-foreground">@on_start</code> fires once
-        before any user code runs.{" "}
+        after top-level statements run, before any{" "}
+        <code className="text-foreground">main</code> is called.{" "}
         <code className="text-foreground">@on_exit</code> fires once after
         the event loop drains.{" "}
         <code className="text-foreground">@on_panic</code> wraps an
@@ -27,7 +28,7 @@ export default function DecoratorsPage() {
       <CodeBlock
         runnable
         code={`@on_start fn boot() {
-    println("starting up")
+    println("ready")
 }
 
 @on_exit fn cleanup() {
@@ -35,10 +36,10 @@ export default function DecoratorsPage() {
 }
 
 @on_panic fn report(err) {
-    println("crashed: {err.message}")
+    println("crashed: {err}")
 }
 
-println("main body")`}
+println("top-level statement")`}
       />
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Signals</h2>
@@ -74,24 +75,36 @@ println("main body")`}
         single time.
       </p>
       <CodeBlock
-        code={`@every(1s) fn tick() {
-    println("tick")
+        runnable
+        code={`var n = 0
+
+@every(50ms) fn tick() {
+    n = n + 1
+    println("tick {n}")
+    if n >= 3 { exit(0) }
 }
 
-@delayed(500ms) fn warmup() {
-    prefetch_indexes()
-}
-
-@cron("0 * * * *") fn hourly() {
-    rotate_logs()
+@delayed(20ms) fn warmup() {
+    println("warm")
 }`}
       />
       <p className="mt-4 text-sm text-muted">
-        The cron parser supports <code className="text-foreground">*</code>,{" "}
+        <code className="text-foreground">@cron</code> takes a unix-style
+        five-field schedule. The parser supports{" "}
+        <code className="text-foreground">*</code>,{" "}
         <code className="text-foreground">*/N</code>, ranges, and
         comma-separated lists across all five fields. Schedules fire at
         wall-clock boundaries.
       </p>
+      <CodeBlock
+        code={`@cron("0 * * * *") fn hourly() {
+    rotate_logs()
+}
+
+@cron("*/5 * * * *") fn five_minute() {
+    poll_jobs()
+}`}
+      />
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Filesystem</h2>
       <p className="mb-4 text-muted">
@@ -147,14 +160,20 @@ greet()`}
         single fire.
       </p>
       <CodeBlock
-        code={`@once @every(5s) fn first_tick() {
+        runnable
+        code={`@once @every(20ms) fn first_tick() {
     println("only fires once")
 }
 
-@once @on_signal("HUP") fn drain_first_hup() {
-    drain()
-}`}
+println("waiting for the tick...")`}
       />
+      <p className="mt-4 text-sm text-muted">
+        Same shape works on every other trigger:{" "}
+        <code className="text-foreground">@once @on_signal(&quot;HUP&quot;)</code>{" "}
+        for a fire-and-uninstall handler,{" "}
+        <code className="text-foreground">@once @watch(path)</code> for a
+        single notification.
+      </p>
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Reference</h2>
       <div className="overflow-x-auto">

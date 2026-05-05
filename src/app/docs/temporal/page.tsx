@@ -13,13 +13,16 @@ export default function TemporalPage() {
       </p>
 
       <div className="mb-8 rounded-lg border border-border bg-surface px-4 py-3 text-sm text-muted">
-        <strong className="text-foreground">Top-level scheduling.</strong>{" "}
-        For functions you want the runtime to drive,{" "}
+        <strong className="text-foreground">Interpreter vs transpiled.</strong>{" "}
+        In the interpreter the body runs once and the program continues.
+        Transpiled to JS or C, these become real timers
+        (<code className="text-foreground">setInterval</code>,{" "}
+        <code className="text-foreground">setTimeout</code>, and friends).
+        For functions you want the runtime to keep driving in interp too,{" "}
         <a href="/docs/decorators" className="underline">decorators</a>{" "}
         (<code className="text-foreground">@every</code>,{" "}
         <code className="text-foreground">@delayed</code>,{" "}
-        <code className="text-foreground">@cron</code>) are usually a
-        better fit than these inline forms.
+        <code className="text-foreground">@cron</code>) are the better fit.
       </div>
 
       <h2 className="mb-4 text-xl font-semibold">every</h2>
@@ -27,14 +30,11 @@ export default function TemporalPage() {
         Run a block on an interval.
       </p>
       <CodeBlock
-        code={`every 5s {
-    println("health check")
-    ping_server()
+        runnable
+        code={`every 100ms {
+    println("tick")
 }
-
-every 100ms {
-    update_display()
-}`}
+println("done")`}
       />
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">after</h2>
@@ -42,13 +42,12 @@ every 100ms {
         Run a block after a delay.
       </p>
       <CodeBlock
-        code={`after 2s {
+        runnable
+        code={`println("waiting...")
+after 200ms {
     println("ready")
 }
-
-after 500ms {
-    fade_in(element)
-}`}
+println("done")`}
       />
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">timeout</h2>
@@ -57,17 +56,16 @@ after 500ms {
         run the else block instead.
       </p>
       <CodeBlock
-        code={`timeout 3s {
-    let data = fetch_from_api()
-    process(data)
+        runnable
+        code={`timeout 200ms {
+    println("inside the timeout")
 } else {
-    println("request timed out")
-    use_cached_data()
+    println("timed out")
 }
 
 -- without else, panics on timeout
-timeout 10s {
-    run_migration()
+timeout 1s {
+    println("plenty of headroom")
 }`}
       />
 
@@ -84,21 +82,19 @@ timeout 10s {
         delay window actually runs.
       </p>
       <CodeBlock
-        code={`-- only the last call in the 200ms window runs
-fn on_search_input(query) {
-    debounce 200ms {
-        search(query)
-    }
+        runnable
+        code={`debounce 100ms {
+    println("only the last call wins")
 }
-
-debounce 1s {
-    save_draft(editor.content)
-}`}
+println("after debounce")`}
       />
 
-      <h2 className="mb-4 mt-12 text-xl font-semibold">Practical examples</h2>
+      <h2 className="mb-4 mt-12 text-xl font-semibold">Practical shape</h2>
       <p className="mb-4 text-muted">
-        Temporal primitives combine naturally with the rest of the language.
+        These primitives compose with the rest of the language. Real
+        programs hit them through{" "}
+        <a href="/docs/decorators" className="underline">decorators</a> at
+        the top level, and inline forms inside helper functions.
       </p>
       <CodeBlock
         code={`-- auto-reconnecting websocket
@@ -117,12 +113,11 @@ fn connect(url) {
     }
 }
 
--- rate-limited api calls
+-- bounded retry on a flaky api
 fn poll_status(id) {
-    var status = "pending"
     every 2s {
         timeout 5s {
-            status = fetch("/api/status/{id}")
+            handle(fetch("/api/status/{id}"))
         } else {
             println("poll timed out, retrying")
         }
