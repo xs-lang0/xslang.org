@@ -211,6 +211,7 @@ await xs.exec(["xs", "install", "json-utils"])
 
 // use it in a later run
 const output = await xs.run(\`
+  import json
   use "json-utils"
   println(json.parse('{"a": 1}'))
 \`)`}

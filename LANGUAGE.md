@@ -1269,6 +1269,8 @@ twice() {
 Tags are useful for wrapping common patterns like retry logic, timing, error suppression, and resource management.
 
 ```xs
+import http
+
 -- retry a block up to n times
 tag retry(n) {
     var attempts = 0

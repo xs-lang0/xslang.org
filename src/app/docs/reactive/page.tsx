@@ -111,7 +111,9 @@ println(greet("world"))  -- "hello, world" in the interpreter`}
       </p>
       <CodeBlock
         runnable
-        code={`adapt fn read_file(path: str where path.len > 0) -> str {
+        code={`import fs
+
+adapt fn read_file(path: str where path.len > 0) -> str {
   native {
     -- use built-in file I/O
     return fs::read(path)

@@ -250,6 +250,7 @@ cd xs && make && make install`}
 xsi get json-utils
 
 # use it
+import json
 use "json-utils"
 let data = json.parse('{"name": "xs"}')
 println(data.name)

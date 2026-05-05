@@ -113,7 +113,9 @@ println("top-level statement")`}
         size + mtime stat poll.
       </p>
       <CodeBlock
-        code={`@watch("./config.toml") fn reload() {
+        code={`import fs
+
+@watch("./config.toml") fn reload() {
     println("config changed, reloading")
     config = parse_toml(fs.read("./config.toml"))
 }`}
