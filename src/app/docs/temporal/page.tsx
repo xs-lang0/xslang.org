@@ -7,15 +7,19 @@ export default function TemporalPage() {
         Temporal Primitives
       </h1>
       <p className="mb-8 text-muted">
-        First-class time-based control flow. No libraries, no callbacks, just
-        keywords.
+        First-class time-based control flow. No libraries, no callbacks,
+        just keywords. Every interval here is a{" "}
+        <a href="/docs/literals" className="underline">Duration</a>.
       </p>
 
       <div className="mb-8 rounded-lg border border-border bg-surface px-4 py-3 text-sm text-muted">
-        <strong className="text-foreground">Interpreter vs transpiled:</strong>{" "}
-        In the interpreter, temporal statements execute their body immediately (once).
-        When transpiled to JS or C, they use real timers (setInterval, setTimeout, etc.).
-        This matches how <code className="text-foreground">spawn</code> works in XS.
+        <strong className="text-foreground">Top-level scheduling.</strong>{" "}
+        For functions you want the runtime to drive,{" "}
+        <a href="/docs/decorators" className="underline">decorators</a>{" "}
+        (<code className="text-foreground">@every</code>,{" "}
+        <code className="text-foreground">@delayed</code>,{" "}
+        <code className="text-foreground">@cron</code>) are usually a
+        better fit than these inline forms.
       </div>
 
       <h2 className="mb-4 text-xl font-semibold">every</h2>
@@ -23,9 +27,7 @@ export default function TemporalPage() {
         Run a block on an interval.
       </p>
       <CodeBlock
-        code={`use literals duration
-
-every 5s {
+        code={`every 5s {
     println("health check")
     ping_server()
 }
@@ -40,9 +42,7 @@ every 100ms {
         Run a block after a delay.
       </p>
       <CodeBlock
-        code={`use literals duration
-
-after 2s {
+        code={`after 2s {
     println("ready")
 }
 
@@ -53,13 +53,11 @@ after 500ms {
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">timeout</h2>
       <p className="mb-4 text-muted">
-        Run a block with a time limit. If it doesn&apos;t complete in time, run
-        the else block instead.
+        Run a block with a time limit. If it doesn&apos;t complete in time,
+        run the else block instead.
       </p>
       <CodeBlock
-        code={`use literals duration
-
-timeout 3s {
+        code={`timeout 3s {
     let data = fetch_from_api()
     process(data)
 } else {
@@ -74,20 +72,19 @@ timeout 10s {
       />
 
       <p className="mt-4 text-sm text-muted">
-        Without <code className="text-foreground">else</code>, timeout panics. This is
-        intentional: silent timeouts cause harder bugs than loud ones. Use the else
-        block when you want graceful handling.
+        Without <code className="text-foreground">else</code>, timeout
+        panics. This is intentional: silent timeouts cause harder bugs
+        than loud ones. Use the else block when you want graceful
+        handling.
       </p>
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">debounce</h2>
       <p className="mb-4 text-muted">
-        Coalesce rapid executions into one. Only the last call within the delay
-        window actually runs.
+        Coalesce rapid executions into one. Only the last call within the
+        delay window actually runs.
       </p>
       <CodeBlock
-        code={`use literals duration
-
--- only the last call in the 200ms window runs
+        code={`-- only the last call in the 200ms window runs
 fn on_search_input(query) {
     debounce 200ms {
         search(query)
@@ -104,9 +101,7 @@ debounce 1s {
         Temporal primitives combine naturally with the rest of the language.
       </p>
       <CodeBlock
-        code={`use literals duration, color
-
--- auto-reconnecting websocket
+        code={`-- auto-reconnecting websocket
 fn connect(url) {
     var retries = 0
     every 5s {

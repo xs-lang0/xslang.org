@@ -4,164 +4,116 @@ export default function LiteralsPage() {
   return (
     <div>
       <h1 className="mb-4 text-3xl font-bold tracking-tight">
-        Universal Literals
+        Duration literals
       </h1>
       <p className="mb-8 text-muted">
-        XS supports typed literal values for common domains. Enable them
-        per-file with the <code className="text-foreground">use literals</code> pragma.
+        A number followed by a time unit is a real{" "}
+        <code className="text-foreground">Duration</code> value, not sugar
+        for a float. Always on, no pragma needed.
       </p>
 
-      <h2 className="mb-4 text-xl font-semibold">Enabling literals</h2>
+      <h2 className="mb-4 text-xl font-semibold">The basics</h2>
       <p className="mb-4 text-muted">
-        Pick only the literal types you need. This keeps the parser fast and
-        avoids surprises.
-      </p>
-      <CodeBlock
-        code={`use literals duration, color, date, size, angle`}
-      />
-
-      <h2 className="mb-4 mt-12 text-xl font-semibold">Duration</h2>
-      <p className="mb-4 text-muted">
-        Number followed by a time unit. Stored as milliseconds.
-      </p>
-      <CodeBlock
-        runnable
-        code={`use literals duration
-
-let quick = 200ms
-let sec = 5s
-let mins = 2m
-let hour = 1h
-let days = 3d
-
-println(5s)       -- 5000
-println(200ms)    -- 200
-println(1h)       -- 3600000
-
--- compound durations
-let runtime = 2m + 30s   -- 150000ms`}
-      />
-      <p className="mt-4 text-sm text-muted">
-        Suffixes: <code className="text-foreground">ms</code>,{" "}
+        Suffixes are{" "}
+        <code className="text-foreground">ns</code>,{" "}
+        <code className="text-foreground">us</code>,{" "}
+        <code className="text-foreground">ms</code>,{" "}
         <code className="text-foreground">s</code>,{" "}
         <code className="text-foreground">m</code>,{" "}
-        <code className="text-foreground">h</code>,{" "}
-        <code className="text-foreground">d</code>
-      </p>
-
-      <h2 className="mb-4 mt-12 text-xl font-semibold">Color</h2>
-      <p className="mb-4 text-muted">
-        Hex color literals. Returns a map with r, g, b, a fields (0-255).
+        <code className="text-foreground">h</code>, and{" "}
+        <code className="text-foreground">d</code>. Storage is an int64
+        nanosecond count, so a duration round-trips losslessly through{" "}
+        <code className="text-foreground">.ns</code>.
       </p>
       <CodeBlock
         runnable
-        code={`use literals color
+        code={`let frame = 16ms
+let tick  = 1us
+let step  = 1ns
+let day   = 1d
 
-let red = #ff0000
-let orange = #ff6600
-let white = #ffffff
-
-println(red.r)     -- 255
-println(red.g)     -- 0
-println(orange.g)  -- 102`}
+println(typeof(5s))   -- duration
+println(5s == 5000ms) -- true
+println((1ms).ns)     -- 1000000`}
       />
 
-      <h2 className="mb-4 mt-12 text-xl font-semibold">Date</h2>
+      <h2 className="mb-4 mt-12 text-xl font-semibold">Compound and float forms</h2>
       <p className="mb-4 text-muted">
-        ISO 8601 date literals. Stored as a string for now. Date
-        arithmetic and integration with temporal primitives is planned.
+        Adjacent units stack into a single duration. Floats work too, with
+        the obvious meaning.
       </p>
       <CodeBlock
         runnable
-        code={`use literals date
+        code={`let warmup = 2m30s
+let half   = 0.5s
+let nps    = 1500ns
 
-let release = 2024-03-15
-let meeting = 2024-12-01
-
-println(release)   -- 2024-03-15`}
+println(warmup)   -- 2m30s
+println(half)     -- 500ms
+println(nps)      -- 1.5us`}
       />
 
-      <h2 className="mb-4 mt-12 text-xl font-semibold">Size</h2>
+      <h2 className="mb-4 mt-12 text-xl font-semibold">Arithmetic</h2>
       <p className="mb-4 text-muted">
-        Byte size literals. Stored as a float in bytes.
+        Durations add and subtract with each other, multiply and divide by
+        numbers, and divide by another duration to get a ratio. Ordering
+        works as you would expect.
       </p>
       <CodeBlock
         runnable
-        code={`use literals size
+        code={`println(2s + 500ms)    -- 2.5s
+println(1m - 30s)      -- 30s
+println(100ms * 3)     -- 300ms
+println(2s / 4)        -- 500ms
+println(1s / 250ms)    -- 4
 
-let config = 4kb       -- 4096
-let image = 2mb        -- 2097152
-let disk = 500gb       -- 536870912000
-
-println(10kb)   -- 10240`}
+println(500ms < 1s)    -- true
+println(2h > 90m)      -- true`}
       />
-      <p className="mt-4 text-sm text-muted">
-        Suffixes: <code className="text-foreground">kb</code>,{" "}
-        <code className="text-foreground">mb</code>,{" "}
-        <code className="text-foreground">gb</code>,{" "}
-        <code className="text-foreground">tb</code>
-      </p>
 
-      <h2 className="mb-4 mt-12 text-xl font-semibold">Angle</h2>
+      <h2 className="mb-4 mt-12 text-xl font-semibold">Field access</h2>
       <p className="mb-4 text-muted">
-        Angle literals. Stored as radians.
+        The integer{" "}
+        <code className="text-foreground">.ns</code> accessor is the canonical
+        unit. Coarser fields like{" "}
+        <code className="text-foreground">.s</code> and{" "}
+        <code className="text-foreground">.m</code> return floats so partial
+        units don&rsquo;t silently truncate.
       </p>
       <CodeBlock
         runnable
-        code={`use literals angle
-
-let right = 90deg      -- 1.5708 (pi/2)
-let half = 180deg      -- 3.14159 (pi)
-let tau = 6.28rad      -- 6.28
-
-println(90deg)  -- 1.5708`}
+        code={`println((1500ms).s)   -- 1.5
+println((90s).m)      -- 1.5
+println((5s).ns)      -- 5000000000`}
       />
-      <p className="mt-4 text-sm text-muted">
-        Suffixes: <code className="text-foreground">deg</code> (converted to radians),{" "}
-        <code className="text-foreground">rad</code> (stored as-is)
-      </p>
 
-      <h2 className="mb-4 mt-12 text-xl font-semibold">Combining literals</h2>
+      <h2 className="mb-4 mt-12 text-xl font-semibold">Where they show up</h2>
       <p className="mb-4 text-muted">
-        Enable multiple types in one pragma. They compose naturally.
+        Anywhere the language asks for a time interval. Scheduling
+        primitives (<code className="text-foreground">after</code>,{" "}
+        <code className="text-foreground">every</code>,{" "}
+        <code className="text-foreground">timeout</code>), the time-based{" "}
+        <a href="/docs/decorators" className="underline">decorators</a>{" "}
+        (<code className="text-foreground">@every</code>,{" "}
+        <code className="text-foreground">@delayed</code>),{" "}
+        <code className="text-foreground">time.sleep</code> in the stdlib,
+        and channel <code className="text-foreground">recv_timeout</code>{" "}
+        all take the same{" "}
+        <code className="text-foreground">Duration</code> type.
       </p>
       <CodeBlock
-        runnable
-        code={`use literals duration, color, size
+        code={`after 1s {
+    println("ready")
+}
 
-let timeout = 30s
-let bg = #1a1a2e
-let max_upload = 50mb
+every 100ms {
+    update_display()
+}
 
-if file_size > max_upload {
-    println("file too large")
+@delayed(500ms) fn warmup() {
+    prefetch()
 }`}
       />
-
-      <h2 className="mb-4 mt-12 text-xl font-semibold">Without the pragma</h2>
-      <p className="mb-4 text-muted">
-        Without <code className="text-foreground">use literals</code>, suffixes like{" "}
-        <code className="text-foreground">5s</code> are a syntax error and{" "}
-        <code className="text-foreground">#ff6600</code> is not recognized as a color.
-        This is intentional: literals are opt-in so they never surprise you in
-        files that don&apos;t expect them.
-      </p>
-
-      <h2 className="mb-4 mt-12 text-xl font-semibold">Notes</h2>
-      <ul className="text-muted space-y-2 list-disc list-inside text-sm">
-        <li>
-          Duration, size, and angle literals are syntactic sugar for float values.
-          You can do arithmetic on them: <code className="text-foreground">5s + 200ms</code>,{" "}
-          <code className="text-foreground">4kb + 512</code>.
-        </li>
-        <li>
-          Size literals use binary units: 1kb = 1024 bytes, 1mb = 1024 kb, etc.
-        </li>
-        <li>
-          Angle literals in <code className="text-foreground">deg</code> are converted to radians.{" "}
-          <code className="text-foreground">90deg</code> is just <code className="text-foreground">1.5708</code>.
-        </li>
-      </ul>
     </div>
   );
 }

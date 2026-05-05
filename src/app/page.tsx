@@ -44,8 +44,8 @@ const features = [
   ["Reactive bindings", "Variables that auto-update with their dependencies. Add contracts to enforce invariants at runtime."],
   ["Plugin system", "Plugins are XS scripts with direct access to the lexer, parser, and runtime. Add keywords, hook evaluation, override syntax."],
   ["Concurrent GC", "Generational refcount with cycle detection; XS_GC_CONCURRENT moves the sweep onto a worker thread so pause time stays bounded."],
-  ["Procedural macros", "@[macro] markers turn ordinary functions into compile-time macros, with reflection-driven derive helpers as worked examples."],
-  ["Scoped data", "@scoped lets a binding skip the GC when escape analysis proves it can't outlive its block. Systems-programming subset, no syntax tax."],
+  ["Decorators", "@on_start, @every, @cron, @watch, @on_signal: declarative answers to 'what triggers this function?'. The runtime drives them; you write the body."],
+  ["Native time", "Durations like 16ms or 2m30s are a real first-class type, not float sugar. Same value flows from a literal into the scheduler, a channel timeout, or fs.write timestamps."],
 ];
 
 const tooling = [
@@ -79,7 +79,7 @@ export default function Home() {
             </h1>
 
             <p className="mt-7 text-lg leading-relaxed text-ink/75 max-w-2xl">
-              Why XS instead of Python or Node? <strong>Faster startup, a real type system when you want one, and the same code runs natively, in the VM, or in your browser.</strong> Pre-1.0: see the <Link href="/docs/status" className="underline">status page</Link> for what&rsquo;s solid and what still has sharp edges.
+              Why XS instead of Python or Node? <strong>Faster startup, a real type system when you want one, and the same code runs natively, in the VM, or in your browser.</strong>
             </p>
 
             {/* install line */}

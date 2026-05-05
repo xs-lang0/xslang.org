@@ -55,6 +55,75 @@ var name: str = "XS"
 
 `const` is identical to `let` at runtime.
 
+### Reactive Bindings
+
+`bind` creates a variable that automatically recomputes when its dependencies change.
+
+```xs
+var price = 10
+var qty = 3
+bind total = price * qty
+println(total)                   -- 30
+
+price = 20
+println(total)                   -- 60 (auto-updated)
+
+qty = 5
+println(total)                   -- 100
+
+-- bindings can depend on other bindings (cascading)
+bind doubled = total * 2
+println(doubled)                 -- 200
+
+price = 1
+println(total)                   -- 5
+println(doubled)                 -- 10
+
+-- works with strings too
+var name = "world"
+bind greeting = "hello " ++ name
+println(greeting)                -- hello world
+name = "xs"
+println(greeting)                -- hello xs
+```
+
+`bind` tracks which variables are read when the expression is first evaluated. When any of those variables are reassigned, the binding automatically recomputes. Cascading works: if binding A depends on binding B, and B's dependency changes, both B and A update in order.
+
+In the VM and transpilers, `bind` acts as a regular `let` (no reactivity). Reactive updates only happen in the interpreter.
+
+### Contracts (where clauses)
+
+Add `where` after a type annotation to enforce a condition on the value. The condition is checked at runtime.
+
+```xs
+let age: int where age > 0 and age < 150 = 25
+let name: str where name.len() > 0 = "xs"
+let score: int where score >= 0 and score <= 100 = 85
+```
+
+If the condition fails, a catchable error is thrown:
+
+```xs
+try {
+    let bad: int where bad > 100 = 5
+} catch e {
+    println(e)                   -- contract violation
+}
+```
+
+Contracts work on function parameters too:
+
+```xs
+fn divide(a: int, b: int where b != 0) {
+    return a / b
+}
+
+println(divide(10, 2))           -- 5
+divide(10, 0)                    -- throws: contract violation
+```
+
+Contracts are gradual: no `where` clause means no checking. Add them where you want enforcement. They're checked at runtime in the interpreter. In the VM and transpilers, contracts on function params are not yet enforced (variables are).
+
 ### Destructuring
 
 ```xs
@@ -312,9 +381,9 @@ Color strings support interpolation in the text part: `c"bold;x = {x}"`.
 ",".join(["a", "b", "c"])        -- "a,b,c"
 ```
 
-**`.len()` counts bytes**, not Unicode codepoints. For ASCII strings, byte count equals character count.
+**`.len()` counts codepoints.** For raw byte length use `.bytes().len()`; for ASCII the two are equal.
 
-**String indexing (`s[i]`)** returns a one-byte string. Negative indices count from the end. Out-of-bounds returns `null`.
+**String indexing (`s[i]`)** returns a one-byte string. `.bytes()` and `s[i]` work in bytes; `.len()`, `.chars()` and `.char_at()` work in codepoints. Negative indices count from the end. Out-of-bounds returns `null`.
 
 **Method aliases:**
 - `.find()` / `.index_of()`
@@ -335,11 +404,11 @@ var arr = [1, 2, 3, 4, 5]
 arr[0]                           -- 1
 arr[-1]                          -- 5 (negative indexing)
 
--- mutating methods (modify in-place)
-arr.push(6)                      -- append element, returns null
+-- mutating methods (modify in-place, return null)
+arr.push(6)                      -- append element
 arr.pop()                        -- remove and return last element
-arr.reverse()                    -- reverse in-place, returns the array
-arr.sort()                       -- sort in-place (ascending), returns the array
+arr.reverse()                    -- reverse in-place
+arr.sort()                       -- sort in-place (ascending)
 arr.sort(fn(a, b) { a - b })    -- sort with comparator
 
 -- non-mutating methods (return new values)
@@ -381,7 +450,7 @@ let combined = [...arr, 6, 7, 8]
 
 **`reduce` vs `fold`:** Same operation, different argument order. `reduce(fn, init)` puts the function first; `fold(init, fn)` puts the initial value first.
 
-**Mutating vs non-mutating:** `.reverse()` and `.sort()` modify in-place and return the array itself. `.reversed()` and `.sorted()` return a new array. `.push()` returns `null`.
+**Mutating vs non-mutating:** `.reverse()` and `.sort()` modify in-place and return `null`. `.reversed()` and `.sorted()` return a new array.
 
 ---
 
@@ -622,7 +691,7 @@ x /= 4                           -- 6
 x %= 4                           -- 2
 ```
 
-Also available: `&=`, `|=`, `^=`, `<<=`, `>>=`.
+Also available: `&=`, `|=`, `^=`, `<<=`, `>>=`, `**=`.
 
 ### Operator Precedence (lowest to highest)
 
@@ -1017,9 +1086,61 @@ impl Point {
         return Point { x: 0, y: 0 }
     }
 }
+
+-- @[macro]: marks a fn as a procedural macro. the body runs at
+-- the call site and returns a transformed value. examples in
+-- examples/macros/ (derive_eq, derive_show, sql).
+@[macro]
+fn show_for(name) {
+    return fn(v) { return name + " " + str(v) }
+}
 ```
 
 `@pure` is enforced by the semantic analyzer: calling impure functions (I/O, sleep, exit) inside a `@pure` function is an error.
+
+### `@scoped` bindings
+
+`@scoped` annotates a `let` or `var` whose value must not outlive
+the lexical block that introduced it. The semantic analyzer rejects
+the obvious escape patterns (returning the binding, storing it in a
+non-scoped container, calling a method that retains it, capturing
+it in a closure that survives the scope). The runtime opts the
+value out of cycle detection because refcounting alone suffices
+once escape is statically forbidden.
+
+```xs
+fn process() {
+    @scoped let buf = make_buffer(64 * 1024)
+    return buf.checksum()  -- ok: only the scalar checksum escapes
+}
+
+fn leak() {
+    @scoped let buf = make_buffer(64 * 1024)
+    return buf            -- error S0042: scoped binding escapes
+}
+```
+
+### Generic type parameters
+
+Function, struct, and enum declarations take optional `<T, U>` type
+parameter lists. Each parameter can carry a variance marker (`+T`
+covariant, `-T` contravariant, default invariant) and an optional
+trait bound (`T: Show`). `forall<T> body` is also legal as a type
+expression for a higher-rank polymorphic value.
+
+```xs
+struct Box<+T>  { inner }            -- covariant
+struct Sink<-T> { accept }            -- contravariant
+
+fn first<+T>(xs) {
+    if len(xs) > 0 { return xs[0] }
+    return null
+}
+
+fn run(f: forall<T> fn(T) -> T, x) {
+    return f(x)
+}
+```
 
 ### Closures
 
@@ -1456,7 +1577,7 @@ The semantic analyzer enforces trait implementations:
 
 ## Classes
 
-Classes support constructors, methods, fields with defaults, and inheritance (one or more base classes after `:`).
+Classes support constructors, methods, fields with defaults, and single inheritance.
 
 ```xs
 class Animal {
@@ -1565,7 +1686,7 @@ const PI: f64 = 3.14159
 | `str` / `string` | String |
 | `bool` | Boolean |
 | `char` | Character |
-| `byte` | Byte type |
+| `byte` | Alias for `u8` |
 | `re` | Regex |
 | `any` / `dyn` | Any type (disables checking) |
 | `void` / `unit` | No value |
@@ -1670,7 +1791,7 @@ fn foo(a, b) { return a + b }
 xs script.xs            -- normal: type check annotated code, then run
 xs --check script.xs    -- check only, don't execute
 xs --strict script.xs   -- require annotations on all variables, params, and return types
-xs --lenient script.xs  -- downgrade sema errors to warnings
+xs --lenient script.xs  -- downgrade type errors to warnings
 ```
 
 **Strict mode** enforces annotations everywhere:
@@ -1844,7 +1965,7 @@ unsafe {
 
 ## Inline C
 
-`inline c { ... }` embeds raw C code inside an XS function. The C code is passed through verbatim to the C transpiler. In the interpreter and VM, inline C blocks are skipped with a warning.
+`inline c { ... }` embeds raw C code inside an XS function. The C code is passed through verbatim to the C transpiler. The interpreter errors out on inline C blocks (use `xs transpile --target c` instead), so give the enclosing XS function a fallback body if you want it to run under the interpreter.
 
 ```xs
 fn fast_hash(data) {
@@ -1861,6 +1982,60 @@ fn fast_hash(data) {
 Use `xs transpile --target c` to compile code that uses inline C. The raw C code has access to the enclosing function's arguments via an `args[]` array and can return values using helper macros.
 
 This is useful for performance-critical inner loops, FFI glue, or leveraging C libraries directly without writing a full native plugin.
+
+---
+
+## Adapt Functions
+
+`adapt fn` defines a function with different implementations for different compilation targets. The interpreter always picks the `native` branch. The JS transpiler picks `js`. The C transpiler picks `native`. The WASM transpiler picks `wasm`.
+
+```xs
+adapt fn greet(name: str) -> str {
+    when native {
+        return "hello from native, " ++ name
+    }
+    when js {
+        return "hello from js, " ++ name
+    }
+    when wasm {
+        return "hello from wasm, " ++ name
+    }
+}
+
+println(greet("world"))          -- hello from native, world (in interpreter)
+```
+
+If the current target doesn't have a matching branch, it falls back to `native`, then to the first branch defined.
+
+```xs
+-- only need native and js? that's fine
+adapt fn fast_hash(data: str) -> int {
+    when native {
+        var h = 0
+        for ch in data { h = h * 31 + type(ch) }
+        return h
+    }
+    when js {
+        return data.len() * 37
+    }
+}
+```
+
+Adapt functions support all the same features as regular functions: type annotations, contracts, default params. The branches are just blocks, so any XS code works inside them.
+
+```xs
+-- combine with contracts
+adapt fn validate(n: int where n > 0) -> int {
+    when native {
+        return n * 2
+    }
+    when js {
+        return n
+    }
+}
+```
+
+This makes multi-target code a language-level concept instead of just a build flag. Write your platform-specific code inline, and the right branch gets selected automatically.
 
 ---
 
@@ -1941,6 +2116,33 @@ println(logs)                    -- ["first", "second", "third"]
 
 The `handle` form can take a block as the computation (not just a function call).
 
+### Multi-Shot Resume
+
+`resume` is multi-shot on every backend: an arm body can call it more than once and each invocation re-enters the captured continuation, returning the body's value back into the arm:
+
+```xs
+effect Choose { fn pick() }
+
+fn run() {
+    let x = perform Choose.pick()
+    return x
+}
+
+var leaves = []
+handle {
+    let r = run()
+    leaves.push(r)
+} {
+    Choose.pick() => {
+        resume(1)
+        resume(2)
+    }
+}
+println(leaves)                  -- [1, 2]
+```
+
+The VM and JIT capture a stack snapshot at perform time and replay it for each resume. The interpreter, lacking real continuations, gets the same observable result by re-evaluating the handle body with a per-call perform-override and unwinding the outer body via a delimited `CF_HANDLE_DONE` signal -- only triggered for arms that statically contain more than one resume call, so single-shot bodies keep their original cheap path.
+
 ---
 
 ## Concurrency
@@ -1980,7 +2182,7 @@ println(user["name"])            -- User 42
 
 ### Channels
 
-Channels are FIFO message queues. Unbounded by default, or bounded with a capacity.
+Channels are FIFO message queues. Unbounded by default, or bounded with a capacity. A bounded channel's `send` blocks while the buffer is full.
 
 ```xs
 -- unbounded channel
@@ -1992,13 +2194,35 @@ println(ch.recv())               -- pong
 println(ch.len())                -- 0
 println(ch.is_empty())           -- true
 
--- bounded channel
+-- bounded channel: send blocks once cap is reached
 let bch = channel(2)
 bch.send("a")
 bch.send("b")
 println(bch.is_full())           -- true
 println(bch.recv())              -- a
 println(bch.is_full())           -- false
+```
+
+`close()` marks a channel done. Subsequent `send` raises `ChannelClosed`; `recv` on a drained closed channel returns `null` instead of blocking forever. Iterating with `for v in ch` drains the currently-buffered values:
+
+```xs
+let q = channel()
+q.send(1); q.send(2); q.send(3)
+q.close()
+var got = []
+for v in q { got.push(v) }
+println(got)                     -- [1, 2, 3]
+println(q.is_closed())           -- true
+```
+
+`select([ch1, ch2, ...])` returns `{index, value}` for the first channel with a buffered value (also accepts task futures, returning their `_result`). Returns `null` when nothing is ready -- for blocking semantics, loop until you get a hit:
+
+```xs
+let a = channel()
+let b = channel()
+a.send("hi")
+let r = select([a, b])
+println(r.index, r.value)        -- 0 hi
 ```
 
 ### Actors
@@ -2068,6 +2292,8 @@ nursery {
 }
 println(output)                  -- [10, 20, 30]
 ```
+
+When one task in a nursery throws, the surviving siblings get a cooperative cancellation flag. Blocking primitives (`time.sleep`, channel `recv`) check it on resume and raise `Cancelled`, so a sleeping sibling unwinds cleanly instead of finishing its body. The nursery surfaces the original throw, suppressing the cleanup-noise `Cancelled` errors.
 
 ---
 
@@ -2174,9 +2400,9 @@ let p2 = Point { ...p, y: 30 }
 | Function | Description |
 |----------|-------------|
 | `println(args...)` | Print with newline. Supports `{}` placeholders |
-| `print(args...)` | Alias for `println` (also adds newline) |
-| `print_no_nl(args...)` | Print without trailing newline |
-| `eprint(args...)` / `eprintln(args...)` | Print to stderr (both add a newline) |
+| `print(args...)` | Print without trailing newline |
+| `eprint(args...)` | Print to stderr without newline |
+| `eprintln(args...)` | Print to stderr with newline |
 | `input(prompt?)` | Read line from stdin |
 | `clear()` | Clear terminal screen |
 
@@ -2299,7 +2525,7 @@ println(reduce([1, 2, 3], fn(a, b) { a + b }, 0))  -- 6
 
 ```xs
 println(Ok(42))                  -- Ok(42)
-println(Err("bad"))              -- Err("bad")
+println(Err("bad"))              -- Err(bad)
 println(Some(10))                -- Some(10)
 println(None())                  -- null
 ```
@@ -2394,7 +2620,6 @@ println(math.hypot(3, 4))        -- 5
 |----------|-------------|
 | `now()` | Current Unix time as float (seconds since epoch) |
 | `now_ms()` | Current time in milliseconds |
-| `now_ns()` | Current time in nanoseconds |
 | `clock()` / `monotonic()` | Monotonic clock (for timing) |
 | `sleep(secs)` | Sleep for seconds (float OK) |
 | `sleep_ms(ms)` | Sleep for milliseconds |
@@ -2402,9 +2627,6 @@ println(math.hypot(3, 4))        -- 5
 | `stopwatch()` | Returns a stopwatch map with `elapsed()` method |
 | `format(t, fmt)` | Format a timestamp as a string |
 | `parse(s, fmt)` | Parse a string into a timestamp |
-| `date(t?)` | Broken-down date/time components |
-| `to_iso(t)` | Format as ISO-8601 |
-| `from_iso(s)` | Parse ISO-8601 into a timestamp |
 | `year(t)` | Year component of timestamp |
 | `month(t)` | Month component |
 | `day(t)` | Day component |
@@ -2541,7 +2763,6 @@ println(os.env("HOME"))          -- /home/user
 | Function | Description |
 |----------|-------------|
 | `parse(str)` | Parse JSON string into XS value |
-| `parse_safe(str)` | Parse and return null on invalid input |
 | `stringify(val)` | Serialize XS value to JSON string |
 | `pretty(val)` | Serialize with indentation |
 | `valid(str)` | Check if string is valid JSON |
@@ -2640,16 +2861,10 @@ println(re.test("^\\d+$", "123"))              -- true
 |----------|-------------|
 | `int(min, max)` | Random integer in [min, max] |
 | `float()` | Random float in [0.0, 1.0) |
-| `uniform(a, b)` | Uniform float in [a, b) |
-| `gauss(mu, sigma)` | Gaussian (normal) distribution sample |
 | `bool()` | Random boolean |
 | `choice(arr)` | Random element from array |
-| `choices(arr, n)` | n random elements with replacement |
 | `shuffle(arr)` | Shuffle array in-place |
-| `shuffled(arr)` | Return a shuffled copy |
 | `sample(arr, n)` | n random elements without replacement |
-| `bytes(n)` | Random bytes |
-| `hex_str(n)` | Random hex string of length n |
 | `seed(n)` | Set random seed |
 
 ```xs
@@ -2675,7 +2890,7 @@ println(hash.sha256("hello"))    -- 2cf24dba5fb0a30e...
 println(hash.md5("hello"))       -- 5d41402abc4b2a76...
 ```
 
-For SHA-1, HMAC-SHA256, HKDF, PBKDF2, and AES, use the `crypto` module.
+For SHA-1, HMAC-SHA256, HKDF, PBKDF2, and AES, see the `crypto` module below.
 
 ---
 
@@ -2686,23 +2901,23 @@ For SHA-1, HMAC-SHA256, HKDF, PBKDF2, and AES, use the `crypto` module.
 | `sha256(data)` | SHA-256 hex digest |
 | `sha1(data)` | SHA-1 hex digest |
 | `md5(data)` | MD5 hex digest |
-| `hash(algo, data)` | Generic hash dispatcher |
+| `hash(algo, data)` | Generic hash by algorithm name |
 | `hmac_sha256(key, data)` | HMAC-SHA256 hex digest |
 | `hkdf(key, salt, info, len)` | HKDF key derivation |
 | `pbkdf2(pw, salt, iters, len)` | PBKDF2 key derivation |
-| `aes_encrypt(key, iv, data)` | AES encrypt |
-| `aes_decrypt(key, iv, data)` | AES decrypt |
-| `hex_encode(data)` / `hex_decode(data)` | Hex |
-| `base64_encode(data)` / `base64_decode(data)` | Base64 |
-| `random_bytes(n)` | n random bytes as hex string |
-| `random_int(min, max)` | Cryptographically random integer |
+| `aes_encrypt(key, iv, data)` | AES encryption |
+| `aes_decrypt(key, iv, data)` | AES decryption |
+| `hex_encode(data)` / `hex_decode(s)` | Hex codec |
+| `base64_encode(data)` / `base64_decode(s)` | Base64 codec |
+| `random_bytes(n)` | n random bytes |
+| `random_int(min, max)` | Random integer |
 | `uuid4()` | Generate UUID v4 |
-| `constant_time_eq(a, b)` | Constant-time string compare |
+| `constant_time_eq(a, b)` | Timing-safe string comparison |
 
 ```xs
 import crypto
 println(crypto.uuid4())          -- e.g. 8cbe806c-cd27-4d93-afd1-dbfa3f1b4f93
-println(crypto.random_bytes(16)) -- 32 hex chars
+println(crypto.sha256("hi"))
 ```
 
 ---
@@ -2723,7 +2938,7 @@ import encode
 println(encode.base64_encode("hello"))  -- aGVsbG8=
 println(encode.base64_decode("aGVsbG8="))  -- hello
 println(encode.hex_encode("AB"))        -- 4142
-println(encode.url_encode("a b+c"))     -- a%20b%2Bc
+println(encode.url_encode("a b+c"))     -- a+b%2Bc
 ```
 
 Note: there's also a standalone `base64` module with `encode()` and `decode()`, and a `uuid` module with `v4()`.
@@ -2762,13 +2977,10 @@ println(stack.pop())             -- 20
 
 | Function | Description |
 |----------|-------------|
-| `sprintf(fmt, args...)` | printf-style formatting |
 | `number(n, decimals)` | Format number with fixed decimal places |
 | `hex(n)` | Format integer as hex string (e.g. `"0xff"`) |
 | `bin(n)` | Format integer as binary string (e.g. `"0b1010"`) |
-| `oct(n)` | Format integer as octal string |
 | `pad(s, n)` | Pad string to width |
-| `pad_left(s, n)` / `pad_right(s, n)` / `center(s, n)` | Padding variants |
 | `comma(n)` | Format number with comma separators |
 | `filesize(n)` | Human-readable file size (e.g. `"1.2 MB"`) |
 | `ordinal(n)` | Ordinal string (e.g. `"1st"`, `"2nd"`, `"3rd"`) |
@@ -2795,7 +3007,6 @@ println(fmt.number(3.14159, 2))  -- 3.14
 | `info(msg)` | Log info message |
 | `warn(msg)` | Log warning message |
 | `error(msg)` | Log error message |
-| `fatal(msg)` | Log fatal message |
 | `set_level(level)` | Set minimum log level |
 
 ```xs
@@ -2815,10 +3026,6 @@ log.set_level("warn")           -- only warn and above
 | `assert(cond)` | Assert truthy |
 | `assert_eq(a, b)` | Assert equal |
 | `assert_ne(a, b)` | Assert not equal |
-| `assert_gt(a, b)` | Assert `a > b` |
-| `assert_lt(a, b)` | Assert `a < b` |
-| `assert_close(a, b, tol?)` | Assert float approximately equal |
-| `assert_throws(fn)` | Assert that calling `fn` throws |
 | `run(name, fn)` | Register a named test |
 | `summary()` | Print test results summary |
 
@@ -2837,9 +3044,7 @@ test.summary()
 | Function | Description |
 |----------|-------------|
 | `parse(str)` | Parse CSV string into array of arrays |
-| `parse_with_headers(str)` | Parse CSV, treating the first row as headers |
 | `stringify(rows)` | Serialize array of arrays to CSV string |
-| `stringify_with_headers(rows)` | Serialize with headers from first row |
 
 ```xs
 import csv
@@ -2856,8 +3061,6 @@ println(rows[0])                 -- ["a", "b", "c"]
 | `parse(str)` | Parse URL string into component map |
 | `encode(s)` | URL-encode a string |
 | `decode(s)` | URL-decode a string |
-| `encode_query(map)` | Encode a map as a query string |
-| `parse_query(str)` | Parse a query string into a map |
 
 ---
 
@@ -2879,11 +3082,6 @@ println(rows[0])                 -- ["a", "b", "c"]
 | `tcp_connect(host, port)` | Open a TCP connection |
 | `tcp_listen(port)` | Listen on a TCP port |
 | `resolve(host)` | DNS lookup |
-| `url_parse(str)` | Parse a URL |
-| `http_get(url)` / `http_post(url, body)` / `http(method, url, ...)` | Simple HTTP helpers |
-| `udp_bind(port)` / `udp_send(sock, host, port, data)` / `udp_recv(sock)` | UDP |
-| `set_timeout(sock, ms)` / `set_nodelay(sock)` | Socket options |
-| `send(sock, data)` / `recv(sock)` / `close(sock)` | Socket I/O |
 
 ---
 
@@ -2908,12 +3106,6 @@ println(rows[0])                 -- ["a", "b", "c"]
 |----------|-------------|
 | `pid()` | Current process ID |
 | `run(cmd)` | Run shell command; returns map with `ok`, `stdout`, `code` |
-| `exec(cmd)` | Exec a command |
-| `spawn(cmd)` | Spawn a subprocess with stdin/stdout/stderr handles |
-| `on_signal(sig, fn)` | Install a signal handler |
-| `env(key)` | Get an environment variable |
-| `cwd()` | Current working directory |
-| `exit(code)` | Exit the process |
 
 ```xs
 import process
@@ -2929,12 +3121,10 @@ println(r["code"])               -- 0
 
 | Function | Description |
 |----------|-------------|
-| `spawn(fn)` | Spawn a thread, returns a handle |
-| `join(handle)` | Wait for a thread to finish |
+| `spawn(fn)` | Spawn a thread |
 | `id()` | Current thread ID |
 | `cpu_count()` | Number of CPU cores |
 | `sleep(secs)` | Sleep current thread |
-| `mutex()` | Create a mutex |
 
 ---
 
@@ -2945,9 +3135,8 @@ Binary buffer for low-level I/O.
 | Function | Description |
 |----------|-------------|
 | `new(cap)` | Create buffer with initial capacity |
-| `write_u8(v)` / `write_u16(v)` / `write_u32(v)` / `write_u64(v)` | Append fixed-width ints |
-| `read_u8()` / `read_u16()` / `read_u32()` / `read_u64()` | Read fixed-width ints |
-| `write_str(s)` | Append a string |
+| `write_u8(v)` | Append a byte |
+| `read_u8()` | Read a byte |
 | `to_str()` | Convert buffer to string |
 | `to_hex()` | Convert buffer to hex string |
 | `len()` | Buffer length |
@@ -2977,9 +3166,6 @@ Manual control of the garbage collector.
 | `disable()` | Disable automatic collection |
 | `enable()` | Re-enable automatic collection |
 | `stats()` | Return GC statistics map |
-| `set_threshold(n)` | Set collection threshold |
-| `freeze(val)` | Pin a value so it isn't collected |
-| `tracked()` | Number of tracked allocations |
 
 ---
 
@@ -2991,9 +3177,9 @@ Reactive state primitives.
 |----------|-------------|
 | `signal(val)` | Create a reactive signal (observable value) |
 | `derived(fn)` | Create a derived signal computed from others |
-| `effect(fn)` | Run side effect when dependencies change |
+| `effect(fn, ...signals)` | Run side effect immediately, re-run when passed signals change |
 
-These are also available as top-level builtins: `signal(val)` and `derived(fn)`.
+`signal(val)` and `derived(fn)` are also available as top-level builtins.
 
 ---
 
@@ -3001,25 +3187,11 @@ These are also available as top-level builtins: `signal(val)` and `derived(fn)`.
 
 Additional filesystem operations (mirrors much of `io`).
 
-| Function | Description |
-|----------|-------------|
-| `read(path)` / `read_bytes(path)` / `read_lines(path)` | Read files |
-| `write(path, data)` / `write_bytes(...)` / `append(path, data)` | Write files |
-| `exists(path)` / `is_file(path)` / `is_dir(path)` / `size(path)` / `stat(path)` | File info |
-| `remove(path)` / `rename(old, new)` / `copy(src, dst)` | Manipulation |
-| `mkdir(path)` / `mkdir_p(path)` / `rmdir(path)` | Directories |
-| `list(path)` / `ls(path)` / `walk(path)` / `glob(pattern)` | Enumeration |
-| `join(...)` / `basename(p)` / `dirname(p)` / `ext(p)` / `abs(p)` | Path helpers |
-| `temp_dir()` / `temp_file()` | Temporary paths |
-| `chmod(path, mode)` / `symlink(target, link)` / `readlink(p)` / `realpath(p)` | Low-level |
-| `read_stream(path)` / `write_stream(path)` | Streaming I/O |
-| `watch(path, fn)` | Watch a path for changes |
-
 ---
 
 ### `cli`
 
-Command-line argument parsing utilities. Parse `argv` into flags and positional args.
+Command-line argument parsing utilities.
 
 ---
 
@@ -3029,54 +3201,173 @@ Foreign function interface for calling native C code.
 
 ---
 
-### `http`
+## Duration
 
-HTTP client.
+XS has a first-class `Duration` type. Any number written with a time suffix is a duration; no pragma or import is required:
 
-| Function | Description |
-|----------|-------------|
-| `get(url)` / `post(url, body)` / `put(url, body)` / `patch(url, body)` / `delete(url)` | HTTP methods |
-| `request(method, url, opts?)` | Generic request |
+```xs
+let timeout = 5s
+let frame   = 200ms
+let warmup  = 2m30s
+let tick    = 100ns
+let micro   = 50us
+
+println(timeout)         -- 5s
+println(warmup + 1s)     -- 2m31s
+println((1500ms).s)      -- 1.5
+```
+
+Supported suffixes: `ns`, `us`, `ms`, `s`, `m`, `h`, `d`. The suffix has to sit immediately after the number (no whitespace) so a bare identifier on the next line stays an identifier. Compound forms like `2m30s` or `1h15m` are also supported.
+
+Internally, every duration is an `int64_t` count of nanoseconds, so the range is around plus or minus 292 years and there's no float drift on arithmetic. Arithmetic mirrors what you'd expect:
+
+| operation               | result        |
+|-------------------------|---------------|
+| `dur + dur`, `dur - dur`| `Duration`    |
+| `dur * scalar`, `scalar * dur`, `dur / scalar` | `Duration` |
+| `dur / dur`             | `float` (ratio) |
+| `dur < dur`, `dur == dur` | `bool`      |
+
+Comparisons against non-durations are a type error rather than a silent coercion.
+
+The repr picks the largest readable unit and trims trailing zeros, so `1500ns` prints as `1.5us`, `2500ms` prints as `2.5s`, and `90s` prints as `1m30s`. Component accessors (`.ns`, `.us`, `.ms`, `.s`, `.m`, `.h`, `.d`) read the duration in that unit, returning an int for `.ns` and a float for the rest.
+
+```xs
+let dt = 750ms
+println(dt.ns)            -- 750000000
+println(dt.s)             -- 0.75
+```
+
+The transpilers carry durations as raw nanosecond counts (numbers in the JS backend, `int64_t` in the C and WASM backends); a richer Duration runtime in those targets is a follow-up.
 
 ---
 
-### `toml`
+## Temporal Primitives
 
-`parse(str)` parses a TOML document into a map.
+Temporal primitives are scheduling constructs that take a `Duration`. They also accept plain numbers, which are interpreted as milliseconds for compatibility.
+
+### every
+
+Runs a block repeatedly at a fixed interval. In the interpreter, the body runs once (for deterministic script execution). When transpiled to JavaScript, it maps to `setInterval`.
+
+```xs
+every 1s {
+    println("tick")
+}
+```
+
+### after
+
+Runs a block once after a delay:
+
+```xs
+after 500ms {
+    println("delayed hello")
+}
+```
+
+### timeout
+
+Runs a block with a time limit. If the block doesn't finish in time, the `else` fallback runs instead:
+
+```xs
+timeout 2s {
+    let result = slow_computation()
+    println(result)
+} else {
+    println("timed out")
+}
+```
+
+### debounce
+
+Debounces execution - if called repeatedly, only the last call within the window actually runs:
+
+```xs
+debounce 300ms {
+    println("search: {query}")
+}
+```
+
+### Practical examples
+
+```xs
+-- polling with every
+var health = "unknown"
+every 30s {
+    health = check_server()
+}
+
+-- delayed initialization
+after 2s {
+    connect_to_database()
+}
+
+-- request with timeout
+timeout 5s {
+    let data = fetch_api("/users")
+    process(data)
+} else {
+    println("API request timed out, using cache")
+    process(cached_data)
+}
+
+-- debounced input handling
+var query = ""
+fn on_input(text) {
+    query = text
+    debounce 200ms {
+        search(query)
+    }
+}
+```
 
 ---
 
-### `msgpack`
+## Decorators
 
-MessagePack binary serialization. `encode(val)` and `decode(bytes)`.
+A function declaration can carry one or more decorators that answer
+"what triggers this function?" Most functions have none, some have
+one trigger plus an optional `@once`. Five of them have an evaluated
+argument (`@every(1s)`, `@cron("* * * * *")`, `@delayed(500ms)`,
+`@on_signal("INT")`, `@watch("./config")`, `@export("name")`); the
+rest take none.
 
----
+```xs
+@on_start fn boot() { setup_things() }
+@on_exit  fn cleanup() { close_handles() }
 
-### `base64`
+@every(1s) fn tick() { metrics.flush() }
+@cron("0 * * * *") fn hourly() { rotate_logs() }
+@delayed(500ms) fn warmup() { prefetch() }
 
-`encode(data)` and `decode(data)`.
+@watch("./config.toml") fn config_changed() { config.reload() }
 
----
+@on_signal("INT") fn graceful() { state = "shutting_down" }
+@on_panic        fn record() { telemetry.flush() }
 
-### `uuid`
+@bench   fn bench_sort() { ... }
+@example fn example_basic_use() { ... }
 
-`v4()` generates a UUID v4 string. `is_valid(str)` checks a UUID string.
+@export("publicName") fn local_name() { ... }
+@once @every(5s)      fn one_shot() { ... }
+```
 
----
+Lifecycle (`@on_start`, `@on_exit`, `@on_panic`) and signal
+(`@on_signal`) decorators don't take parameters on the decorated fn.
+Schedule decorators (`@every`, `@cron`, `@delayed`, `@watch`) don't
+either; they fire without a caller. `@bench` and `@example` are
+allowed to take parameters since the runner passes a harness.
 
-### `Promise`
+`@once` only composes with a repeating trigger (`@every`, `@cron`,
+`@on_signal`, `@watch`); attaching it to a one-shot decorator is a
+parse error.
 
-Promise primitives for async code.
-
-| Function | Description |
-|----------|-------------|
-| `new(fn)` | Create a new promise |
-| `resolve(val)` / `reject(err)` | Already-settled promise |
-| `all(arr)` / `all_settled(arr)` / `race(arr)` / `any(arr)` | Combinators |
-| `then(p, fn)` / `catch_err(p, fn)` / `finally_do(p, fn)` | Chain |
-| `sleep(secs)` / `timeout(p, ms)` | Time helpers |
-| `state(p)` / `value(p)` | Inspect |
-| `drain()` | Run the event loop until idle |
+The runtime stays alive while any persistent trigger is registered
+(`@every`, `@cron`, `@on_signal`, `@watch`). Once all of them have
+fired or been quiesced by `@once`, the process exits naturally.
+`xs.exit(n)` forces an immediate shutdown and still fires `@on_exit`
+handlers.
 
 ---
 
@@ -3085,14 +3376,56 @@ Promise primitives for async code.
 ```bash
 xs script.xs                     -- tree-walker interpreter (default)
 xs --vm script.xs                -- bytecode VM (faster)
-xs --jit script.xs               -- JIT compilation
+xs --jit script.xs               -- JIT (x86-64 and aarch64)
 xs build script.xs               -- compile to bytecode (.xsc)
 xs run script.xsc                -- run compiled bytecode
 ```
 
 Both the interpreter and VM produce identical results for correct programs. The VM is faster for compute-heavy code.
 
+The JIT is a single register-allocating tier. Bytecode is lowered to a
+small linear IR, per-block liveness is computed, three callee-saved
+registers hold vregs via linear-scan allocation, and a per-arch code
+generator emits native code with SMI fast paths for integer
+arithmetic/compares, an XMM fast path for boxed floats, an inlined
+monomorphic `LOAD_GLOBAL` cache, inline closure upvalue access, and a
+refcount-pair elimination peephole. Protos that step outside the
+supported opcode set drop to the bytecode VM -- there is no
+template-JIT middle tier. See STATUS.md for the supported opcodes and
+measured numbers.
+
 The `build` command compiles to a `.xsc` file that can be distributed and run without the source.
+
+### WebAssembly (WASM)
+
+XS can be compiled to WebAssembly using wasi-sdk, allowing the full interpreter to run in the browser or any WASM runtime.
+
+```bash
+make wasm    # produces xs.wasm
+```
+
+The WASM build includes the interpreter, VM, semantic analysis, type checking, effects, pattern matching, generators, closures, enums, structs, classes, universal literals, temporal primitives, and the JS/C transpiler. Output matches the native binary on the suites that don't require networking, real filesystem access, signals, or native plugins.
+
+Not available in WASM:
+- Networking (HTTP, sockets, TLS) - no raw sockets in browser
+- File system - uses a custom virtual FS in the browser, not real disk
+- Native plugins (.so/.dll) - no dlopen in WASM
+- JIT compilation - can't map executable memory
+- REPL - needs terminal stdin
+- LSP/DAP - needs stdio/socket communication
+- Profiler sampling (SIGPROF) - no signals in WASM
+- `input()` - no stdin in browser context
+
+The WASM binary is ~650KB and loads in under a second. It powers the playground at xslang.org/playground.
+
+### Transpilation
+
+```bash
+xs --emit js script.xs     # transpile to JavaScript
+xs --emit c script.xs      # transpile to C
+```
+
+The JS transpiler maps XS constructs to idiomatic JavaScript: classes become JS classes, pattern matching becomes if/else chains, channels become array-backed queues, and builtins like `str()`, `len()`, `type()` map to their JS equivalents. The output runs in any browser or Node.js.
 
 ---
 
@@ -3103,24 +3436,16 @@ xs <file.xs>                     -- run a script
 xs run <file.xs|file.xsc>        -- run source or compiled bytecode
 xs repl                          -- interactive REPL
 xs test [pattern]                -- run test files matching pattern
-xs bench [pattern]               -- run benchmarks
 xs check <file.xs>               -- type-check only, no execution
 xs build <file.xs> [-o out.xsc]  -- compile to bytecode
 xs lint [file|dir] [--fix]       -- lint source files
 xs fmt [file|dir] [--check]      -- format source (--check to just verify)
 xs doc [dir]                     -- generate documentation
-xs coverage <file.xs>            -- run with coverage tracking
-xs profile <file.xs>             -- run with profiler
 xs transpile --target <js|c|wasm32|wasi> <file.xs>
 xs new <name>                    -- scaffold a new project
-xs init                          -- init a project in the current directory
-xs install [pkg]                 -- install packages from the manifest
-xs add <pkg> / remove <pkg> / update [pkg] / list / publish / search <q>
-xs pkg <subcommand>              -- package manager
 xs lsp [-s <lsp.xs>]             -- start LSP server
 xs dap                           -- start DAP debug server
 xs replay <trace.xst>            -- replay a recorded execution trace
-xs explain <error-code>          -- expand a diagnostic code
 ```
 
 **Flags:**
@@ -3131,7 +3456,7 @@ xs explain <error-code>          -- expand a diagnostic code
 | `--jit` | Use JIT backend |
 | `--check` | Type-check without running |
 | `--strict` | Require type annotations everywhere |
-| `--lenient` | Downgrade errors to warnings |
+| `--lenient` | Skip some static checks |
 | `--optimize` | Enable optimizations |
 | `--watch` | Re-run on file changes |
 | `--no-color` | Disable colored output |

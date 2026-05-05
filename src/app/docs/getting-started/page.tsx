@@ -162,20 +162,20 @@ panic("fatal: invariant violated")`}
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Pause</h2>
       <p className="mb-4 text-sm text-muted">
-        Pause execution for a given number of milliseconds. Works with duration literals too.
+        Pause execution. Takes a duration literal directly, or a plain
+        integer count of milliseconds.
       </p>
       <CodeBlock
         filename="pause.xs"
         code={`println("start")
-pause 1000
-println("after 1 second")
-
--- with duration literals
-use literals duration
 pause 500ms
 println("after 500ms")
 pause 2s
-println("after 2s")`}
+println("after 2s")
+
+-- numbers still work, treated as ms
+pause 1000
+println("after 1 second")`}
       />
 
       <h2 className="mb-4 mt-12 text-xl font-semibold">Deleting variables</h2>

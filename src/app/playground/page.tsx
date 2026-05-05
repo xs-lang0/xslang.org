@@ -87,6 +87,31 @@ fn area(s) {
 
 println(area(Shape::Circle(5)))
 println(area(Shape::Rect(3, 4)))`,
+  "Durations": `let warmup = 2m30s
+let frame  = 16ms
+
+println(typeof(warmup))    -- duration
+println(warmup)            -- 2m30s
+println(warmup + frame)    -- 2m30.016s
+println((1500ms).s)        -- 1.5
+println(2s / 250ms)        -- 8`,
+  "Decorators": `var ticks = 0
+
+@on_start fn boot() {
+    println("starting")
+}
+
+@every(50ms) fn tick() {
+    ticks = ticks + 1
+    if ticks >= 3 {
+        println("ran {ticks} times")
+        exit(0)
+    }
+}
+
+@on_exit fn bye() {
+    println("done")
+}`,
 };
 
 type XS = {
