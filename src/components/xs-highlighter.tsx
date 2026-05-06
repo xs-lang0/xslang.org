@@ -22,7 +22,7 @@ const RULES: [RegExp, string][] = [
   // keywords - control
   [/\b(?:if|else|elif|while|for|in|loop|match|when|return|break|continue|try|catch|finally|throw|defer|yield|async|await|every|after|timeout|debounce)\b/g, "text-purple-400"],
   // keywords - declaration
-  [/\b(?:fn\*?|let|var|const|struct|enum|trait|impl|class|type|macro|tag|bind|adapt)\b/g, "text-blue-400"],
+  [/\b(?:fn\*?|let|var|const|struct|enum|trait|impl|class|type|macro|tag|bind)\b/g, "text-blue-400"],
   // keywords - import
   [/\b(?:import|export|from|use|module|as)\b/g, "text-blue-400"],
   // keywords - other

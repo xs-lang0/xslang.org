@@ -131,6 +131,18 @@ fn describe(shape) {
     Shape::Rect(w, h)     => "rect {w}x{h}"
     Shape::Triangle(a, b, c) => "triangle {a},{b},{c}"
   }
+}
+
+-- struct-style variants
+enum Event {
+  Click { x, y },
+  Key { code, modifiers }
+}
+
+let e = Event::Click { x: 10, y: 20 }
+match e {
+  Event::Click { x, y }  => "clicked at {x},{y}"
+  Event::Key { code, .. } => "key {code}"
 }`}
       />
 

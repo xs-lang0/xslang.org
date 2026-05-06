@@ -6,9 +6,9 @@ export default function ReactivePage() {
       <h1 className="mb-8 text-3xl font-bold tracking-tight">Reactive primitives</h1>
 
       <p className="mb-6 text-muted">
-        XS has built-in support for reactive bindings, runtime contracts, and
-        target-specific code via adapt blocks. These features work together to make
-        programs more declarative without adding external dependencies.
+        XS has built-in support for reactive bindings and runtime contracts.
+        These features work together to make programs more declarative without
+        adding external dependencies.
       </p>
 
       <h2 className="mb-4 text-xl font-semibold">Reactive bindings</h2>
@@ -81,49 +81,6 @@ divide(10, 0)   -- throws: contract violation on b`}
         there&apos;s no check. Add them where correctness matters and skip them where it doesn&apos;t.
       </p>
 
-      <h2 className="mb-4 mt-12 text-xl font-semibold">Adapt blocks</h2>
-      <p className="mb-4 text-sm text-muted">
-        Write different implementations for different compilation targets using{" "}
-        <code className="text-foreground">adapt</code>:
-      </p>
-      <CodeBlock
-        runnable
-        filename="platform.xs"
-        code={`adapt fn greet(name: str) -> str {
-  native { return "hello, " + name }
-  js { return "hello from JS, " + name }
-  wasm { return "hello from WASM, " + name }
-}
-
-println(greet("world"))  -- "hello, world" in the interpreter`}
-      />
-
-      <p className="mb-4 mt-4 text-sm text-muted">
-        The interpreter and VM use the <code className="text-foreground">native</code> block.
-        When transpiling to JavaScript, the <code className="text-foreground">js</code> block
-        is used instead, and so on for WASM. This lets you write platform-specific code
-        without preprocessor macros or conditional compilation flags.
-      </p>
-
-      <p className="mb-4 text-sm text-muted">
-        Adapt functions support all normal function features, including type annotations,
-        contracts, and default parameters:
-      </p>
-      <CodeBlock
-        runnable
-        code={`import fs
-
-adapt fn read_file(path: str where path.len > 0) -> str {
-  native {
-    -- use built-in file I/O
-    return fs::read(path)
-  }
-  js {
-    -- use Node.js fs module
-    return js_fs_read(path)
-  }
-}`}
-      />
     </div>
   );
 }

@@ -70,7 +70,9 @@ match value {
   n          => "other: {n}"
 }
 
--- regex patterns
+-- regex patterns: full-string match (anchored on both ends).
+-- /^[0-9]+$/ matches "42" but not "42x". For partial matches, call .test()
+-- on the regex value directly: /[0-9]+/.test("42x") -> true.
 match input {
   /^[0-9]+$/ => "number"
   /^[a-z]+$/ => "word"
