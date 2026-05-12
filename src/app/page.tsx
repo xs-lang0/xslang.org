@@ -38,7 +38,7 @@ const features = [
   ["Algebraic effects", "First-class effects for errors, async, logging, and more. Composable. Resumable. Worth the curve."],
   ["Pattern matching", "Deep structural matching on tuples, arrays, structs, enums, and maps with guards, ranges, and regex."],
   ["Zero dependencies", "The compiler is pure C. No LLVM, no runtime, no version drift. Builds in seconds."],
-  ["Fast startup", "~4 ms to spin up a script. Beats Node and Python for small CLI tools. Tight numeric loops in --jit are competitive with CPython; allocation-heavy work (JSON, big maps) still trails it."],
+  ["Fast startup", "~4 ms to spin up a script. Beats Node and Python for small CLI tools. The bytecode VM (default) is ~4-9x the tree-walk interpreter on compute-heavy code; --jit adds another 3-5x on tight numeric loops on x86_64."],
   ["Full concurrency", "Spawn, async/await, actors, channels, nurseries. Pick the model that fits the problem in front of you."],
   ["Multi-target", "One source, native C, JavaScript, WebAssembly, plus iOS / Android / ESP32 cross-compile targets out of the box."],
   ["Reactive bindings", "Variables that auto-update with their dependencies. Add contracts to enforce invariants at runtime."],
