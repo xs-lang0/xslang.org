@@ -1,38 +1,37 @@
-import { CodeBlock } from "@/components/code-block";
 import Link from "next/link";
-import { docsLinks } from "@/lib/docs-links";
+import { Wrap } from "@/components/wrap";
+import { H1, Lead } from "@/components/prose";
 
-export default function DocsPage() {
+const CARDS = [
+  { id: "guide", title: "Guide", desc: "Read top to bottom to learn XS. Tutorials and topical chapters.", first: "introduction" },
+  { id: "reference", title: "Reference", desc: "The formal language reference, mirroring LANGUAGE.md.", first: "lexical" },
+  { id: "stdlib", title: "Stdlib", desc: "One page per standard library module.", first: "math" },
+];
+
+export const metadata = { title: "Docs, XS" };
+
+export default function DocsLanding() {
   return (
-    <div>
-      <h1 className="mb-4 text-3xl font-bold tracking-tight">Documentation</h1>
-      <p className="mb-8 text-muted">
-        XS is a gradually typed language that compiles to C, JavaScript, and
-        WebAssembly. It has algebraic effects, pattern matching, and built-in
-        concurrency, all from a single codebase with zero dependencies.
-      </p>
-
-      <CodeBlock
-        filename="hello.xs"
-        code={`println("hello, world")`}
-      />
-
-      <p className="mt-4 mb-8 text-sm text-muted">
-        Run it with <code className="text-foreground">xs run hello.xs</code>.
-      </p>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        {docsLinks.slice(1).map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className="rounded-lg border border-border p-4 transition-colors hover:border-muted"
-          >
-            <span className="text-sm font-medium">{link.label}</span>
-            <p className="mt-1 text-xs text-muted">{link.description}</p>
-          </Link>
-        ))}
-      </div>
-    </div>
+    <Wrap>
+      <section className="pt-14 pb-12">
+        <H1>Documentation</H1>
+        <Lead>
+          Three sections. Read the Guide first if you are new. Reference and Stdlib are organised for lookup once you know what you are looking for. Cmd-K opens search anywhere on the site.
+        </Lead>
+        <div className="grid gap-4 md:grid-cols-3 mt-10">
+          {CARDS.map(c => (
+            <Link
+              key={c.id}
+              href={`/docs/${c.id}/${c.first}`}
+              className="no-rule block border border-[color:var(--rule)] rounded-[6px] p-5 hover:border-[color:var(--link)] transition-colors"
+            >
+              <div className="font-mono text-xs uppercase tracking-[0.06em] text-[color:var(--text-faint)] mb-1.5">{c.id}</div>
+              <h2 className="text-lg font-semibold text-[color:var(--text)] mb-1.5">{c.title}</h2>
+              <p className="text-sm text-[color:var(--text-muted)]">{c.desc}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </Wrap>
   );
 }
