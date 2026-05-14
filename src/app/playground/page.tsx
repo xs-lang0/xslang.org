@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { Wrap } from "@/components/wrap";
 import { highlightXS } from "@/components/xs-highlighter";
 
 const samples: Record<string, string> = {
@@ -149,7 +150,7 @@ function decodeShare(s: string): string | null {
 function LineNumbers({ code }: { code: string }) {
   const count = code.split("\n").length;
   return (
-    <div className="select-none text-right pr-4 pt-4 pb-4 text-xs leading-relaxed text-muted/40 font-mono shrink-0 w-12 border-r border-border">
+    <div className="select-none text-right pr-3 pt-4 pb-4 text-xs leading-relaxed text-[color:var(--text-faint)] font-mono shrink-0 w-10 border-r border-[color:var(--rule)]">
       {Array.from({ length: count }, (_, i) => (
         <div key={i}>{i + 1}</div>
       ))}
@@ -158,6 +159,8 @@ function LineNumbers({ code }: { code: string }) {
 }
 
 const DEFAULT_FILE = "main.xs";
+
+const BTN = "inline-flex items-center gap-1.5 border border-[color:var(--rule)] bg-[color:var(--panel)] px-3 py-1.5 rounded-[6px] font-mono text-xs text-[color:var(--text)] hover:border-[color:var(--link)] hover:text-[color:var(--link)] transition-colors";
 
 export default function PlaygroundPage() {
   const [files, setFiles] = useState<Record<string, string>>({
@@ -373,30 +376,25 @@ export default function PlaygroundPage() {
   const fileList = useMemo(() => Object.keys(files).sort(), [files]);
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 sm:px-6 py-6 sm:py-8 h-[calc(100vh-7rem)]">
-      {/* toolbar */}
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h1 className="text-lg sm:text-xl font-bold tracking-tight">Playground</h1>
-        <div className="flex items-center gap-2 sm:gap-3">
-          <select
-            value={activeFile}
-            onChange={(e) => setActiveFile(e.target.value)}
-            className="rounded-md border border-border bg-surface px-2 py-1.5 text-xs sm:text-sm text-foreground outline-none"
+    <Wrap wide>
+      <section className="pt-10 pb-12">
+        {/* toolbar */}
+        <div className="flex items-center gap-3 flex-wrap mb-4 font-mono text-xs">
+          <button
+            onClick={handleRun}
+            disabled={running || loading}
+            className={BTN + " disabled:opacity-40"}
           >
-            {fileList.map(name => (
-              <option key={name} value={name}>{name}</option>
-            ))}
-          </select>
+            {loading ? "loading..." : running ? "running..." : "run"}
+          </button>
+          <button onClick={handleShare} className={BTN}>share</button>
           <button
-            onClick={handleNewFile}
-            title="new file"
-            className="rounded-md border border-border bg-surface px-2 py-1.5 text-xs sm:text-sm text-foreground hover:bg-accent-dim/10"
-          >+</button>
-          <button
-            onClick={handleDeleteFile}
-            title="delete current file"
-            className="rounded-md border border-border bg-surface px-2 py-1.5 text-xs sm:text-sm text-foreground hover:bg-accent-dim/10"
-          >-</button>
+            onClick={() => {
+              setFiles(prev => ({ ...prev, [activeFile]: samples[selected] }));
+              setOutput("");
+            }}
+            className={BTN}
+          >reset</button>
           <select
             value={selected}
             onChange={(e) => {
@@ -404,133 +402,127 @@ export default function PlaygroundPage() {
               setFiles(prev => ({ ...prev, [activeFile]: samples[e.target.value] }));
               setOutput("");
             }}
-            className="rounded-md border border-border bg-surface px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-foreground outline-none"
+            className="border border-[color:var(--rule)] bg-[color:var(--panel)] px-3 py-1.5 rounded-[6px] font-mono text-xs text-[color:var(--text)] outline-none hover:border-[color:var(--link)] transition-colors"
           >
             {Object.keys(samples).map(name => (
               <option key={name} value={name}>{name}</option>
             ))}
           </select>
-          <button
-            onClick={handleShare}
-            title="copy share link"
-            className="rounded-md border border-border bg-surface px-3 py-1.5 text-xs sm:text-sm text-foreground hover:bg-accent-dim/10"
-          >share</button>
-          <button
-            onClick={handleRun}
-            disabled={running || loading}
-            className="rounded-md bg-accent-dim px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-medium text-white transition-colors hover:bg-accent disabled:opacity-50"
+          <select
+            value={activeFile}
+            onChange={(e) => setActiveFile(e.target.value)}
+            className="border border-[color:var(--rule)] bg-[color:var(--panel)] px-3 py-1.5 rounded-[6px] font-mono text-xs text-[color:var(--text)] outline-none hover:border-[color:var(--link)] transition-colors"
           >
-            {loading ? "Loading..." : running ? "Running..." : "Run"}
-          </button>
+            {fileList.map(name => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+          <button onClick={handleNewFile} title="new file" className={BTN}>+</button>
+          <button onClick={handleDeleteFile} title="delete current file" className={BTN}>-</button>
+          {shareNote && (
+            <span className="text-[color:var(--text-muted)]">{shareNote}</span>
+          )}
         </div>
-      </div>
 
-      {shareNote && (
-        <div className="text-xs text-accent">{shareNote}</div>
-      )}
-
-      {/* editor + output with resizable split */}
-      <div
-        ref={containerRef}
-        className="flex flex-1 min-h-0 flex-col md:flex-row"
-        style={{ userSelect: dragging ? "none" : "auto" }}
-      >
-        {/* editor panel */}
+        {/* editor + output with resizable split */}
         <div
-          className="flex flex-col overflow-hidden rounded-t-lg md:rounded-l-lg md:rounded-tr-none border border-border"
-          style={{
-            flexBasis: `${splitPercent}%`,
-            flexShrink: 0,
-            minHeight: 100,
-            minWidth: 100,
-          }}
+          ref={containerRef}
+          className="flex flex-col md:flex-row min-h-[60vh]"
+          style={{ userSelect: dragging ? "none" : "auto" }}
         >
-          <div className="border-b border-border px-4 py-1.5 text-xs text-muted">
-            {activeFile}
-          </div>
-          <div className="flex flex-1 overflow-hidden">
-            <div
-              ref={lineNumRef}
-              className="overflow-hidden shrink-0"
-              style={{ overflowY: "hidden" }}
-            >
-              <LineNumbers code={code} />
+          {/* editor panel */}
+          <div
+            className="flex flex-col overflow-hidden rounded-t-[6px] md:rounded-l-[6px] md:rounded-tr-none border border-[color:var(--rule)] bg-[color:var(--panel)]"
+            style={{
+              flexBasis: `${splitPercent}%`,
+              flexShrink: 0,
+              minHeight: 100,
+              minWidth: 100,
+            }}
+          >
+            <div className="border-b border-[color:var(--rule)] px-4 py-1.5 font-mono text-xs text-[color:var(--text-faint)]">
+              {activeFile}
             </div>
-            <div className="flex-1 relative overflow-hidden">
-              <pre
-                ref={highlightRef}
-                className="absolute inset-0 pt-4 pb-4 pl-4 pr-4 font-mono text-sm leading-relaxed pointer-events-none overflow-hidden whitespace-pre-wrap break-words"
-                aria-hidden="true"
-                dangerouslySetInnerHTML={{ __html: highlighted + "\n" }}
-              />
-              <textarea
-                ref={textareaRef}
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                onScroll={handleEditorScroll}
-                spellCheck={false}
-                className="absolute inset-0 w-full h-full resize-none bg-transparent pt-4 pb-4 pl-4 pr-4 font-mono text-sm leading-relaxed text-transparent caret-foreground outline-none"
-                style={{ caretColor: "var(--color-foreground)" }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                    e.preventDefault();
-                    handleRun();
-                  }
-                  if (e.key === "Tab") {
-                    e.preventDefault();
-                    const t = e.currentTarget;
-                    const start = t.selectionStart;
-                    const end = t.selectionEnd;
-                    setCode(code.substring(0, start) + "  " + code.substring(end));
-                    setTimeout(() => {
-                      t.selectionStart = t.selectionEnd = start + 2;
-                    }, 0);
-                  }
-                }}
-              />
+            <div className="flex flex-1 overflow-hidden">
+              <div
+                ref={lineNumRef}
+                className="overflow-hidden shrink-0"
+                style={{ overflowY: "hidden" }}
+              >
+                <LineNumbers code={code} />
+              </div>
+              <div className="flex-1 relative overflow-hidden">
+                <pre
+                  ref={highlightRef}
+                  className="absolute inset-0 pt-4 pb-4 pl-4 pr-4 font-mono text-[13px] leading-relaxed pointer-events-none overflow-hidden whitespace-pre-wrap break-words text-[color:var(--text)]"
+                  aria-hidden="true"
+                  dangerouslySetInnerHTML={{ __html: highlighted + "\n" }}
+                />
+                <textarea
+                  ref={textareaRef}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  onScroll={handleEditorScroll}
+                  spellCheck={false}
+                  className="absolute inset-0 w-full h-full resize-none bg-transparent pt-4 pb-4 pl-4 pr-4 font-mono text-[13px] leading-relaxed text-transparent outline-none"
+                  style={{ caretColor: "var(--text)" }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                      e.preventDefault();
+                      handleRun();
+                    }
+                    if (e.key === "Tab") {
+                      e.preventDefault();
+                      const t = e.currentTarget;
+                      const start = t.selectionStart;
+                      const end = t.selectionEnd;
+                      setCode(code.substring(0, start) + "  " + code.substring(end));
+                      setTimeout(() => {
+                        t.selectionStart = t.selectionEnd = start + 2;
+                      }, 0);
+                    }
+                  }}
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* resize handle */}
-        <div
-          onMouseDown={handleMouseDown}
-          onTouchStart={handleTouchStart}
-          className="shrink-0 flex items-center justify-center
-            md:w-2 md:cursor-col-resize md:hover:bg-accent-dim/30
-            h-2 md:h-auto cursor-row-resize hover:bg-accent-dim/30
-            bg-border transition-colors z-10"
-        >
-          <div className="hidden md:block w-0.5 h-8 rounded-full bg-muted/30" />
-          <div className="md:hidden h-0.5 w-8 rounded-full bg-muted/30" />
-        </div>
-
-        {/* output panel */}
-        <div
-          className="flex flex-col overflow-hidden rounded-b-lg md:rounded-r-lg md:rounded-bl-none border border-border border-t-0 md:border-t md:border-l-0"
-          style={{
-            flexBasis: `${100 - splitPercent}%`,
-            flexShrink: 0,
-            minHeight: 80,
-            minWidth: 80,
-          }}
-        >
-          <div className="border-b border-border px-4 py-1.5 text-xs text-muted">
-            output
+          {/* resize handle */}
+          <div
+            onMouseDown={handleMouseDown}
+            onTouchStart={handleTouchStart}
+            className="shrink-0 flex items-center justify-center
+              md:w-2 md:cursor-col-resize md:hover:bg-[color:var(--rule-soft)]
+              h-2 md:h-auto cursor-row-resize hover:bg-[color:var(--rule-soft)]
+              bg-[color:var(--rule)] transition-colors z-10"
+          >
+            <div className="hidden md:block w-0.5 h-8 rounded-full bg-[color:var(--text-faint)]" />
+            <div className="md:hidden h-0.5 w-8 rounded-full bg-[color:var(--text-faint)]" />
           </div>
-          <pre className="flex-1 overflow-auto bg-surface p-4 font-mono text-sm leading-relaxed text-muted whitespace-pre-wrap">
-            {output || "-- press Ctrl+Enter or click Run"}
-          </pre>
-        </div>
-      </div>
 
-      <div className="text-xs text-muted space-y-1 hidden sm:block">
-        <p>
-          Real XS interpreter via WebAssembly. Files persist locally;
-          input() prompts for stdin. <span className="text-foreground">Not available:</span>{" "}
-          networking, native plugins, JIT, REPL.
+          {/* output panel */}
+          <div
+            className="flex flex-col overflow-hidden rounded-b-[6px] md:rounded-r-[6px] md:rounded-bl-none border border-[color:var(--rule)] border-t-0 md:border-t md:border-l-0 bg-[color:var(--panel)]"
+            style={{
+              flexBasis: `${100 - splitPercent}%`,
+              flexShrink: 0,
+              minHeight: 80,
+              minWidth: 80,
+            }}
+          >
+            <div className="border-b border-[color:var(--rule)] px-4 py-1.5 font-mono text-xs text-[color:var(--text-faint)]">
+              output
+            </div>
+            <pre className="flex-1 overflow-auto p-4 font-mono text-[13px] leading-relaxed text-[color:var(--text-muted)] whitespace-pre-wrap">
+              {output || "-- press Ctrl+Enter or click run"}
+            </pre>
+          </div>
+        </div>
+
+        <p className="mt-4 text-xs text-[color:var(--text-faint)] hidden sm:block">
+          Real XS interpreter via WebAssembly. Files persist locally; input() prompts for stdin. Not available: networking, native plugins, JIT, REPL.
         </p>
-      </div>
-    </div>
+      </section>
+    </Wrap>
   );
 }

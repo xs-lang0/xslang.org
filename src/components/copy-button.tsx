@@ -1,23 +1,18 @@
 "use client";
-
 import { useState } from "react";
 
-export function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
-  };
-
+export function CopyButton({ text, className = "" }: { text: string; className?: string }) {
+  const [done, setDone] = useState(false);
   return (
     <button
-      onClick={handleCopy}
-      className="absolute right-2 top-2 px-1.5 py-0.5 font-mono text-xs text-ink/45 hover:text-accent transition-colors"
+      onClick={async () => {
+        await navigator.clipboard.writeText(text);
+        setDone(true);
+        setTimeout(() => setDone(false), 1200);
+      }}
+      className={`border border-[color:var(--rule)] bg-transparent font-mono text-[11px] uppercase tracking-[0.06em] px-[10px] py-1 rounded-[3px] transition-colors ${done ? "text-[color:var(--link)] border-[color:var(--link)]" : "text-[color:var(--text-faint)] hover:text-[color:var(--link)] hover:border-[color:var(--link)]"} ${className}`}
     >
-      {copied ? "copied" : "copy"}
+      {done ? "copied" : "copy"}
     </button>
   );
 }

@@ -18,15 +18,15 @@ const TYPES = new Set([
 ]);
 
 export const TOKEN_COLORS: Record<string, string> = {
-  keyword: "#c4451c",
-  string:  "#3f6e2c",
-  comment: "#9a8f74",
-  type:    "#6f4524",
-  fn:      "#a05a14",
-  number:  "#a85a26",
-  op:      "#5d544a",
-  punct:   "#7c7468",
-  attr:    "#b04826",
+  keyword: "var(--kw)",
+  string:  "var(--str)",
+  comment: "var(--com)",
+  type:    "var(--typ)",
+  fn:      "var(--fn)",
+  number:  "var(--num)",
+  op:      "var(--text)",
+  punct:   "var(--text-muted)",
+  attr:    "var(--kw)",
 };
 
 export function tokenize(code: string): Token[] {
@@ -168,36 +168,47 @@ export function CodeBlock({
   code,
   filename,
   runnable,
+  noRun,
 }: {
   code: string;
   filename?: string;
   runnable?: boolean;
+  noRun?: boolean;
 }) {
   const trimmed = code.trim();
 
-  if (runnable) {
+  if (runnable && !noRun) {
     return <RunnableBlock code={trimmed} filename={filename} />;
   }
 
   const tokens = tokenize(trimmed);
 
   return (
-    <div className="code-box bg-soft">
+    <div className="my-6 rounded-[6px] border border-[color:var(--rule)] bg-[color:var(--panel)]">
       {filename && (
-        <div className="border-b-[1.5px] border-rule px-3.5 py-1.5 font-mono text-xs text-ink/60 flex items-center justify-between">
+        <div className="flex items-center justify-between border-b border-[color:var(--rule)] px-4 py-2 font-mono text-xs text-[color:var(--text-faint)]">
           <span>{filename}</span>
         </div>
       )}
       <div className="relative">
-        <CopyButton text={trimmed} />
-        <pre className="overflow-x-auto p-4 text-sm leading-relaxed text-ink/85">
+        <div className="absolute right-3 top-3"><CopyButton text={trimmed} /></div>
+        <pre className="overflow-x-auto px-[18px] py-4 text-[13px] leading-[1.65] text-[color:var(--text)]">
           <code>
-            {tokens.map((token, i) => {
-              const color = TOKEN_COLORS[token.type];
-              return color ? (
-                <span key={i} style={{ color }}>{token.text}</span>
+            {tokens.map((t, i) => {
+              const c = TOKEN_COLORS[t.type];
+              return c ? (
+                <span
+                  key={i}
+                  style={{
+                    color: c,
+                    fontWeight: t.type === "keyword" || t.type === "fn" ? 500 : undefined,
+                    fontStyle: t.type === "comment" ? "italic" : undefined,
+                  }}
+                >
+                  {t.text}
+                </span>
               ) : (
-                token.text
+                t.text
               );
             })}
           </code>
