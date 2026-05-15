@@ -183,6 +183,9 @@ export default function PlaygroundPage() {
   const highlightRef = useRef<HTMLPreElement>(null);
   // xsRef persists across example switches - never cleared on content change
   const xsRef = useRef<XS | null>(null);
+  // Mutable callback used by the stdout handler supplied to loadXS. Swapped
+  // out on each run so streaming output goes to the right state update.
+  const stdoutCbRef = useRef<((line: string) => void) | null>(null);
 
   const code = files[activeFile] ?? "";
   const setCode = useCallback((next: string) => {
@@ -216,6 +219,8 @@ export default function PlaygroundPage() {
           wasmUrl: `${STATIC_BASE}/xs.wasm`,
           persist: "playground",
           worker: true,
+          stdout: (line: string) => stdoutCbRef.current?.(line),
+          stderr: (line: string) => stdoutCbRef.current?.(line),
           stdin: async () => {
             const value = window.prompt("input?") ?? "";
             return value + "\n";
@@ -266,19 +271,24 @@ export default function PlaygroundPage() {
     if (!xsRef.current || running) return;
     setRunning(true);
     setOutput("");
-    setShowOutput(false);
+    setShowOutput(true);
+    let buf = "";
+    // Wire the shared stdout ref so each line arrives immediately.
+    stdoutCbRef.current = (line: string) => {
+      buf += (buf ? "\n" : "") + line;
+      setOutput(buf);
+    };
     try {
       // Write latest content before running
       for (const [path, content] of Object.entries(files)) {
         xsRef.current.writeFile(path, content);
       }
-      const result = await xsRef.current.run(files[activeFile] ?? "");
-      setOutput(result || "(no output)");
-      setShowOutput(true);
+      await xsRef.current.run(files[activeFile] ?? "");
+      if (!buf) setOutput("(no output)");
     } catch {
       setOutput("error: runtime crashed, try again");
-      setShowOutput(true);
     } finally {
+      stdoutCbRef.current = null;
       setRunning(false);
     }
   }, [files, activeFile, running]);

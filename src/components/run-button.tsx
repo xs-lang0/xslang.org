@@ -27,16 +27,23 @@ type RunOpts = {
 async function runXS(code: string, opts: RunOpts = {}): Promise<void> {
   const xsScript = await getXSScript();
 
+  // Use worker:true so xs.js spawns an inner dedicated worker to run _start().
+  // That inner worker blocks with Atomics.wait (or a busy-loop) during sleeps,
+  // but the outer blob worker's event loop stays free, so each postMessage from
+  // the inner worker is relayed to the main thread immediately instead of being
+  // held until the program finishes.
   const workerCode = xsScript + "\n;" + `
     self.onmessage = async function(e) {
       const post = (line) => self.postMessage({ kind: "line", line });
       try {
         const xs = await loadXS({
           wasmUrl: "${BASE_URL}/xs.wasm",
+          worker: true,
           stdout: post,
           stderr: post,
         });
         await xs.run(e.data);
+        xs.terminate();
         self.postMessage({ kind: "done" });
       } catch (err) {
         self.postMessage({ kind: "error", message: String(err) });
