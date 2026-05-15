@@ -171,7 +171,7 @@ function parseMd(src: string): MdBlock[] {
   return blocks;
 }
 
-function renderBlocks(blocks: MdBlock[]): ReactNode[] {
+function renderBlocks(blocks: MdBlock[], compact: boolean): ReactNode[] {
   const out: ReactNode[] = [];
   let listBuf: { type: "ul" | "ol"; items: string[] } | null = null;
   let idx = 0;
@@ -210,20 +210,24 @@ function renderBlocks(blocks: MdBlock[]): ReactNode[] {
     if (block.type === "h1" || block.type === "h2") {
       out.push(
         <h2 key={idx++} id={slugify(block.text)}
-          className="text-[22px] font-semibold tracking-tight text-[color:var(--text)] mt-12 mb-3 pt-3 border-t border-[color:var(--rule-soft)]">
+          className={compact
+            ? "text-[16px] font-semibold tracking-tight text-[color:var(--text)] mt-5 mb-2"
+            : "text-[22px] font-semibold tracking-tight text-[color:var(--text)] mt-12 mb-3 pt-3 border-t border-[color:var(--rule-soft)]"}>
           {renderInline(block.text)}
         </h2>
       );
     } else if (block.type === "h3") {
       out.push(
         <h3 key={idx++} id={slugify(block.text)}
-          className="text-[17px] font-semibold tracking-tight text-[color:var(--text)] mt-8 mb-2">
+          className={compact
+            ? "text-[14px] font-semibold tracking-tight text-[color:var(--text-muted)] mt-4 mb-1.5 uppercase tracking-[0.06em]"
+            : "text-[17px] font-semibold tracking-tight text-[color:var(--text)] mt-8 mb-2"}>
           {renderInline(block.text)}
         </h3>
       );
     } else if (block.type === "p") {
       out.push(
-        <p key={idx++} className="text-[15.5px] leading-[1.7] text-[color:var(--text)] mb-4 max-w-[68ch]">
+        <p key={idx++} className="text-[15px] leading-[1.7] text-[color:var(--text)] mb-3 max-w-full break-words">
           {renderInline(block.text)}
         </p>
       );
@@ -267,7 +271,7 @@ function renderBlocks(blocks: MdBlock[]): ReactNode[] {
   return out;
 }
 
-export function Markdown({ source, className }: { source: string; className?: string }) {
+export function Markdown({ source, className, compact = false }: { source: string; className?: string; compact?: boolean }) {
   const blocks = parseMd(source.trim());
-  return <div className={className}>{renderBlocks(blocks)}</div>;
+  return <div className={className}>{renderBlocks(blocks, compact)}</div>;
 }

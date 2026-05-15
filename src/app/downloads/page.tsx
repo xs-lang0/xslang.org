@@ -1,8 +1,8 @@
 import { Wrap } from "@/components/wrap";
-import { InstallRow } from "@/components/install-row";
+import { CopyButton } from "@/components/copy-button";
 import { Markdown } from "@/components/markdown";
 import { H1, H2, P } from "@/components/prose";
-import { fetchReleases } from "@/lib/releases";
+import { fetchReleases, type Asset } from "@/lib/releases";
 
 export const metadata = { title: "Downloads, XS" };
 export const revalidate = 300;
@@ -14,6 +14,34 @@ const PLATFORM_LABEL: Record<string, string> = {
   "linux-arm64": "Linux, arm64",
   "windows-x64": "Windows, x64",
 };
+
+function DownloadRow({ label, asset }: { label: string; asset: Asset }) {
+  const sizeMb = (asset.size / 1024 / 1024).toFixed(1);
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-[6px] border border-[color:var(--rule)] bg-[color:var(--panel)] px-[14px] py-[11px] font-mono text-[13px]">
+      <span className="w-[120px] shrink-0 text-[11px] uppercase tracking-[0.06em] text-[color:var(--text-faint)]">{label}</span>
+      <span className="flex-1 overflow-x-auto whitespace-nowrap text-[color:var(--text)]">
+        {asset.name} <span className="text-[color:var(--text-faint)]">({sizeMb} MB)</span>
+      </span>
+      {asset.sha256Url && (
+        <a
+          href={asset.sha256Url}
+          className="no-rule font-mono text-[11px] uppercase tracking-[0.06em] text-[color:var(--text-faint)] hover:text-[color:var(--link)] transition-colors"
+        >
+          sha256
+        </a>
+      )}
+      <CopyButton text={asset.url} />
+      <a
+        href={asset.url}
+        download
+        className="no-rule inline-flex items-center font-mono text-[11px] uppercase tracking-[0.06em] font-medium text-[color:var(--bg)] bg-[color:var(--link)] hover:bg-[color:var(--link-hover)] transition-colors px-3 py-1 rounded-[4px]"
+      >
+        download
+      </a>
+    </div>
+  );
+}
 
 export default async function DownloadsPage() {
   const releases = await fetchReleases();
@@ -32,15 +60,7 @@ export default async function DownloadsPage() {
               {Object.keys(PLATFORM_LABEL).map(p => {
                 const a = latest.assets.find(x => x.platform === p);
                 if (!a) return null;
-                return (
-                  <InstallRow
-                    key={p}
-                    platform={PLATFORM_LABEL[p]}
-                    prompt="v"
-                    cmd={`${a.name} (${(a.size / 1024 / 1024).toFixed(1)} MB)`}
-                    copyText={a.url}
-                  />
-                );
+                return <DownloadRow key={p} label={PLATFORM_LABEL[p]} asset={a} />;
               })}
             </div>
           </>
@@ -58,7 +78,7 @@ export default async function DownloadsPage() {
           <div key={r.tag} className="border-t border-[color:var(--rule-soft)] pt-5 mt-7">
             <h3 className="text-[17px] font-semibold tracking-tight">{r.tag}</h3>
             <p className="font-mono text-xs text-[color:var(--text-faint)] mb-3">{new Date(r.published).toISOString().slice(0, 10)}</p>
-            {r.body ? <Markdown source={r.body} /> : <p className="text-[color:var(--text-muted)]">no notes</p>}
+            {r.body ? <div className="overflow-hidden"><Markdown source={r.body} compact /></div> : <p className="text-[color:var(--text-muted)]">no notes</p>}
           </div>
         ))}
         {releases.length > 20 && (
@@ -68,7 +88,7 @@ export default async function DownloadsPage() {
               <div key={r.tag} className="border-t border-[color:var(--rule-soft)] pt-5 mt-7">
                 <h3 className="text-[17px] font-semibold tracking-tight">{r.tag}</h3>
                 <p className="font-mono text-xs text-[color:var(--text-faint)] mb-3">{new Date(r.published).toISOString().slice(0, 10)}</p>
-                {r.body && <Markdown source={r.body} />}
+                {r.body && <div className="overflow-hidden"><Markdown source={r.body} compact /></div>}
               </div>
             ))}
           </details>
