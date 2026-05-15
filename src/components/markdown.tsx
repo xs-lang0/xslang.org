@@ -40,6 +40,8 @@ function renderInline(text: string): ReactNode {
             fontSize: "0.86em",
             color: "var(--text)",
             fontFamily: "var(--mono)",
+            overflowWrap: "anywhere",
+            wordBreak: "break-word",
           }}>{text.slice(i + 1, end)}</code>
         );
         i = end + 1;

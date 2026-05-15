@@ -18,6 +18,7 @@
     text-rendering: optimizeLegibility;
     display: flex;
     flex-direction: column;
+    overflow-x: hidden;
   }
 
   ::selection { background: var(--selection); color: var(--text); }

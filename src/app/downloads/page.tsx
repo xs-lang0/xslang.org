@@ -78,7 +78,7 @@ export default async function DownloadsPage() {
           <div key={r.tag} className="border-t border-[color:var(--rule-soft)] pt-5 mt-7">
             <h3 className="text-[17px] font-semibold tracking-tight">{r.tag}</h3>
             <p className="font-mono text-xs text-[color:var(--text-faint)] mb-3">{new Date(r.published).toISOString().slice(0, 10)}</p>
-            {r.body ? <div className="overflow-hidden"><Markdown source={r.body} compact /></div> : <p className="text-[color:var(--text-muted)]">no notes</p>}
+            {r.body ? <div className="min-w-0 max-w-full overflow-hidden"><Markdown source={r.body} compact /></div> : <p className="text-[color:var(--text-muted)]">no notes</p>}
           </div>
         ))}
         {releases.length > 20 && (
@@ -88,7 +88,7 @@ export default async function DownloadsPage() {
               <div key={r.tag} className="border-t border-[color:var(--rule-soft)] pt-5 mt-7">
                 <h3 className="text-[17px] font-semibold tracking-tight">{r.tag}</h3>
                 <p className="font-mono text-xs text-[color:var(--text-faint)] mb-3">{new Date(r.published).toISOString().slice(0, 10)}</p>
-                {r.body && <div className="overflow-hidden"><Markdown source={r.body} compact /></div>}
+                {r.body && <div className="min-w-0 max-w-full overflow-hidden"><Markdown source={r.body} compact /></div>}
               </div>
             ))}
           </details>
