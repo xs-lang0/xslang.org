@@ -47,7 +47,7 @@ println(reflect.type_of(#{}))        -- map
 struct Point { x: int, y: int }
 let p = Point { x: 1, y: 2 }
 println(reflect.type_of(p))          -- Point
-println(reflect.fields(p))           -- ["x", "y"]`}
+println(reflect.fields(p))           -- [x, y]`}
       />
     </DocLayout>
   );

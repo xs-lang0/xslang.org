@@ -170,7 +170,7 @@ println(is_odd(7))               -- true`}
       <H2 id="attributes">Function attributes</H2>
 
       <CodeBlock
-        runnable
+        noRun
         code={`-- @test: marks the function as a test case (run by xs test)
 @test
 fn test_add() {
@@ -181,6 +181,11 @@ fn test_add() {
 @deprecated("use new_add() instead")
 fn old_add(a, b) { return a + b }`}
       />
+
+      <P>
+        Test functions produce no visible output when called directly. Run{" "}
+        <code>xs test</code> to discover and execute them.
+      </P>
 
       <Note>
         <code>@scoped</code> on a <code>let</code> or <code>var</code> tells

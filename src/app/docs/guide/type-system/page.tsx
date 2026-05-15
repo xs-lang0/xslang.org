@@ -100,7 +100,7 @@ never          -- function that never returns`}
         code={`println(42 is int)               -- true
 println("hi" is str)             -- true
 println(42 as float)             -- 42.0
-println(42 as str)               -- "42"
+println(42 as str)               -- 42
 println("42" as int)             -- 42`}
       />
 

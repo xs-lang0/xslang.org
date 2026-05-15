@@ -63,10 +63,10 @@ export default function Page() {
       </P>
 
       <CodeBlock
-        code={`:type 42        -- show inferred type
-:ast 1 + 2      -- show parse tree
-:time fib(30)   -- evaluate and report elapsed time
-:quit           -- exit`}
+        code={`:t 42           -- show inferred type of an expression
+:env            -- list all bindings in the current session
+:clear          -- clear the current session state
+:quit           -- exit (:q also works)`}
       />
 
       <H2 id="a-small-program">A small program</H2>

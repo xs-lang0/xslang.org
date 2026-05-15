@@ -67,7 +67,7 @@ let t2 = async.spawn(fn() {
 })
 
 let results = async.all([t1, t2])
-println(results)  -- ["first", "second"]
+println(results)  -- [first, second]
 
 -- race: first to finish wins
 let winner = async.race([t1, t2])

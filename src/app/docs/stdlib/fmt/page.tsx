@@ -44,7 +44,7 @@ export default function Page() {
       <P>Ordinal string, e.g. <code>"1st"</code>, <code>"2nd"</code>, <code>"3rd"</code>, <code>"11th"</code>.</P>
 
       <H3 id="fn-pluralize">{`fmt.pluralize(word: str, n: int) -> str`}</H3>
-      <P>Pluralize word based on count - returns just the word, not the count.</P>
+      <P>Returns <code>{`"{n} {word}"`}</code> with the word pluralized if needed, e.g. <code>"1 item"</code> or <code>"2 items"</code>.</P>
 
       <H2 id="examples">Examples</H2>
       <CodeBlock
@@ -60,8 +60,8 @@ println(fmt.ordinal(1))          -- 1st
 println(fmt.ordinal(11))         -- 11th
 println(fmt.ordinal(22))         -- 22nd
 println(fmt.number(3.14159, 2))  -- 3.14
-println(fmt.pluralize("item", 1)) -- item
-println(fmt.pluralize("item", 2)) -- items`}
+println(fmt.pluralize("item", 1)) -- 1 item
+println(fmt.pluralize("item", 2)) -- 2 items`}
       />
     </DocLayout>
   );

@@ -36,8 +36,8 @@ export default function Page() {
 let text = "name,age,city\\nAlice,30,NY\\nBob,25,SF"
 let rows = csv.parse(text)
 
-println(rows[0])   -- ["name", "age", "city"]
-println(rows[1])   -- ["Alice", "30", "NY"]
+println(rows[0])   -- [name, age, city]
+println(rows[1])   -- [Alice, 30, NY]
 println(rows[1][0]) -- Alice
 
 -- round-trip

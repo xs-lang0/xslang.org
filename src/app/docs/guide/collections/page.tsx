@@ -144,7 +144,8 @@ for i in 1..=3 {
 }
 println()                        -- 1 2 3
 
-println(3 in 1..5)               -- true
+let r = 1..5
+println(3 in r)                  -- true
 println(len(0..10))              -- 10`}
       />
 

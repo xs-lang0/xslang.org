@@ -20,7 +20,7 @@ const RULES: [RegExp, string][] = [
   [/\b0b[01_]+\b/g, "text-orange-300"],
   [/\b\d[\d_]*(?:\.\d[\d_]*)?(?:[eE][+-]?\d+)?\b/g, "text-orange-300"],
   // keywords - control
-  [/\b(?:if|else|elif|while|for|in|loop|match|when|return|break|continue|try|catch|finally|throw|defer|yield|async|await|every|after|timeout|debounce)\b/g, "text-purple-400"],
+  [/\b(?:if|else|elif|while|for|in|loop|match|when|return|break|continue|try|catch|finally|throw|defer|yield|async|await)\b/g, "text-purple-400"],
   // keywords - declaration
   [/\b(?:fn\*?|let|var|const|struct|enum|trait|impl|class|type|macro|tag|bind)\b/g, "text-blue-400"],
   // keywords - import

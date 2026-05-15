@@ -68,9 +68,9 @@ println("\\{literal brace}")      -- {literal brace}`}
         runnable
         code={`let pi = 3.14159
 println("{pi:.2}")               -- 3.14
-println("{pi:8.2}")              -- "    3.14"
-println("{pi:<8.2}")             -- "3.14    "
-println("{pi:^8.2}")             -- "  3.14  "
+println("{pi:8.2}")              --     3.14
+println("{pi:<8.2}")             -- 3.14
+println("{pi:^8.2}")             --   3.14
 println("{pi:.2%}")              -- 314.16%
 
 let n = 1234567
@@ -147,7 +147,7 @@ println(s.lower())               -- hello, world!
 println(s.contains("World"))     -- true
 println(s.starts_with("Hello"))  -- true
 println(s.replace("World", "XS")) -- Hello, XS!
-println(s.split(", "))           -- ["Hello", "World!"]
+println(s.split(", "))           -- [Hello, World!]
 println("  hi  ".trim())         -- hi
 println("ha".repeat(3))          -- hahaha
 println(s.slice(0, 5))           -- Hello`}

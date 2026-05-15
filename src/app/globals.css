@@ -59,6 +59,83 @@
   .reveal-load.d5 { animation-delay: 640ms; }
 
   @keyframes reveal-up { to { opacity: 1; transform: translateY(0); } }
+
+  /* Page content fade-in on route change */
+  .route-fade {
+    animation: route-fade-in 240ms var(--ease) forwards;
+  }
+  @keyframes route-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* Code block first-mount scale-in */
+  .code-mount {
+    animation: code-mount-in 220ms var(--ease) both;
+  }
+  @keyframes code-mount-in {
+    from { opacity: 0.6; transform: scale(0.98); }
+    to   { opacity: 1;   transform: scale(1); }
+  }
+
+  /* Output panel slide-in */
+  .output-slide {
+    animation: output-slide-in 220ms var(--ease) both;
+  }
+  @keyframes output-slide-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Run button click flash */
+  .run-flash {
+    animation: run-flash 180ms var(--ease) both;
+  }
+  @keyframes run-flash {
+    0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--link) 40%, transparent); }
+    50%  { box-shadow: 0 0 0 4px color-mix(in srgb, var(--link) 20%, transparent); }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+
+  /* Reset button flash */
+  .reset-flash {
+    animation: reset-flash 180ms var(--ease) both;
+  }
+  @keyframes reset-flash {
+    0%   { border-color: var(--rule); }
+    50%  { border-color: var(--link); }
+    100% { border-color: var(--rule); }
+  }
+
+  /* Running ellipsis */
+  .running-dot {
+    animation: running-blink 1.2s step-start infinite;
+  }
+  @keyframes running-blink {
+    0%, 100% { opacity: 1; }
+    33%       { opacity: 0.2; }
+    66%       { opacity: 0.6; }
+  }
+
+  /* Nav underline hover */
+  .nav-link {
+    position: relative;
+  }
+  .nav-link::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: var(--link);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 180ms var(--ease);
+  }
+  .nav-link:hover::after {
+    transform: scaleX(1);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

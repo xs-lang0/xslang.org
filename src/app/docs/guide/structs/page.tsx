@@ -163,6 +163,7 @@ println(py)                      -- 200
 -- works in match too
 match p {
   Point { x, y } => println("({x}, {y})")
+  _ => {}
 }`}
       />
 

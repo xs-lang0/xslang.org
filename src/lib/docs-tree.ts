@@ -67,7 +67,7 @@ export const docsTree: DocSection[] = [
       { slug: "builtins", label: "Built-in functions" },
       { slug: "number-methods", label: "Number methods" },
       { slug: "duration", label: "Duration" },
-      { slug: "temporal", label: "Temporal primitives" },
+      { slug: "temporal", label: "Temporal decorators" },
       { slug: "decorators", label: "Decorators" },
       { slug: "backends", label: "Execution backends" },
       { slug: "cli", label: "CLI reference" },

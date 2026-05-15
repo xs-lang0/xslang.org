@@ -91,6 +91,15 @@ make wasm         -- produces xs.wasm via wasi-sdk`}
         Type <code>println("hello")</code> and press Enter. Type{" "}
         <code>:quit</code> to exit.
       </P>
+
+      <Note>
+        The browser playground loads <code>xs.js</code> (the JS shim) and{" "}
+        <code>xs.wasm</code> (the runtime) from{" "}
+        <a href="https://static.xslang.org">static.xslang.org</a>. This is a
+        Vercel-hosted CDN of the WASM build cut from the same source as the
+        native binaries. If you embed the playground on your own page, you can
+        fetch from the same URL.
+      </Note>
     </DocLayout>
   );
 }

@@ -51,8 +51,8 @@ println(encode.base64_decode("aGVsbG8=")) -- hello
 println(encode.hex_encode("AB"))          -- 4142
 println(encode.hex_decode("4142"))        -- AB
 
-println(encode.url_encode("a b+c"))       -- a+b%2Bc
-println(encode.url_decode("a+b%2Bc"))     -- a b+c`}
+println(encode.url_encode("a b+c"))       -- a%20b%2Bc
+println(encode.url_decode("a%20b%2Bc"))   -- a b+c`}
       />
     </DocLayout>
   );

@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Wrap } from "@/components/wrap";
 import { highlightXS } from "@/components/xs-highlighter";
 
+const STATIC_BASE = "https://static.xslang.org";
+
 const samples: Record<string, string> = {
   "Hello world": `println("hello, world!")
 
@@ -174,10 +176,12 @@ export default function PlaygroundPage() {
   const [splitPercent, setSplitPercent] = useState(60);
   const [dragging, setDragging] = useState(false);
   const [shareNote, setShareNote] = useState<string | null>(null);
+  const [showOutput, setShowOutput] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumRef = useRef<HTMLDivElement>(null);
   const highlightRef = useRef<HTMLPreElement>(null);
+  // xsRef persists across example switches - never cleared on content change
   const xsRef = useRef<XS | null>(null);
 
   const code = files[activeFile] ?? "";
@@ -200,18 +204,19 @@ export default function PlaygroundPage() {
     }
   }, []);
 
-  // Boot the runtime in worker mode with persisted IDB-backed VFS
+  // Boot the runtime once. The xsRef is stable across all example / file switches.
   useEffect(() => {
     const script = document.createElement("script");
-    script.src = "/xs.js";
+    // Load xs.js from the CDN where it actually lives
+    script.src = `${STATIC_BASE}/xs.js`;
     script.onload = async () => {
       try {
         // @ts-expect-error - loadXS from loaded script
         const runtime = await window.loadXS({
+          wasmUrl: `${STATIC_BASE}/xs.wasm`,
           persist: "playground",
           worker: true,
           stdin: async () => {
-            // Async prompt-based stdin so XS programs can read input()
             const value = window.prompt("input?") ?? "";
             return value + "\n";
           },
@@ -236,6 +241,10 @@ export default function PlaygroundPage() {
         setLoading(false);
       }
     };
+    script.onerror = () => {
+      setOutput("error: could not load XS runtime");
+      setLoading(false);
+    };
     document.head.appendChild(script);
     return () => { script.remove(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -257,15 +266,18 @@ export default function PlaygroundPage() {
     if (!xsRef.current || running) return;
     setRunning(true);
     setOutput("");
+    setShowOutput(false);
     try {
-      // Make sure the active file's latest content is on disk before exec
+      // Write latest content before running
       for (const [path, content] of Object.entries(files)) {
         xsRef.current.writeFile(path, content);
       }
       const result = await xsRef.current.run(files[activeFile] ?? "");
       setOutput(result || "(no output)");
+      setShowOutput(true);
     } catch {
       setOutput("error: runtime crashed, try again");
+      setShowOutput(true);
     } finally {
       setRunning(false);
     }
@@ -385,22 +397,29 @@ export default function PlaygroundPage() {
             disabled={running || loading}
             className={BTN + " disabled:opacity-40"}
           >
-            {loading ? "loading..." : running ? "running..." : "run"}
+            {loading ? "loading..." : running ? (
+              <span>running<span style={{ animation: "running-blink 1.2s step-start infinite" }}>...</span></span>
+            ) : "run"}
           </button>
           <button onClick={handleShare} className={BTN}>share</button>
           <button
             onClick={() => {
+              // Switching example does NOT affect the runtime - xsRef stays loaded
               setFiles(prev => ({ ...prev, [activeFile]: samples[selected] }));
               setOutput("");
+              setShowOutput(false);
             }}
             className={BTN}
           >reset</button>
           <select
             value={selected}
             onChange={(e) => {
-              setSelected(e.target.value);
-              setFiles(prev => ({ ...prev, [activeFile]: samples[e.target.value] }));
+              const name = e.target.value;
+              setSelected(name);
+              // Load example into editor - runtime stays intact
+              setFiles(prev => ({ ...prev, [activeFile]: samples[name] }));
               setOutput("");
+              setShowOutput(false);
             }}
             className="border border-[color:var(--rule)] bg-[color:var(--panel)] px-3 py-1.5 rounded-[6px] font-mono text-xs text-[color:var(--text)] outline-none hover:border-[color:var(--link)] transition-colors"
           >
@@ -513,7 +532,10 @@ export default function PlaygroundPage() {
             <div className="border-b border-[color:var(--rule)] px-4 py-1.5 font-mono text-xs text-[color:var(--text-faint)]">
               output
             </div>
-            <pre className="flex-1 overflow-auto p-4 font-mono text-[13px] leading-relaxed text-[color:var(--text-muted)] whitespace-pre-wrap">
+            <pre
+              className="flex-1 overflow-auto p-4 font-mono text-[13px] leading-relaxed text-[color:var(--text-muted)] whitespace-pre-wrap"
+              style={showOutput ? { animation: "output-slide-in 220ms cubic-bezier(0.22,1,0.36,1) both" } : {}}
+            >
               {output || "-- press Ctrl+Enter or click run"}
             </pre>
           </div>
@@ -521,6 +543,12 @@ export default function PlaygroundPage() {
 
         <p className="mt-4 text-xs text-[color:var(--text-faint)] hidden sm:block">
           Real XS interpreter via WebAssembly. Files persist locally; input() prompts for stdin. Not available: networking, native plugins, JIT, REPL.
+        </p>
+        <p className="mt-1 text-xs text-[color:var(--text-faint)] hidden sm:block">
+          The playground loads <code className="font-mono">xs.js</code> and <code className="font-mono">xs.wasm</code> from{" "}
+          <a href="https://static.xslang.org" target="_blank" rel="noopener noreferrer" className="text-[color:var(--link)]">static.xslang.org</a>.
+          This is a Vercel-hosted CDN of the WASM build, cut from the same source as the native binaries.
+          If you embed the playground on your own page, you can fetch from the same URL.
         </p>
       </section>
     </Wrap>

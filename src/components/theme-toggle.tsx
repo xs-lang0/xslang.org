@@ -28,12 +28,15 @@ const ICON: Record<Mode, string> = {
 
 export function ThemeToggle() {
   const [mode, setMode] = useState<Mode>("system");
+  const [spinning, setSpinning] = useState(false);
   useEffect(() => setMode(readMode()), []);
 
   function cycle() {
     const next: Mode = mode === "light" ? "dark" : mode === "dark" ? "system" : "light";
     setMode(next);
     applyMode(next);
+    setSpinning(true);
+    setTimeout(() => setSpinning(false), 260);
   }
 
   return (
@@ -42,7 +45,14 @@ export function ThemeToggle() {
       onClick={cycle}
       className="inline-flex h-6 w-6 items-center justify-center text-[color:var(--text-muted)] hover:text-[color:var(--link)] transition-colors"
     >
-      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        viewBox="0 0 24 24" width="14" height="14" fill="none"
+        stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
+        style={{
+          transition: "transform 240ms cubic-bezier(0.22,1,0.36,1)",
+          transform: spinning ? "rotate(180deg)" : "rotate(0deg)",
+        }}
+      >
         {mode === "light" && <circle cx="12" cy="12" r="4" />}
         <path d={ICON[mode]} />
       </svg>

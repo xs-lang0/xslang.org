@@ -23,7 +23,7 @@ export function Nav() {
               <Link
                 key={l.href}
                 href={l.href}
-                className="no-rule text-sm text-[color:var(--text-muted)] hover:text-[color:var(--link)] transition-colors"
+                className="nav-link no-rule text-sm text-[color:var(--text-muted)] hover:text-[color:var(--link)] transition-colors"
                 {...(l.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
               >
                 {l.label}

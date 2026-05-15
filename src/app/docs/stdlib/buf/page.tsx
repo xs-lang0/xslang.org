@@ -27,32 +27,32 @@ export default function Page() {
       <H3 id="fn-new">{`buf.new(cap?: int) -> Buffer`}</H3>
       <P>Create a new buffer with optional initial capacity.</P>
 
-      <H3 id="fn-write">Write methods</H3>
+      <H3 id="fn-write">Write functions</H3>
       <P>
-        <code>buf.write_u8(v)</code> - append one byte.
+        <code>buf.write_u8(b, v)</code> - append one byte.
         <br />
-        <code>buf.write_u16(v)</code> - append 2-byte little-endian integer.
+        <code>buf.write_u16(b, v)</code> - append 2-byte little-endian integer.
         <br />
-        <code>buf.write_u32(v)</code> - append 4-byte little-endian integer.
+        <code>buf.write_u32(b, v)</code> - append 4-byte little-endian integer.
         <br />
-        <code>buf.write_u64(v)</code> - append 8-byte little-endian integer.
+        <code>buf.write_u64(b, v)</code> - append 8-byte little-endian integer.
         <br />
-        <code>buf.write_str(s)</code> - append the raw bytes of a string.
+        <code>buf.write_str(b, s)</code> - append the raw bytes of a string.
       </P>
 
-      <H3 id="fn-read">Read methods</H3>
+      <H3 id="fn-read">Read functions</H3>
       <P>
-        <code>buf.read_u8()</code>, <code>buf.read_u16()</code>, <code>buf.read_u32()</code>,{" "}
-        <code>buf.read_u64()</code> - read at the current cursor position, advancing the cursor.
+        <code>buf.read_u8(b)</code>, <code>buf.read_u16(b)</code>, <code>buf.read_u32(b)</code>,{" "}
+        <code>buf.read_u64(b)</code> - read at the current cursor position, advancing the cursor.
       </P>
 
-      <H3 id="fn-to-str">{`buf.to_str() -> str`}</H3>
+      <H3 id="fn-to-str">{`buf.to_str(b: Buffer) -> str`}</H3>
       <P>Convert the buffer contents to a string.</P>
 
-      <H3 id="fn-to-hex">{`buf.to_hex() -> str`}</H3>
+      <H3 id="fn-to-hex">{`buf.to_hex(b: Buffer) -> str`}</H3>
       <P>Return a hex dump of the buffer bytes.</P>
 
-      <H3 id="fn-len">{`buf.len() -> int`}</H3>
+      <H3 id="fn-len">{`buf.len(b: Buffer) -> int`}</H3>
       <P>Number of bytes written so far.</P>
 
       <H2 id="examples">Examples</H2>
@@ -61,12 +61,12 @@ export default function Page() {
         code={`import buf
 
 let b = buf.new()
-b.write_u8(0xFF)
-b.write_u32(1234)
-b.write_str("hi")
+buf.write_u8(b, 0xFF)
+buf.write_u32(b, 1234)
+buf.write_str(b, "hi")
 
-println(b.len())    -- 7
-println(b.to_hex()) -- hex representation`}
+println(buf.len(b))    -- 7
+println(buf.to_hex(b)) -- hex representation`}
       />
     </DocLayout>
   );

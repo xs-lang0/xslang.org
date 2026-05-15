@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { tokenize, TOKEN_COLORS } from "@/components/code-block";
 import { CopyButton } from "@/components/copy-button";
 
@@ -103,10 +103,22 @@ export function RunnableBlock({ code: original, filename }: { code: string; file
   const [state, setState] = useState<"idle" | "running" | "done">("idle");
   const [output, setOutput] = useState("");
   const [error, setError] = useState(false);
+  const [runFlash, setRunFlash] = useState(false);
+  const [resetFlash, setResetFlash] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const edited = code !== original;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const blockRef = useRef<HTMLDivElement>(null);
+
+  // Code block mount animation - only fires once
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   const handleRun = useCallback(async () => {
+    setRunFlash(true);
+    setTimeout(() => setRunFlash(false), 200);
     setState("running");
     setError(false);
     try {
@@ -123,6 +135,8 @@ export function RunnableBlock({ code: original, filename }: { code: string; file
   }, [code]);
 
   const handleReset = useCallback(() => {
+    setResetFlash(true);
+    setTimeout(() => setResetFlash(false), 200);
     setCode(original);
     setOutput("");
     setState("idle");
@@ -152,7 +166,10 @@ export function RunnableBlock({ code: original, filename }: { code: string; file
   const lines = code.split("\n").length;
 
   return (
-    <div className="my-6 rounded-[6px] border border-[color:var(--rule)] bg-[color:var(--panel)]">
+    <div
+      ref={blockRef}
+      className={`my-6 rounded-[6px] border bg-[color:var(--panel)] transition-all duration-[180ms] ${mounted ? "code-mount" : ""} ${resetFlash ? "reset-flash border-[color:var(--link)]" : "border-[color:var(--rule)]"}`}
+    >
       <div className="flex items-center justify-between gap-2 border-b border-[color:var(--rule)] px-4 py-2">
         <span className="font-mono text-xs text-[color:var(--text-faint)]">{filename ?? "scratch.xs"}</span>
         <div className="flex items-center gap-3">
@@ -167,9 +184,11 @@ export function RunnableBlock({ code: original, filename }: { code: string; file
           <button
             onClick={handleRun}
             disabled={state === "running"}
-            className="font-mono text-[11px] uppercase tracking-[0.06em] font-medium text-[color:var(--link)] hover:text-[color:var(--link-hover)] transition-colors disabled:opacity-50"
+            className={`font-mono text-[11px] uppercase tracking-[0.06em] font-medium text-[color:var(--link)] hover:text-[color:var(--link-hover)] transition-colors disabled:opacity-50 ${runFlash ? "run-flash" : ""}`}
           >
-            {state === "running" ? "running" : "run"}
+            {state === "running" ? (
+              <span>running<span className="running-dot">...</span></span>
+            ) : "run"}
           </button>
         </div>
       </div>
@@ -202,7 +221,7 @@ export function RunnableBlock({ code: original, filename }: { code: string; file
       </div>
       {state === "done" && (
         <pre
-          className={`border-t border-[color:var(--rule)] px-4 py-3 font-mono text-[13px] leading-[1.65] whitespace-pre-wrap ${
+          className={`output-slide border-t border-[color:var(--rule)] px-4 py-3 font-mono text-[13px] leading-[1.65] whitespace-pre-wrap ${
             error ? "text-[color:var(--kw)]" : "text-[color:var(--text-muted)]"
           }`}
           style={{ maxHeight: 200, overflowY: "auto" }}

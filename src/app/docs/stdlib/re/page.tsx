@@ -54,10 +54,10 @@ export default function Page() {
         code={`import re
 
 println(re.match("\\d+", "abc 123 def"))       -- 123
-println(re.find_all("\\d+", "1 2 3"))          -- ["1", "2", "3"]
+println(re.find_all("\\d+", "1 2 3"))          -- [1, 2, 3]
 println(re.replace("\\d+", "abc 123", "N"))    -- abc N
 println(re.replace_all("\\d+", "1 2 3", "N")) -- N N N
-println(re.split("\\s+", "a b c"))             -- ["a", "b", "c"]
+println(re.split("\\s+", "a b c"))             -- [a, b, c]
 println(re.test("^\\d+$", "123"))              -- true
 println(re.test("^\\d+$", "abc"))              -- false
 

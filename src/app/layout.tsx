@@ -4,6 +4,7 @@ import { ThemeScript } from "@/components/theme-script";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import { CmdK } from "@/components/cmdk";
+import { PageFade } from "@/components/page-fade";
 import "./globals.css";
 
 const sans = IBM_Plex_Sans({
@@ -42,7 +43,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <Nav />
-        <main className="flex-1">{children}</main>
+        <PageFade>
+          <main className="flex-1">{children}</main>
+        </PageFade>
         <Footer />
         <CmdK />
       </body>

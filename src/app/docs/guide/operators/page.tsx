@@ -158,7 +158,8 @@ println(obj?.x?.y)   -- null (no error)`}
         code={`println(2 in [1, 2, 3])          -- true
 println("ell" in "hello")        -- true (substring)
 println("a" in #{"a": 1})        -- true (map key)
-println(3 in 1..5)               -- true (range)
+let r = 1..5
+println(3 in r)                  -- true (range)
 println(5 not in [1, 2, 3])      -- true`}
       />
 

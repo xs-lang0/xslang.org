@@ -54,9 +54,10 @@ fn test_types() {
       <H2 id="assertions">Assertions</H2>
 
       <P>
-        <code>assert(cond, msg?)</code> panics if the condition is falsy.{" "}
-        <code>assert_eq(a, b)</code> panics and shows both values if they are
-        not equal.
+        <code>assert(cond, msg?)</code> throws if the condition is falsy.{" "}
+        <code>assert_eq(a, b)</code> throws an <code>AssertionError</code> and
+        shows both values if they are not equal. Both are catchable with
+        try/catch.
       </P>
 
       <CodeBlock

@@ -2,13 +2,13 @@ export type Token = { type: string; text: string };
 
 const KEYWORDS = new Set([
   "fn", "let", "var", "const", "mut", "if", "elif", "else", "match",
-  "for", "while", "loop", "return", "break", "continue", "in",
+  "for", "while", "loop", "when", "return", "break", "continue", "in",
   "struct", "trait", "enum", "class", "impl", "spawn", "async", "await",
-  "yield", "effect", "handle", "perform", "resume", "import", "from", "use",
-  "pub", "type", "true", "false", "null", "self", "super", "module",
-  "actor", "nursery", "try", "catch", "finally", "throw", "defer",
+  "yield", "effect", "handle", "perform", "resume", "import", "export",
+  "from", "use", "pub", "type", "true", "false", "null", "self", "super",
+  "module", "actor", "nursery", "try", "catch", "finally", "throw", "defer",
   "tag", "not", "and", "or", "is", "as", "inline", "unsafe", "static",
-  "pause", "del",
+  "macro", "bind", "pause", "del",
 ]);
 
 const TYPES = new Set([

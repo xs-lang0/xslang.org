@@ -8,7 +8,7 @@ export const metadata = { title: "Duration and temporal, XS Guide" };
 export const headings: Heading[] = [
   { id: "duration-literals", label: "Duration literals", level: 2 },
   { id: "arithmetic", label: "Arithmetic and accessors", level: 2 },
-  { id: "temporal", label: "Temporal primitives", level: 2 },
+  { id: "temporal", label: "Temporal decorators", level: 2 },
 ];
 
 export default function Page() {
@@ -77,74 +77,55 @@ println(dt.ms)                   -- 750.0`}
         <code>.d</code> return floats.
       </P>
 
-      <H2 id="temporal">Temporal primitives</H2>
+      <H2 id="temporal">Temporal decorators</H2>
 
       <P>
-        Scheduling constructs take a duration. They also accept plain numbers
-        interpreted as milliseconds for compatibility.
+        To schedule a function to run on an interval or after a delay, use the
+        decorator forms. These work on any named function declaration.
       </P>
 
       <P>
-        <strong>every</strong> runs a block repeatedly at a fixed interval. In
-        the interpreter, the body runs once for deterministic script execution.
-        Transpiled to JS, it maps to <code>setInterval</code>.
+        <strong>@every</strong> runs the decorated function repeatedly at a
+        fixed interval:
       </P>
 
       <CodeBlock
         noRun
-        code={`every 1s {
+        code={`@every(1s)
+fn tick() {
   println("tick")
 }`}
       />
 
       <P>
-        <strong>after</strong> runs a block once after a delay:
+        <strong>@after</strong> runs the function once after the given delay:
       </P>
 
       <CodeBlock
         noRun
-        code={`after 500ms {
+        code={`@after(500ms)
+fn delayed() {
   println("delayed hello")
 }`}
       />
 
       <P>
-        <strong>timeout</strong> runs a block with a time limit. If it
-        finishes in time, the result is used. Otherwise the <code>else</code>{" "}
-        fallback runs:
+        <strong>@cron</strong> accepts a standard cron expression string:
       </P>
 
       <CodeBlock
         noRun
-        code={`timeout 2s {
-  let result = slow_computation()
-  println(result)
-} else {
-  println("timed out")
-}`}
-      />
-
-      <P>
-        <strong>debounce</strong> coalesces repeated calls: if the block is
-        triggered more than once within the window, only the last call actually
-        runs.
-      </P>
-
-      <CodeBlock
-        noRun
-        code={`var query = ""
-fn on_input(text) {
-  query = text
-  debounce 300ms {
-    println("search: {query}")
-  }
+        code={`@cron("0 9 * * 1-5")
+fn weekday_morning() {
+  println("good morning")
 }`}
       />
 
       <Note>
-        Temporal primitives are more useful in scripts that run a server or
-        event loop. The <code>every</code> and <code>@every</code> decorator
-        both keep the runtime alive while registered.
+        Temporal decorators keep the runtime alive while registered. Use them
+        with event loops and server processes. The <code>@every</code> decorator
+        is more useful than a bare loop because the runtime can sleep between
+        ticks and release the GIL.
       </Note>
     </DocLayout>
   );

@@ -58,8 +58,8 @@ for i in 0..10000 { big.push(i) }
 gc.collect()
 gc.enable()
 
-let after = gc.stats()
-println(after)`}
+let after_stats = gc.stats()
+println(after_stats)`}
       />
     </DocLayout>
   );

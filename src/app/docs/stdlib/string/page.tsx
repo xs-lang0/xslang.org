@@ -74,7 +74,7 @@ export default function Page() {
         runnable
         code={`import string
 
-println(string.words("hello world foo"))      -- ["hello", "world", "foo"]
+println(string.words("hello world foo"))      -- [hello, world, foo]
 println(string.camel_to_snake("helloWorld"))  -- hello_world
 println(string.snake_to_camel("hello_world")) -- helloWorld
 println(string.levenshtein("kitten", "sitting")) -- 3
