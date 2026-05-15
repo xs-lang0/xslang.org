@@ -3,7 +3,7 @@ import { Wrap } from "@/components/wrap";
 import { H1, Lead } from "@/components/prose";
 
 const CARDS = [
-  { id: "guide", title: "Guide", desc: "Read top to bottom to learn XS. Tutorials and topical chapters.", first: "introduction" },
+  { id: "guide", title: "Guide", desc: "Read top to bottom to learn XS. Tutorials and topical chapters.", first: "installation" },
   { id: "reference", title: "Reference", desc: "The formal language reference, mirroring LANGUAGE.md.", first: "lexical" },
   { id: "stdlib", title: "Stdlib", desc: "One page per standard library module.", first: "math" },
 ];

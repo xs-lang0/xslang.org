@@ -6,8 +6,8 @@ export const docsTree: DocSection[] = [
     id: "guide",
     label: "Guide",
     pages: [
-      { slug: "introduction", label: "Introduction" },
       { slug: "installation", label: "Installation" },
+      { slug: "introduction", label: "Introduction" },
       { slug: "first-program", label: "Your first program" },
       { slug: "variables", label: "Variables and bindings" },
       { slug: "operators", label: "Operators and arithmetic" },
