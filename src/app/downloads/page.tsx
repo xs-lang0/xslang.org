@@ -1,7 +1,7 @@
 import { Wrap } from "@/components/wrap";
 import { CopyButton } from "@/components/copy-button";
 import { Markdown } from "@/components/markdown";
-import { H1, H2, P } from "@/components/prose";
+import { H1, H2, P, Note } from "@/components/prose";
 import { fetchReleases, type Asset } from "@/lib/releases";
 
 export const metadata = { title: "Downloads, XS" };
@@ -56,6 +56,9 @@ export default async function DownloadsPage() {
             <P>
               Latest: <code>{latest.tag}</code>, published {new Date(latest.published).toISOString().slice(0, 10)}.
             </P>
+            <Note>
+              These are raw binaries. For most people the install one-liner at <a href="/install"><code>xslang.org/install</code></a> is the right move: it picks the right asset for your platform, drops it on your <code>PATH</code>, and sets up the cache and lib dirs for you. Pull the binary directly from below if you want to wire it up yourself.
+            </Note>
             <div className="flex flex-col gap-1.5 my-7">
               {Object.keys(PLATFORM_LABEL).map(p => {
                 const a = latest.assets.find(x => x.platform === p);
