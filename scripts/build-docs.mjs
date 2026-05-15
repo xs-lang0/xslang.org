@@ -81,20 +81,18 @@ async function buildIndex() {
 }
 
 async function buildRefSnips() {
-  const out = {};
+  const dest = join(PUBLIC, "refsnips.json");
   const lang = join(XSYPY, "LANGUAGE.md");
   const cmd = join(XSYPY, "COMMANDS.md");
-  if (existsSync(lang)) {
-    const slices = sliceByHeading(readFileSync(lang, "utf8"));
-    for (const k of Object.keys(slices)) out[`reference/${k}`] = slices[k];
-    console.log(`refsnips: ${Object.keys(slices).length} slices from LANGUAGE.md`);
-  } else {
-    console.warn(`build-docs: ${lang} not found, refsnips will be empty`);
+  if (!existsSync(lang)) {
+    console.warn(`build-docs: ${lang} not found, leaving refsnips.json as is`);
+    return;
   }
-  if (existsSync(cmd)) {
-    out["reference/cli"] = readFileSync(cmd, "utf8");
-  }
-  writeFileSync(join(PUBLIC, "refsnips.json"), JSON.stringify(out));
+  const out = {};
+  const slices = sliceByHeading(readFileSync(lang, "utf8"));
+  for (const k of Object.keys(slices)) out[`reference/${k}`] = slices[k];
+  if (existsSync(cmd)) out["reference/cli"] = readFileSync(cmd, "utf8");
+  writeFileSync(dest, JSON.stringify(out));
   console.log(`refsnips.json: ${Object.keys(out).length} slugs`);
 }
 
