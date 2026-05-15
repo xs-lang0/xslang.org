@@ -182,14 +182,16 @@ function parseMd(src: string): MdBlock[] {
       continue;
     }
 
-    // Paragraph: accumulate until blank or block marker
+    // Paragraph: accumulate until blank or block marker. A `|` in the
+    // line is fine here; only the (line + separator) pair becomes a
+    // table, which is detected and consumed earlier in the loop.
+    const paraStart = i;
     const paraLines: string[] = [];
     while (
       i < lines.length &&
       lines[i].trim() !== "" &&
       !lines[i].startsWith("```") &&
       !lines[i].startsWith("#") &&
-      !lines[i].includes("|") &&
       !/^[-*]\s/.test(lines[i]) &&
       !/^\d+\.\s/.test(lines[i]) &&
       !/^[-*]{3,}$/.test(lines[i].trim())
@@ -199,6 +201,10 @@ function parseMd(src: string): MdBlock[] {
     }
     if (paraLines.length > 0) {
       blocks.push({ type: "p", text: paraLines.join(" ") });
+    } else if (i === paraStart) {
+      // Safety: nothing matched and the index didn't move. Drop the line
+      // so we cannot loop forever on malformed input.
+      i++;
     }
   }
 
