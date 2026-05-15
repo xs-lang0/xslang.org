@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 export function PageFade({ children }: { children: ReactNode }) {
   const path = usePathname();
   return (
-    <div key={path} className="route-fade min-h-full">
+    <div key={path} className="route-fade">
       {children}
     </div>
   );
