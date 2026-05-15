@@ -18,11 +18,11 @@ export type Release = {
 };
 
 const PLATFORMS = [
-  { match: /linux.*x86_?64|linux.*x64/i, platform: "linux-x64" },
+  { match: /linux.*x86_?64|linux.*x64|linux.*amd64/i, platform: "linux-x64" },
   { match: /linux.*arm64|linux.*aarch64/i, platform: "linux-arm64" },
-  { match: /macos.*x86_?64|darwin.*x64/i, platform: "macos-x64" },
+  { match: /macos.*x86_?64|darwin.*x64|darwin.*amd64/i, platform: "macos-x64" },
   { match: /macos.*arm64|darwin.*arm64/i, platform: "macos-arm64" },
-  { match: /windows.*x64|win.*x64/i, platform: "windows-x64" },
+  { match: /(windows|win).*(x86_?64|x64|amd64)/i, platform: "windows-x64" },
   { match: /\.wasm$/i, platform: "wasm" },
 ];
 
