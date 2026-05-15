@@ -27,27 +27,23 @@ export default function Page() {
       <CodeBlock code={`curl -fsSL https://xslang.org/install | sh`} />
 
       <P>
-        This downloads the XS installer (xsi), which sets up{" "}
-        <code>/usr/local/xs/</code> with the compiler, VM, package manager, and
-        all built-in tools. Requires <code>sudo</code>. After install:
+        Verifies the SHA-256 against the release sums file, then drops the{" "}
+        <code>xs</code> binary into <code>/usr/local/bin/</code>. Requires{" "}
+        <code>sudo</code> if that path is not writable. Override the location
+        with <code>XS_INSTALL_DIR=$HOME/.local/bin</code>. After install:
       </P>
 
-      <CodeBlock
-        code={`/usr/local/xs/
-  bin/     -- xs, xsi (added to PATH)
-  lib/     -- globally installed packages
-  cache/   -- download cache
-  env      -- shell environment setup`}
-      />
+      <CodeBlock code={`xs --version
+xs upgrade           -- pull the latest release, replace this binary
+xs uninstall         -- remove`} />
 
       <H3 id="windows">Windows (PowerShell)</H3>
 
       <CodeBlock code={`irm https://xslang.org/install.ps1 | iex`} />
 
       <P>
-        Installs to <code>C:\xs\</code> and adds <code>C:\xs\bin</code> to the
-        system PATH. Requires an elevated PowerShell session (run as
-        Administrator).
+        Installs to <code>C:\xs\bin\</code> and adds it to the system PATH.
+        Requires an elevated PowerShell session (run as Administrator).
       </P>
 
       <H2 id="from-source">Build from source</H2>
