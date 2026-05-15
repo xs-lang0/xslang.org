@@ -2,9 +2,13 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Wrap } from "@/components/wrap";
-import { highlightXS } from "@/components/xs-highlighter";
+import { XSEditor, type XSEditorHandle } from "@/components/xs-codemirror";
 
-const STATIC_BASE = "https://static.xslang.org";
+// Same-origin xs.js / xs.wasm so the /playground route's COOP/COEP isolation
+// (set in next.config.ts) actually allows SharedArrayBuffer for stdin. A
+// cross-origin fetch under COEP: require-corp would need a CORP header on
+// the asset, which static.xslang.org doesn't currently send.
+const STATIC_BASE = "";
 
 const samples: Record<string, string> = {
   "Hello world": `println("hello, world!")
@@ -98,6 +102,11 @@ println(warmup)            -- 2m30s
 println(warmup + frame)    -- 2m30.016s
 println((1500ms).s)        -- 1.5
 println(2s / 250ms)        -- 8`,
+  "Interactive input": `let name = input("what's your name? ")
+println("hi, " + name + "!")
+
+let n = int(input("enter a number: "))
+println("doubled: " + str(n * 2))`,
   "Decorators": `var ticks = 0
 
 @on_start fn boot() {
@@ -119,11 +128,11 @@ println(2s / 250ms)        -- 8`,
 
 type XS = {
   run: (code: string) => Promise<string>;
-  exec: (args: string[]) => Promise<number>;
-  writeFile: (path: string, content: string) => void;
-  readFile: (path: string) => string | null;
-  listFiles: () => string[];
-  deleteFile: (path: string) => boolean;
+  writeFile: (path: string, content: string | Uint8Array) => void | Promise<void>;
+  readFile: (path: string) => string | null | Promise<string | null>;
+  listFiles: () => string[] | Promise<string[]>;
+  deleteFile: (path: string) => boolean | Promise<boolean>;
+  terminate?: () => void;
 };
 
 // URL fragment sharing: #s=<base64-of-utf8-source>. Kept minimal so a
@@ -149,20 +158,13 @@ function decodeShare(s: string): string | null {
   }
 }
 
-function LineNumbers({ code }: { code: string }) {
-  const count = code.split("\n").length;
-  return (
-    <div className="select-none text-right pr-3 pt-4 pb-4 text-xs leading-relaxed text-[color:var(--text-faint)] font-mono shrink-0 w-10 border-r border-[color:var(--rule)]">
-      {Array.from({ length: count }, (_, i) => (
-        <div key={i}>{i + 1}</div>
-      ))}
-    </div>
-  );
-}
-
 const DEFAULT_FILE = "main.xs";
 
 const BTN = "inline-flex items-center gap-1.5 border border-[color:var(--rule)] bg-[color:var(--panel)] px-3 py-1.5 rounded-[6px] font-mono text-xs text-[color:var(--text)] hover:border-[color:var(--link)] hover:text-[color:var(--link)] transition-colors";
+
+const STOP_BTN = "inline-flex items-center gap-1.5 border border-[color:var(--kw)] bg-[color:var(--panel)] px-3 py-1.5 rounded-[6px] font-mono text-xs text-[color:var(--kw)] hover:bg-[color:var(--kw)] hover:text-[color:var(--bg)] transition-colors";
+
+type OutChunk = { kind: "out" | "err" | "in"; text: string };
 
 export default function PlaygroundPage() {
   const [files, setFiles] = useState<Record<string, string>>({
@@ -170,29 +172,41 @@ export default function PlaygroundPage() {
   });
   const [activeFile, setActiveFile] = useState(DEFAULT_FILE);
   const [selected, setSelected] = useState("Hello world");
-  const [output, setOutput] = useState("");
+  const [chunks, setChunks] = useState<OutChunk[]>([]);
   const [running, setRunning] = useState(false);
   const [loading, setLoading] = useState(true);
   const [splitPercent, setSplitPercent] = useState(60);
   const [dragging, setDragging] = useState(false);
   const [shareNote, setShareNote] = useState<string | null>(null);
   const [showOutput, setShowOutput] = useState(false);
+  const [waitingForInput, setWaitingForInput] = useState(false);
+  const [stdinValue, setStdinValue] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const lineNumRef = useRef<HTMLDivElement>(null);
-  const highlightRef = useRef<HTMLPreElement>(null);
+  const editorRef = useRef<XSEditorHandle>(null);
+  const stdinInputRef = useRef<HTMLInputElement>(null);
+  const outputRef = useRef<HTMLPreElement>(null);
   // xsRef persists across example switches - never cleared on content change
   const xsRef = useRef<XS | null>(null);
-  // Mutable callback used by the stdout handler supplied to loadXS. Swapped
-  // out on each run so streaming output goes to the right state update.
   const stdoutCbRef = useRef<((line: string) => void) | null>(null);
+  const stderrCbRef = useRef<((line: string) => void) | null>(null);
+  const stdinResolverRef = useRef<((value: string) => void) | null>(null);
 
   const code = files[activeFile] ?? "";
   const setCode = useCallback((next: string) => {
-    setFiles(prev => ({ ...prev, [activeFile]: next }));
+    setFiles(prev => prev[activeFile] === next ? prev : { ...prev, [activeFile]: next });
   }, [activeFile]);
 
-  const highlighted = useMemo(() => highlightXS(code), [code]);
+  const appendChunk = useCallback((kind: OutChunk["kind"], text: string) => {
+    setChunks(prev => {
+      // Coalesce contiguous runs of the same kind for cheaper re-renders.
+      if (prev.length && prev[prev.length - 1].kind === kind) {
+        const next = prev.slice();
+        next[next.length - 1] = { kind, text: next[next.length - 1].text + text };
+        return next;
+      }
+      return [...prev, { kind, text }];
+    });
+  }, []);
 
   // Decode #s=... share fragment on first paint
   useEffect(() => {
@@ -203,55 +217,91 @@ export default function PlaygroundPage() {
       if (decoded) {
         setFiles(prev => ({ ...prev, [DEFAULT_FILE]: decoded }));
         setActiveFile(DEFAULT_FILE);
+        editorRef.current?.setValue(decoded);
       }
     }
   }, []);
 
   // Boot the runtime once. The xsRef is stable across all example / file switches.
+  // bootRuntime is also re-callable to recreate the runtime after a cancel.
+  const bootRuntime = useCallback(async () => {
+    return new Promise<XS | null>((resolve) => {
+      // If xs.js is already loaded on the page, reuse it.
+      const existing = (window as unknown as { loadXS?: unknown }).loadXS;
+      const start = async () => {
+        try {
+          // @ts-expect-error - loadXS is attached to window by the script
+          const runtime: XS = await window.loadXS({
+            wasmUrl: `${STATIC_BASE}/xs.wasm`,
+            persist: "playground",
+            worker: true,
+            stdout: (line: string) => stdoutCbRef.current?.(line + "\n"),
+            stderr: (line: string) => stderrCbRef.current?.(line + "\n"),
+            // Pre-stdin partial flush — no trailing newline so the input field
+            // can sit right after the prompt text.
+            stdoutPartial: (text: string) => stdoutCbRef.current?.(text),
+            stderrPartial: (text: string) => stderrCbRef.current?.(text),
+            stdin: () => new Promise<string>((res) => {
+              stdinResolverRef.current = (value: string) => res(value);
+              setWaitingForInput(true);
+              setTimeout(() => stdinInputRef.current?.focus(), 0);
+            }),
+          });
+          resolve(runtime);
+        } catch {
+          resolve(null);
+        }
+      };
+
+      if (existing) { start(); return; }
+
+      const script = document.createElement("script");
+      script.src = `${STATIC_BASE}/xs.js`;
+      script.onload = start;
+      script.onerror = () => resolve(null);
+      document.head.appendChild(script);
+    });
+  }, []);
+
+  // Initial boot + hydrate persisted files. Worker mode means listFiles/readFile
+  // return Promises - awaiting them is what makes persistence + the no-error
+  // initial state work.
   useEffect(() => {
-    const script = document.createElement("script");
-    // Load xs.js from the CDN where it actually lives
-    script.src = `${STATIC_BASE}/xs.js`;
-    script.onload = async () => {
+    let cancelled = false;
+    (async () => {
+      const runtime = await bootRuntime();
+      if (cancelled) return;
+      if (!runtime) {
+        appendChunk("err", "error: could not load XS runtime");
+        setLoading(false);
+        return;
+      }
+      xsRef.current = runtime;
       try {
-        // @ts-expect-error - loadXS from loaded script
-        const runtime = await window.loadXS({
-          wasmUrl: `${STATIC_BASE}/xs.wasm`,
-          persist: "playground",
-          worker: true,
-          stdout: (line: string) => stdoutCbRef.current?.(line),
-          stderr: (line: string) => stdoutCbRef.current?.(line),
-          stdin: async () => {
-            const value = window.prompt("input?") ?? "";
-            return value + "\n";
-          },
-        });
-        xsRef.current = runtime;
-        // Hydrate file list from persisted VFS
-        const persisted = runtime.listFiles().filter((p: string) => p.endsWith(".xs"));
+        const persisted = (await runtime.listFiles()).filter((p: string) => p.endsWith(".xs"));
         if (persisted.length > 0) {
           const loaded: Record<string, string> = {};
           for (const path of persisted) {
-            const content = runtime.readFile(path);
-            if (content !== null) loaded[path] = content;
+            const content = await runtime.readFile(path);
+            if (typeof content === "string") loaded[path] = content;
           }
-          if (loaded[activeFile] === undefined) {
-            loaded[activeFile] = files[activeFile];
+          if (Object.keys(loaded).length > 0) {
+            setFiles(prev => {
+              const merged = { ...prev, ...loaded };
+              // If main.xs got hydrated, push it back into the editor.
+              if (loaded[activeFile] !== undefined) {
+                editorRef.current?.setValue(loaded[activeFile]);
+              }
+              return merged;
+            });
           }
-          setFiles(prev => ({ ...prev, ...loaded }));
         }
-        setLoading(false);
       } catch {
-        setOutput("error: could not load XS runtime");
-        setLoading(false);
+        // Persistence is best-effort; don't surface errors here.
       }
-    };
-    script.onerror = () => {
-      setOutput("error: could not load XS runtime");
       setLoading(false);
-    };
-    document.head.appendChild(script);
-    return () => { script.remove(); };
+    })();
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -261,37 +311,90 @@ export default function PlaygroundPage() {
     if (!xs) return;
     const t = setTimeout(() => {
       for (const [path, content] of Object.entries(files)) {
-        xs.writeFile(path, content);
+        try { void xs.writeFile(path, content); } catch { /* ignore */ }
       }
     }, 250);
     return () => clearTimeout(t);
   }, [files]);
 
+  // Auto-scroll output to bottom on new chunks.
+  useEffect(() => {
+    const el = outputRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [chunks, waitingForInput]);
+
   const handleRun = useCallback(async () => {
     if (!xsRef.current || running) return;
     setRunning(true);
-    setOutput("");
+    setChunks([]);
     setShowOutput(true);
-    let buf = "";
-    // Wire the shared stdout ref so each line arrives immediately.
-    stdoutCbRef.current = (line: string) => {
-      buf += (buf ? "\n" : "") + line;
-      setOutput(buf);
+    let produced = false;
+    stdoutCbRef.current = (text: string) => {
+      produced = true;
+      appendChunk("out", text);
+    };
+    stderrCbRef.current = (text: string) => {
+      produced = true;
+      appendChunk("err", text);
     };
     try {
-      // Write latest content before running
       for (const [path, content] of Object.entries(files)) {
-        xsRef.current.writeFile(path, content);
+        try { await xsRef.current.writeFile(path, content); } catch { /* ignore */ }
       }
       await xsRef.current.run(files[activeFile] ?? "");
-      if (!buf) setOutput("(no output)");
+      if (!produced) appendChunk("out", "(no output)\n");
     } catch {
-      setOutput("error: runtime crashed, try again");
+      appendChunk("err", "(runtime crashed; reloading...)\n");
+      try { xsRef.current.terminate?.(); } catch { /* ignore */ }
+      xsRef.current = null;
+      const fresh = await bootRuntime();
+      if (fresh) xsRef.current = fresh;
     } finally {
       stdoutCbRef.current = null;
+      stderrCbRef.current = null;
+      stdinResolverRef.current = null;
+      setWaitingForInput(false);
       setRunning(false);
     }
-  }, [files, activeFile, running]);
+  }, [files, activeFile, running, appendChunk, bootRuntime]);
+
+  const handleStop = useCallback(async () => {
+    if (!running) return;
+    appendChunk("err", "(cancelled)\n");
+    try { xsRef.current?.terminate?.(); } catch { /* ignore */ }
+    xsRef.current = null;
+    stdoutCbRef.current = null;
+    stderrCbRef.current = null;
+    if (stdinResolverRef.current) {
+      try { stdinResolverRef.current(""); } catch { /* ignore */ }
+      stdinResolverRef.current = null;
+    }
+    setWaitingForInput(false);
+    setRunning(false);
+    // Spin up a new worker so the next run works.
+    const fresh = await bootRuntime();
+    if (fresh) xsRef.current = fresh;
+  }, [running, appendChunk, bootRuntime]);
+
+  const submitStdin = useCallback(() => {
+    const cb = stdinResolverRef.current;
+    if (!cb) return;
+    appendChunk("in", stdinValue + "\n");
+    cb(stdinValue);
+    stdinResolverRef.current = null;
+    setWaitingForInput(false);
+    setStdinValue("");
+  }, [stdinValue, appendChunk]);
+
+  const handleStdinKey = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      submitStdin();
+    } else if (e.key === "c" && e.ctrlKey) {
+      e.preventDefault();
+      handleStop();
+    }
+  }, [submitStdin, handleStop]);
 
   const handleNewFile = useCallback(() => {
     const name = window.prompt("new file name (foo.xs):");
@@ -299,10 +402,12 @@ export default function PlaygroundPage() {
     const path = name.endsWith(".xs") ? name : name + ".xs";
     if (files[path] !== undefined) {
       setActiveFile(path);
+      editorRef.current?.setValue(files[path]);
       return;
     }
     setFiles(prev => ({ ...prev, [path]: "" }));
     setActiveFile(path);
+    editorRef.current?.setValue("");
   }, [files]);
 
   const handleDeleteFile = useCallback(() => {
@@ -314,10 +419,11 @@ export default function PlaygroundPage() {
     if (!window.confirm(`delete ${activeFile}?`)) return;
     const next = { ...files };
     delete next[activeFile];
-    if (xsRef.current) xsRef.current.deleteFile(activeFile);
+    if (xsRef.current) { try { void xsRef.current.deleteFile(activeFile); } catch { /* ignore */ } }
     const remaining = Object.keys(next);
     setFiles(next);
     setActiveFile(remaining[0]);
+    editorRef.current?.setValue(next[remaining[0]]);
   }, [files, activeFile]);
 
   const handleShare = useCallback(async () => {
@@ -331,19 +437,6 @@ export default function PlaygroundPage() {
     }
     setTimeout(() => setShareNote(null), 2500);
   }, [code]);
-
-  // sync scroll between line numbers and textarea
-  const handleEditorScroll = () => {
-    if (textareaRef.current) {
-      const st = textareaRef.current.scrollTop;
-      const sl = textareaRef.current.scrollLeft;
-      if (lineNumRef.current) lineNumRef.current.scrollTop = st;
-      if (highlightRef.current) {
-        highlightRef.current.scrollTop = st;
-        highlightRef.current.scrollLeft = sl;
-      }
-    }
-  };
 
   // drag to resize
   const handleMouseDown = () => setDragging(true);
@@ -397,26 +490,41 @@ export default function PlaygroundPage() {
 
   const fileList = useMemo(() => Object.keys(files).sort(), [files]);
 
+  // When the active file changes from a select, sync the editor.
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.getValue() !== code) {
+      editorRef.current.setValue(code);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFile]);
+
   return (
     <Wrap wide>
       <section className="pt-10 pb-12">
         {/* toolbar */}
         <div className="flex items-center gap-3 flex-wrap mb-4 font-mono text-xs">
-          <button
-            onClick={handleRun}
-            disabled={running || loading}
-            className={BTN + " disabled:opacity-40"}
-          >
-            {loading ? "loading..." : running ? (
-              <span>running<span style={{ animation: "running-blink 1.2s step-start infinite" }}>...</span></span>
-            ) : "run"}
-          </button>
+          {running ? (
+            <button onClick={handleStop} className={STOP_BTN}>stop</button>
+          ) : (
+            <button
+              onClick={handleRun}
+              disabled={loading}
+              className={BTN + " disabled:opacity-40"}
+            >
+              {loading ? "loading..." : "run"}
+            </button>
+          )}
+          {running && (
+            <span className="text-[color:var(--text-muted)]">
+              running<span style={{ animation: "running-blink 1.2s step-start infinite" }}>...</span>
+            </span>
+          )}
           <button onClick={handleShare} className={BTN}>share</button>
           <button
             onClick={() => {
-              // Switching example does NOT affect the runtime - xsRef stays loaded
               setFiles(prev => ({ ...prev, [activeFile]: samples[selected] }));
-              setOutput("");
+              editorRef.current?.setValue(samples[selected]);
+              setChunks([]);
               setShowOutput(false);
             }}
             className={BTN}
@@ -426,9 +534,9 @@ export default function PlaygroundPage() {
             onChange={(e) => {
               const name = e.target.value;
               setSelected(name);
-              // Load example into editor - runtime stays intact
               setFiles(prev => ({ ...prev, [activeFile]: samples[name] }));
-              setOutput("");
+              editorRef.current?.setValue(samples[name]);
+              setChunks([]);
               setShowOutput(false);
             }}
             className="border border-[color:var(--rule)] bg-[color:var(--panel)] px-3 py-1.5 rounded-[6px] font-mono text-xs text-[color:var(--text)] outline-none hover:border-[color:var(--link)] transition-colors"
@@ -472,47 +580,13 @@ export default function PlaygroundPage() {
             <div className="border-b border-[color:var(--rule)] px-4 py-1.5 font-mono text-xs text-[color:var(--text-faint)]">
               {activeFile}
             </div>
-            <div className="flex flex-1 overflow-hidden">
-              <div
-                ref={lineNumRef}
-                className="overflow-hidden shrink-0"
-                style={{ overflowY: "hidden" }}
-              >
-                <LineNumbers code={code} />
-              </div>
-              <div className="flex-1 relative overflow-hidden">
-                <pre
-                  ref={highlightRef}
-                  className="absolute inset-0 pt-4 pb-4 pl-4 pr-4 font-mono text-[13px] leading-relaxed pointer-events-none overflow-hidden whitespace-pre-wrap break-words text-[color:var(--text)]"
-                  aria-hidden="true"
-                  dangerouslySetInnerHTML={{ __html: highlighted + "\n" }}
-                />
-                <textarea
-                  ref={textareaRef}
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  onScroll={handleEditorScroll}
-                  spellCheck={false}
-                  className="absolute inset-0 w-full h-full resize-none bg-transparent pt-4 pb-4 pl-4 pr-4 font-mono text-[13px] leading-relaxed text-transparent outline-none"
-                  style={{ caretColor: "var(--text)" }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                      e.preventDefault();
-                      handleRun();
-                    }
-                    if (e.key === "Tab") {
-                      e.preventDefault();
-                      const t = e.currentTarget;
-                      const start = t.selectionStart;
-                      const end = t.selectionEnd;
-                      setCode(code.substring(0, start) + "  " + code.substring(end));
-                      setTimeout(() => {
-                        t.selectionStart = t.selectionEnd = start + 2;
-                      }, 0);
-                    }
-                  }}
-                />
-              </div>
+            <div className="flex-1 overflow-hidden">
+              <XSEditor
+                ref={editorRef}
+                initialValue={code}
+                onChange={setCode}
+                onRun={handleRun}
+              />
             </div>
           </div>
 
@@ -543,16 +617,56 @@ export default function PlaygroundPage() {
               output
             </div>
             <pre
-              className="flex-1 overflow-auto p-4 font-mono text-[13px] leading-relaxed text-[color:var(--text-muted)] whitespace-pre-wrap"
+              ref={outputRef}
+              onClick={() => waitingForInput && stdinInputRef.current?.focus()}
+              className="flex-1 overflow-auto p-4 font-mono text-[13px] leading-relaxed whitespace-pre-wrap text-[color:var(--text-muted)]"
               style={showOutput ? { animation: "output-slide-in 220ms cubic-bezier(0.22,1,0.36,1) both" } : {}}
             >
-              {output || "-- press Ctrl+Enter or click run"}
+              {chunks.length === 0
+                ? <span className="text-[color:var(--text-faint)]">{"-- press Ctrl+Enter or click run"}</span>
+                : chunks.map((c, i) => (
+                    <span
+                      key={i}
+                      style={{
+                        color: c.kind === "err"
+                          ? "var(--kw)"
+                          : c.kind === "in"
+                            ? "var(--link)"
+                            : "var(--text)",
+                      }}
+                    >{c.text}</span>
+                  ))
+              }
+              {waitingForInput && (
+                <>
+                  <span style={{ color: "var(--link)" }} className="select-none">{"› "}</span>
+                  <input
+                    ref={stdinInputRef}
+                    autoFocus
+                    value={stdinValue}
+                    onChange={(e) => setStdinValue(e.target.value)}
+                    onKeyDown={handleStdinKey}
+                    className="bg-transparent border-none outline-none font-mono text-[13px] text-[color:var(--text)]"
+                    style={{
+                      caretColor: "var(--link)",
+                      color: "var(--text)",
+                      width: `${Math.max(8, stdinValue.length + 2)}ch`,
+                      minWidth: "8ch",
+                      verticalAlign: "baseline",
+                    }}
+                    spellCheck={false}
+                    autoCapitalize="off"
+                    autoComplete="off"
+                  />
+                  <span style={{ color: "var(--text-faint)" }} className="ml-2 text-[11px] select-none">↵ submit</span>
+                </>
+              )}
             </pre>
           </div>
         </div>
 
         <p className="mt-4 text-xs text-[color:var(--text-faint)] hidden sm:block">
-          Real XS interpreter via WebAssembly. Files persist locally; input() prompts for stdin. Not available: networking, native plugins, JIT, REPL.
+          Real XS interpreter via WebAssembly. Files persist locally; input() reads from the prompt below the output. Not available: networking, native plugins, JIT, REPL.
         </p>
         <p className="mt-1 text-xs text-[color:var(--text-faint)] hidden sm:block">
           The playground loads <code className="font-mono">xs.js</code> and <code className="font-mono">xs.wasm</code> from{" "}
