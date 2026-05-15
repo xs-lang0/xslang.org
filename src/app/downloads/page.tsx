@@ -1,23 +1,11 @@
-import { readFileSync } from "fs";
-import { join } from "path";
 import { Wrap } from "@/components/wrap";
 import { InstallRow } from "@/components/install-row";
 import { CodeBlock } from "@/components/code-block";
 import { H1, H2, P } from "@/components/prose";
+import { fetchReleases } from "@/lib/releases";
 
 export const metadata = { title: "Downloads, XS" };
-
-type Asset = { platform: string; name: string; url: string; size: number; sha256Url?: string };
-type Release = { tag: string; name: string; published: string; body: string; assets: Asset[] };
-
-function loadReleases(): Release[] {
-  try {
-    const raw = readFileSync(join(process.cwd(), "public", "releases.json"), "utf8");
-    return JSON.parse(raw) as Release[];
-  } catch {
-    return [];
-  }
-}
+export const revalidate = 300;
 
 const PLATFORM_LABEL: Record<string, string> = {
   "macos-arm64": "macOS, arm64",
@@ -27,8 +15,8 @@ const PLATFORM_LABEL: Record<string, string> = {
   "windows-x64": "Windows, x64",
 };
 
-export default function DownloadsPage() {
-  const releases = loadReleases();
+export default async function DownloadsPage() {
+  const releases = await fetchReleases();
   const latest = releases[0];
 
   return (
@@ -57,7 +45,7 @@ export default function DownloadsPage() {
             </div>
           </>
         ) : (
-          <P>Release info will appear once the build finishes fetching.</P>
+          <P>Could not reach the GitHub releases API just now. Refresh in a minute.</P>
         )}
 
         <H2 id="verify">Verify</H2>

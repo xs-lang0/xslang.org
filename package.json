@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node scripts/fetch-wasm.mjs && node scripts/fetch-releases.mjs && node scripts/build-docs.mjs",
+    "prebuild": "node scripts/fetch-wasm.mjs && node scripts/build-docs.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
