@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import { flushSync } from "react-dom";
 import { tokenize, TOKEN_COLORS } from "@/components/code-block";
 import { CopyButton } from "@/components/copy-button";
 
@@ -142,7 +143,9 @@ export function RunnableBlock({ code: original, filename }: { code: string; file
     await runXS(code, {
       onLine: (line) => {
         buf += (buf ? "\n" : "") + line;
-        setOutput(buf);
+        // Force a synchronous render per line so React doesn't batch
+        // multiple postMessage-delivered lines into a single paint.
+        flushSync(() => setOutput(buf));
       },
       onDone: (timedOut) => {
         setError(timedOut);
