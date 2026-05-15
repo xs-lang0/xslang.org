@@ -18,16 +18,96 @@ const TYPES = new Set([
 ]);
 
 export const TOKEN_COLORS: Record<string, string> = {
-  keyword: "var(--kw)",
-  string:  "var(--str)",
-  comment: "var(--com)",
-  type:    "var(--typ)",
-  fn:      "var(--fn)",
-  number:  "var(--num)",
-  op:      "var(--text)",
-  punct:   "var(--text-muted)",
-  attr:    "var(--kw)",
+  keyword:    "var(--kw)",
+  string:     "var(--str)",
+  "str-tag":  "var(--kw)",       // r"..." / c"..." / """...""" prefix
+  "str-esc":  "var(--num)",      // \n \t \" etc inside strings
+  "str-interp": "var(--typ)",    // {expr} braces inside strings
+  comment:    "var(--com)",
+  type:       "var(--typ)",
+  fn:         "var(--fn)",
+  number:     "var(--num)",
+  duration:   "var(--num)",      // 30s, 100ms, 1us
+  "dur-unit": "var(--kw)",       // the unit suffix (s, ms, ns, m, h, d)
+  bool:       "var(--num)",
+  "self":     "var(--kw)",       // self / super distinct from keywords
+  op:         "var(--text-muted)",
+  arrow:      "var(--kw)",       // => -> |>
+  punct:      "var(--text-faint)",
+  attr:       "var(--kw)",
+  "attr-arg": "var(--typ)",
 };
+
+// Walk the body of a string literal and emit tokens for the wrapping
+// quotes, the literal chars, escape sequences (\n, \", \\, etc.), and
+// {expr} interpolation. The whole thing renders as a single highlighted
+// chunk; the caller doesn't need to know where the string ends.
+function emitInterpolatedString(tokens: Token[], src: string) {
+  // Determine the quote run: ' " " or """ ' """ (raw r"" / c"" already
+  // had the prefix stripped by the caller, src starts at the open quote).
+  let i = 0;
+  let openLen = 1;
+  if (src.startsWith('"""') || src.startsWith("'''")) openLen = 3;
+  const quote = src[0];
+  const closeRun = src.slice(0, openLen);
+
+  // Open quote(s) as plain string tokens
+  tokens.push({ type: "string", text: src.slice(0, openLen) });
+  i = openLen;
+
+  // Find body end (where the matching close run starts)
+  let endBody = src.length;
+  if (src.endsWith(closeRun) && src.length > openLen) {
+    endBody = src.length - openLen;
+  }
+
+  let runStart = i;
+  const flushRun = (to: number) => {
+    if (to > runStart) tokens.push({ type: "string", text: src.slice(runStart, to) });
+  };
+
+  while (i < endBody) {
+    const c = src[i];
+    if (c === "\\" && i + 1 < endBody) {
+      flushRun(i);
+      tokens.push({ type: "str-esc", text: src.slice(i, i + 2) });
+      i += 2;
+      runStart = i;
+      continue;
+    }
+    if (c === "{") {
+      // Find matching close brace, ignoring quoted content inside expr
+      let depth = 1;
+      let j = i + 1;
+      let inStr: string | null = null;
+      while (j < endBody && depth > 0) {
+        const cj = src[j];
+        if (inStr) {
+          if (cj === "\\") { j += 2; continue; }
+          if (cj === inStr) inStr = null;
+        } else {
+          if (cj === '"' || cj === "'") inStr = cj;
+          else if (cj === "{") depth++;
+          else if (cj === "}") depth--;
+        }
+        if (depth === 0) break;
+        j++;
+      }
+      flushRun(i);
+      tokens.push({ type: "str-interp", text: src.slice(i, j + 1) });
+      i = j + 1;
+      runStart = i;
+      continue;
+    }
+    i++;
+  }
+  flushRun(endBody);
+  // Close quote(s)
+  if (endBody < src.length) {
+    tokens.push({ type: "string", text: src.slice(endBody) });
+  }
+  void quote;
+}
 
 export function tokenize(code: string): Token[] {
   const tokens: Token[] = [];
@@ -71,8 +151,17 @@ export function tokenize(code: string): Token[] {
       continue;
     }
 
+    // String-prefixed forms: r"..." (raw), c"..." (color/byte). Emit
+    // the prefix as its own token so it's visually distinct.
+    if ((code[i] === "r" || code[i] === "c") && (code[i + 1] === '"' || code[i + 1] === "'")) {
+      tokens.push({ type: "str-tag", text: code[i] });
+      i++;
+      // fall through into the string handling below
+    }
+
     if (code[i] === '"' || code[i] === "'") {
       const quote = code[i];
+      // Triple-quoted block string
       if (code[i + 1] === quote && code[i + 2] === quote) {
         let j = i + 3;
         while (j < code.length) {
@@ -80,7 +169,7 @@ export function tokenize(code: string): Token[] {
           if (code[j] === "\\") j++;
           j++;
         }
-        tokens.push({ type: "string", text: code.slice(i, j) });
+        emitInterpolatedString(tokens, code.slice(i, j));
         i = j;
         continue;
       }
@@ -90,7 +179,7 @@ export function tokenize(code: string): Token[] {
         j++;
       }
       if (j < code.length && code[j] === quote) j++;
-      tokens.push({ type: "string", text: code.slice(i, j) });
+      emitInterpolatedString(tokens, code.slice(i, j));
       i = j;
       continue;
     }
@@ -100,8 +189,30 @@ export function tokenize(code: string): Token[] {
       if (code[j] === "0" && (code[j + 1] === "x" || code[j + 1] === "b" || code[j + 1] === "o")) {
         j += 2;
         while (j < code.length && /[0-9a-fA-F_]/.test(code[j])) j++;
-      } else {
-        while (j < code.length && /[0-9._e]/.test(code[j])) j++;
+        tokens.push({ type: "number", text: code.slice(i, j) });
+        i = j;
+        continue;
+      }
+      while (j < code.length && /[0-9._e]/.test(code[j])) j++;
+      // Duration suffix? `1s`, `100ms`, `2m30s`, `5us`, `7ns`, `3h`, `1d`
+      const after = code.slice(j);
+      const durM = after.match(/^(ns|us|ms|s|m|h|d)/);
+      if (durM && !/^[a-zA-Z_]/.test(after.slice(durM[0].length))) {
+        tokens.push({ type: "duration", text: code.slice(i, j) });
+        tokens.push({ type: "dur-unit", text: durM[0] });
+        i = j + durM[0].length;
+        // chain (e.g. 2m30s)
+        while (i < code.length && /[0-9]/.test(code[i])) {
+          let k = i;
+          while (k < code.length && /[0-9]/.test(code[k])) k++;
+          const more = code.slice(k);
+          const mUnit = more.match(/^(ns|us|ms|s|m|h|d)/);
+          if (!mUnit) break;
+          tokens.push({ type: "duration", text: code.slice(i, k) });
+          tokens.push({ type: "dur-unit", text: mUnit[0] });
+          i = k + mUnit[0].length;
+        }
+        continue;
       }
       tokens.push({ type: "number", text: code.slice(i, j) });
       i = j;
@@ -121,7 +232,11 @@ export function tokenize(code: string): Token[] {
 
       const followedByParen = code.slice(j).match(/^\s*\(/);
 
-      if (KEYWORDS.has(word)) {
+      if (word === "true" || word === "false" || word === "null") {
+        tokens.push({ type: "bool", text: word });
+      } else if (word === "self" || word === "super" || word === "Self") {
+        tokens.push({ type: "self", text: word });
+      } else if (KEYWORDS.has(word)) {
         tokens.push({ type: "keyword", text: word });
       } else if (TYPES.has(word)) {
         tokens.push({ type: "type", text: word });
@@ -131,6 +246,17 @@ export function tokenize(code: string): Token[] {
         tokens.push({ type: "ident", text: word });
       }
       i = j;
+      continue;
+    }
+
+    // Multi-char arrows / pipes: =>, ->, |>
+    if (
+      (code[i] === "=" && code[i + 1] === ">") ||
+      (code[i] === "-" && code[i + 1] === ">") ||
+      (code[i] === "|" && code[i + 1] === ">")
+    ) {
+      tokens.push({ type: "arrow", text: code.slice(i, i + 2) });
+      i += 2;
       continue;
     }
 
