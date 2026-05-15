@@ -53,7 +53,7 @@ println("hello".len())           -- 5`}
 println("Hello, {name}!")        -- Hello, XS!
 println("{1 + 2} is three")      -- 3 is three
 println("len: {name.len()}")     -- len: 2
-println("\{literal brace}")      -- {literal brace}`}
+println("\\{literal brace}")      -- {literal brace}`}
       />
 
       <H2 id="format-specs">Format specs</H2>
@@ -89,12 +89,12 @@ println("{42:0>5}")              -- 00042`}
 
       <CodeBlock
         runnable
-        code={`let pattern = r"\d+\.\d+"
-println(pattern)                 -- \d+\.\d+
+        code={`let pattern = r"\\d+\\.\\d+"
+println(pattern)                 -- \\d+\\.\\d+
 
 let x = 42
-let raw = r"no {x} here \n raw"
-println(raw)                     -- no {x} here \n raw`}
+let raw = r"no {x} here \\n raw"
+println(raw)                     -- no {x} here \\n raw`}
       />
 
       <H2 id="triple-quoted">Triple-quoted strings</H2>

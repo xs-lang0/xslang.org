@@ -47,7 +47,7 @@ println(ip)
 
 -- TCP client
 let conn = net.tcp_connect("example.com", 80)
-conn.write("GET / HTTP/1.0\r\nHost: example.com\r\n\r\n")
+conn.write("GET / HTTP/1.0\\r\\nHost: example.com\\r\\n\\r\\n")
 let resp = conn.read()
 println(resp)
 conn.close()

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useMemo } from "react";
 import { tokenize, TOKEN_COLORS } from "@/components/code-block";
+import { CopyButton } from "@/components/copy-button";
 
 const TIMEOUT_MS = 5000;
 const BASE_URL = "https://static.xslang.org";
@@ -71,8 +72,10 @@ function Highlighted({ code }: { code: string }) {
     <>
       {tokens.map((token, i) => {
         const color = TOKEN_COLORS[token.type];
+        const weight = token.type === "keyword" || token.type === "fn" ? 500 : undefined;
+        const style = token.type === "comment" ? "italic" : undefined;
         return color ? (
-          <span key={i} style={{ color }}>{token.text}</span>
+          <span key={i} style={{ color, fontWeight: weight, fontStyle: style }}>{token.text}</span>
         ) : (
           <span key={i}>{token.text}</span>
         );
@@ -87,7 +90,7 @@ export function RunnableBlock({ code: original, filename }: { code: string; file
   const [state, setState] = useState<"idle" | "running" | "done">("idle");
   const [output, setOutput] = useState("");
   const [error, setError] = useState(false);
-  const [edited, setEdited] = useState(false);
+  const edited = code !== original;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleRun = useCallback(async () => {
@@ -108,18 +111,14 @@ export function RunnableBlock({ code: original, filename }: { code: string; file
 
   const handleReset = useCallback(() => {
     setCode(original);
-    setEdited(false);
     setOutput("");
     setState("idle");
-    if (textareaRef.current) {
-      textareaRef.current.value = original;
-    }
+    if (textareaRef.current) textareaRef.current.value = original;
   }, [original]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setCode(e.target.value);
-    setEdited(e.target.value !== original);
-  }, [original]);
+  }, []);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Tab") {
@@ -130,41 +129,40 @@ export function RunnableBlock({ code: original, filename }: { code: string; file
       ta.value = ta.value.substring(0, start) + "  " + ta.value.substring(end);
       ta.selectionStart = ta.selectionEnd = start + 2;
       setCode(ta.value);
-      setEdited(ta.value !== original);
     }
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleRun();
     }
-  }, [original, handleRun]);
+  }, [handleRun]);
 
   const lines = code.split("\n").length;
 
   return (
-    <div className="code-box bg-soft">
-      <div className="flex items-center justify-between gap-2 border-b-[1.5px] border-rule px-3.5 py-1.5">
-        <span className="font-mono text-xs text-ink/60">{filename ?? "scratch.xs"}</span>
+    <div className="my-6 rounded-[6px] border border-[color:var(--rule)] bg-[color:var(--panel)]">
+      <div className="flex items-center justify-between gap-2 border-b border-[color:var(--rule)] px-4 py-2">
+        <span className="font-mono text-xs text-[color:var(--text-faint)]">{filename ?? "scratch.xs"}</span>
         <div className="flex items-center gap-3">
-          {edited && (
-            <button
-              onClick={handleReset}
-              className="font-mono text-xs text-ink/55 hover:text-accent transition-colors"
-            >
-              reset
-            </button>
-          )}
+          <CopyButton text={code} />
+          <button
+            onClick={handleReset}
+            disabled={!edited}
+            className="font-mono text-[11px] uppercase tracking-[0.06em] text-[color:var(--text-faint)] hover:text-[color:var(--link)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-[color:var(--text-faint)]"
+          >
+            reset
+          </button>
           <button
             onClick={handleRun}
             disabled={state === "running"}
-            className="font-mono text-xs font-medium text-accent hover:text-ink transition-colors disabled:opacity-50"
+            className="font-mono text-[11px] uppercase tracking-[0.06em] font-medium text-[color:var(--link)] hover:text-[color:var(--link-hover)] transition-colors disabled:opacity-50"
           >
-            {state === "running" ? "running…" : "run →"}
+            {state === "running" ? "running" : "run"}
           </button>
         </div>
       </div>
       <div className="relative overflow-x-auto">
         <pre
-          className="pointer-events-none absolute inset-0 p-4 font-mono text-sm leading-relaxed text-ink/85"
+          className="pointer-events-none absolute inset-0 px-[18px] py-4 font-mono text-[13px] leading-[1.65] text-[color:var(--text)]"
           aria-hidden="true"
         >
           <code><Highlighted code={code} /></code>
@@ -179,14 +177,14 @@ export function RunnableBlock({ code: original, filename }: { code: string; file
           autoCorrect="off"
           autoCapitalize="off"
           rows={Math.max(lines + 1, 3)}
-          className="relative block w-full resize-y border-none bg-transparent p-4 font-mono text-sm leading-relaxed text-transparent caret-accent outline-none"
+          className="relative block w-full resize-y border-none bg-transparent px-[18px] py-4 font-mono text-[13px] leading-[1.65] text-transparent caret-[color:var(--link)] outline-none"
           style={{ tabSize: 2 }}
         />
       </div>
       {state === "done" && (
         <pre
-          className={`border-t-[1.5px] border-rule px-4 py-3 text-sm leading-relaxed ${
-            error ? "text-accent" : "text-ink/70"
+          className={`border-t border-[color:var(--rule)] px-4 py-3 font-mono text-[13px] leading-[1.65] whitespace-pre-wrap ${
+            error ? "text-[color:var(--kw)]" : "text-[color:var(--text-muted)]"
           }`}
           style={{ maxHeight: 200, overflowY: "auto" }}
         >

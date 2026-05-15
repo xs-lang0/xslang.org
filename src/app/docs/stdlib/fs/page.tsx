@@ -156,7 +156,7 @@ for entry in fs.walk("/tmp/a") {
 -- streaming write
 let w = fs.write_stream("/tmp/big.txt")
 for i in 0..1000 {
-    w.write("line {i}\n")
+    w.write("line {i}\\n")
 }
 w.close()`}
       />

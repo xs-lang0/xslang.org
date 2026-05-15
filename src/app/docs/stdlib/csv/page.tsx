@@ -33,7 +33,7 @@ export default function Page() {
         runnable
         code={`import csv
 
-let text = "name,age,city\nAlice,30,NY\nBob,25,SF"
+let text = "name,age,city\\nAlice,30,NY\\nBob,25,SF"
 let rows = csv.parse(text)
 
 println(rows[0])   -- ["name", "age", "city"]

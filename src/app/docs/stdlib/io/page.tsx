@@ -132,7 +132,7 @@ export default function Page() {
         noRun
         code={`import io
 
-io.write_file("out.txt", "hello\n")
+io.write_file("out.txt", "hello\\n")
 let text = io.read_file("out.txt")
 println(text)                    -- hello
 
