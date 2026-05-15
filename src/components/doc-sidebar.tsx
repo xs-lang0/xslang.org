@@ -30,20 +30,27 @@ export function DocSidebar() {
   const path = usePathname();
   const pathSection = getSectionFromPath(path);
 
-  const [activeSection, setActiveSection] = useState<string>(() => {
-    // SSR safe default
-    return docsTree[0].id;
-  });
+  // Initialise to whichever section the current URL points at. On the
+  // /docs landing (no path section) fall back to docsTree[0]; the mount
+  // effect below will swap in the persisted choice once localStorage
+  // is reachable. This avoids the one-frame flash where the sidebar
+  // showed Guide on every Reference / Stdlib navigation.
+  const [activeSection, setActiveSection] = useState<string>(
+    () => pathSection ?? docsTree[0].id
+  );
   const [visible, setVisible] = useState(true);
   const listRef = useRef<HTMLDivElement>(null);
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // On mount: restore persisted section, or sync from pathname
+  // On mount: if we're on the bare /docs landing, restore the user's
+  // last-viewed section. On a real page, pathSection already won.
   useEffect(() => {
-    const persisted = readLS(SECTION_KEY);
-    const initial = pathSection ?? persisted ?? docsTree[0].id;
-    setActiveSection(initial);
-    if (pathSection && pathSection !== persisted) {
+    if (!pathSection) {
+      const persisted = readLS(SECTION_KEY);
+      if (persisted && persisted !== activeSection) {
+        setActiveSection(persisted);
+      }
+    } else {
       writeLS(SECTION_KEY, pathSection);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -97,12 +104,12 @@ export function DocSidebar() {
   return (
     <nav className="text-sm flex flex-col h-full">
       {/* Section tabs */}
-      <div className="flex gap-1 mb-4 shrink-0">
+      <div className="flex gap-2 mb-5 shrink-0">
         {docsTree.map(s => (
           <button
             key={s.id}
             onClick={() => switchSection(s.id)}
-            className={`flex-1 py-1 rounded-[4px] text-xs font-semibold tracking-[0.05em] uppercase transition-colors duration-[180ms]
+            className={`flex-1 py-2 px-2 rounded-[5px] text-[11px] font-semibold tracking-[0.06em] uppercase transition-colors duration-[180ms]
               ${activeSection === s.id
                 ? "bg-[color:var(--link)] text-[color:var(--bg)]"
                 : "text-[color:var(--text-faint)] hover:text-[color:var(--text)] hover:bg-[color:var(--rule-soft)]"

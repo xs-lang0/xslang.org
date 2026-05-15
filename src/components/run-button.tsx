@@ -17,49 +17,65 @@ async function getXSScript(): Promise<string> {
   return xsScriptCache;
 }
 
-async function runXS(code: string): Promise<string> {
+type RunOpts = {
+  onLine?: (line: string) => void;
+  onDone?: (timedOut: boolean) => void;
+  onError?: (msg: string) => void;
+};
+
+async function runXS(code: string, opts: RunOpts = {}): Promise<void> {
   const xsScript = await getXSScript();
 
-  return new Promise((resolve, reject) => {
-    const workerCode = xsScript + "\n;" + `
-      self.onmessage = async function(e) {
-        try {
-          const lines = [];
-          const xs = await loadXS({
-            wasmUrl: "${BASE_URL}/xs.wasm",
-            stdout: (line) => lines.push(line),
-            stderr: (line) => lines.push(line),
-          });
-          await xs.run(e.data);
-          self.postMessage({ ok: true, output: lines.join("\\n") });
-        } catch (err) {
-          self.postMessage({ ok: false, output: String(err) });
-        }
-      };
-    `;
+  const workerCode = xsScript + "\n;" + `
+    self.onmessage = async function(e) {
+      const post = (line) => self.postMessage({ kind: "line", line });
+      try {
+        const xs = await loadXS({
+          wasmUrl: "${BASE_URL}/xs.wasm",
+          stdout: post,
+          stderr: post,
+        });
+        await xs.run(e.data);
+        self.postMessage({ kind: "done" });
+      } catch (err) {
+        self.postMessage({ kind: "error", message: String(err) });
+      }
+    };
+  `;
 
+  return new Promise((resolve) => {
     const blob = new Blob([workerCode], { type: "application/javascript" });
     const worker = new Worker(URL.createObjectURL(blob));
 
     const timer = setTimeout(() => {
       worker.terminate();
-      resolve("(timed out after " + (TIMEOUT_MS / 1000) + "s)");
+      opts.onLine?.("(timed out after " + (TIMEOUT_MS / 1000) + "s)");
+      opts.onDone?.(true);
+      resolve();
     }, TIMEOUT_MS);
 
     worker.onmessage = (e) => {
-      clearTimeout(timer);
-      worker.terminate();
-      if (e.data.ok) {
-        resolve(e.data.output);
-      } else {
-        reject(new Error(e.data.output));
+      const m = e.data;
+      if (m.kind === "line") {
+        opts.onLine?.(m.line);
+      } else if (m.kind === "done") {
+        clearTimeout(timer);
+        worker.terminate();
+        opts.onDone?.(false);
+        resolve();
+      } else if (m.kind === "error") {
+        clearTimeout(timer);
+        worker.terminate();
+        opts.onError?.(m.message);
+        resolve();
       }
     };
 
     worker.onerror = (e) => {
       clearTimeout(timer);
       worker.terminate();
-      reject(new Error(String(e.message)));
+      opts.onError?.(String(e.message));
+      resolve();
     };
 
     worker.postMessage(code);
@@ -121,17 +137,23 @@ export function RunnableBlock({ code: original, filename }: { code: string; file
     setTimeout(() => setRunFlash(false), 200);
     setState("running");
     setError(false);
-    try {
-      const result = await runXS(code);
-      const timedOut = result.startsWith("(timed out");
-      setOutput(result);
-      setError(timedOut);
-      setState("done");
-    } catch (e) {
-      setOutput(String(e));
-      setError(true);
-      setState("done");
-    }
+    setOutput("");
+    let buf = "";
+    await runXS(code, {
+      onLine: (line) => {
+        buf += (buf ? "\n" : "") + line;
+        setOutput(buf);
+      },
+      onDone: (timedOut) => {
+        setError(timedOut);
+        setState("done");
+      },
+      onError: (msg) => {
+        setOutput(msg);
+        setError(true);
+        setState("done");
+      },
+    });
   }, [code]);
 
   const handleReset = useCallback(() => {
@@ -219,14 +241,14 @@ export function RunnableBlock({ code: original, filename }: { code: string; file
           }}
         />
       </div>
-      {state === "done" && (
+      {(state === "running" || state === "done") && (
         <pre
           className={`output-slide border-t border-[color:var(--rule)] px-4 py-3 font-mono text-[13px] leading-[1.65] whitespace-pre-wrap ${
             error ? "text-[color:var(--kw)]" : "text-[color:var(--text-muted)]"
           }`}
           style={{ maxHeight: 200, overflowY: "auto" }}
         >
-          {output || "(no output)"}
+          {output || (state === "running" ? "" : "(no output)")}
         </pre>
       )}
     </div>
