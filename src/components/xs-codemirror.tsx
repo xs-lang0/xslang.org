@@ -331,21 +331,40 @@ const xsTheme = EditorView.theme({
     color: "var(--text)",
     height: "100%",
   },
+  // Both cm-content and cm-gutters need the SAME vertical padding AND the
+  // SAME line-height, otherwise line numbers walk away from their code line
+  // by a few px per row.
   ".cm-content": {
     fontFamily: "var(--mono)",
     caretColor: "var(--text)",
-    padding: "16px 0",
+    padding: "14px 0",
+    lineHeight: "1.7",
+  },
+  ".cm-line": {
+    padding: "0 18px 0 14px",
+    lineHeight: "1.7",
   },
   ".cm-scroller": {
     fontFamily: "var(--mono)",
-    lineHeight: "1.65",
+    lineHeight: "1.7",
   },
   ".cm-gutters": {
     backgroundColor: "transparent",
     color: "var(--text-faint)",
     border: "none",
     borderRight: "1px solid var(--rule)",
-    paddingRight: "4px",
+  },
+  ".cm-gutterElement": {
+    lineHeight: "1.7",
+  },
+  ".cm-lineNumbers .cm-gutterElement": {
+    padding: "0 14px 0 12px",
+    minWidth: "2.5ch",
+    color: "var(--text-faint)",
+  },
+  ".cm-foldGutter .cm-gutterElement": {
+    padding: "0 4px",
+    color: "var(--text-faint)",
   },
   ".cm-activeLineGutter": {
     backgroundColor: "transparent",
@@ -487,7 +506,6 @@ export const XSEditor = forwardRef<XSEditorHandle, Props>(function XSEditor(
         ]),
         runKey,
         updateListener,
-        EditorView.lineWrapping,
       ],
     });
 

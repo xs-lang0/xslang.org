@@ -8,7 +8,14 @@ import { XSEditor, type XSEditorHandle } from "@/components/xs-codemirror";
 // (set in next.config.ts) actually allows SharedArrayBuffer for stdin. A
 // cross-origin fetch under COEP: require-corp would need a CORP header on
 // the asset, which static.xslang.org doesn't currently send.
-const STATIC_BASE = "";
+//
+// Resolved at boot, not at module load, because window isn't available during
+// SSR. The blob worker spawned by xs.js can't resolve a leading-slash relative
+// URL — its base URL is the blob: scheme.
+function staticBase(): string {
+  if (typeof window === "undefined") return "";
+  return window.location.origin;
+}
 
 const samples: Record<string, string> = {
   "Hello world": `println("hello, world!")
@@ -226,13 +233,14 @@ export default function PlaygroundPage() {
   // bootRuntime is also re-callable to recreate the runtime after a cancel.
   const bootRuntime = useCallback(async () => {
     return new Promise<XS | null>((resolve) => {
+      const base = staticBase();
       // If xs.js is already loaded on the page, reuse it.
       const existing = (window as unknown as { loadXS?: unknown }).loadXS;
       const start = async () => {
         try {
           // @ts-expect-error - loadXS is attached to window by the script
           const runtime: XS = await window.loadXS({
-            wasmUrl: `${STATIC_BASE}/xs.wasm`,
+            wasmUrl: `${base}/xs.wasm`,
             persist: "playground",
             worker: true,
             stdout: (line: string) => stdoutCbRef.current?.(line + "\n"),
@@ -248,7 +256,8 @@ export default function PlaygroundPage() {
             }),
           });
           resolve(runtime);
-        } catch {
+        } catch (err) {
+          console.error("loadXS failed:", err);
           resolve(null);
         }
       };
@@ -256,7 +265,7 @@ export default function PlaygroundPage() {
       if (existing) { start(); return; }
 
       const script = document.createElement("script");
-      script.src = `${STATIC_BASE}/xs.js`;
+      script.src = `${base}/xs.js`;
       script.onload = start;
       script.onerror = () => resolve(null);
       document.head.appendChild(script);
