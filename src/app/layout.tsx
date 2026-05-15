@@ -21,8 +21,17 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "XS, a programming language",
-  description: "A fast, expressive programming language with gradual typing, algebraic effects, and zero dependencies.",
+  metadataBase: new URL("https://xslang.org"),
+  title: { default: "XS, a programming language", template: "%s, XS" },
+  description: "A fast, expressive programming language with gradual typing, algebraic effects, and zero dependencies. Compiles to native, JavaScript, and WebAssembly.",
+  openGraph: {
+    title: "XS, a programming language",
+    description: "Native, JavaScript, WebAssembly. Pattern matching, algebraic effects, gradual typing. ~2.4 MB binary, zero runtime dependencies.",
+    url: "https://xslang.org/",
+    siteName: "XS",
+    type: "website",
+  },
+  twitter: { card: "summary_large_image", title: "XS, a programming language", description: "Native, JavaScript, WebAssembly. ~2.4 MB binary." },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
