@@ -75,20 +75,20 @@ export default async function DownloadsPage() {
 
         <H2 id="changelog">Changelog</H2>
         {releases.slice(0, 20).map(r => (
-          <div key={r.tag} className="border-t border-[color:var(--rule-soft)] pt-5 mt-7">
+          <div key={r.tag} className="border-t border-[color:var(--rule-soft)] pt-5 mt-7 w-full max-w-full overflow-hidden">
             <h3 className="text-[17px] font-semibold tracking-tight">{r.tag}</h3>
             <p className="font-mono text-xs text-[color:var(--text-faint)] mb-3">{new Date(r.published).toISOString().slice(0, 10)}</p>
-            {r.body ? <div className="min-w-0 max-w-full overflow-hidden"><Markdown source={r.body} compact /></div> : <p className="text-[color:var(--text-muted)]">no notes</p>}
+            {r.body ? <div className="w-full max-w-full overflow-hidden break-words" style={{ overflowWrap: "anywhere" }}><Markdown source={r.body} compact /></div> : <p className="text-[color:var(--text-muted)]">no notes</p>}
           </div>
         ))}
         {releases.length > 20 && (
           <details className="mt-8">
             <summary className="cursor-pointer text-[color:var(--link)]">show older releases</summary>
             {releases.slice(20).map(r => (
-              <div key={r.tag} className="border-t border-[color:var(--rule-soft)] pt-5 mt-7">
+              <div key={r.tag} className="border-t border-[color:var(--rule-soft)] pt-5 mt-7 w-full max-w-full overflow-hidden">
                 <h3 className="text-[17px] font-semibold tracking-tight">{r.tag}</h3>
                 <p className="font-mono text-xs text-[color:var(--text-faint)] mb-3">{new Date(r.published).toISOString().slice(0, 10)}</p>
-                {r.body && <div className="min-w-0 max-w-full overflow-hidden"><Markdown source={r.body} compact /></div>}
+                {r.body && <div className="w-full max-w-full overflow-hidden break-words" style={{ overflowWrap: "anywhere" }}><Markdown source={r.body} compact /></div>}
               </div>
             ))}
           </details>

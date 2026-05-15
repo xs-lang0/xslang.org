@@ -182,12 +182,12 @@ function renderBlocks(blocks: MdBlock[], compact: boolean): ReactNode[] {
     if (!listBuf) return;
     const Tag = listBuf.type === "ul" ? "ul" : "ol";
     const cls = listBuf.type === "ul"
-      ? "list-disc pl-6 mb-4 text-[15.5px] leading-[1.7] text-[color:var(--text)] space-y-1.5"
-      : "list-decimal pl-6 mb-4 text-[15.5px] leading-[1.7] text-[color:var(--text)] space-y-1.5";
+      ? "list-disc pl-6 mb-4 text-[15.5px] leading-[1.7] text-[color:var(--text)] space-y-1.5 max-w-full break-words"
+      : "list-decimal pl-6 mb-4 text-[15.5px] leading-[1.7] text-[color:var(--text)] space-y-1.5 max-w-full break-words";
     out.push(
-      <Tag key={idx++} className={cls}>
+      <Tag key={idx++} className={cls} style={{ overflowWrap: "anywhere" }}>
         {listBuf.items.map((item, j) => (
-          <li key={j}>{renderInline(item)}</li>
+          <li key={j} className="max-w-full break-words" style={{ overflowWrap: "anywhere" }}>{renderInline(item)}</li>
         ))}
       </Tag>
     );
@@ -202,7 +202,7 @@ function renderBlocks(blocks: MdBlock[], compact: boolean): ReactNode[] {
         listBuf.items.push(...block.items);
       } else {
         flushList();
-        listBuf = { type: block.type, items: [...block.items] };
+        listBuf = { type: block.type, items: [...block.items] } as { type: "ul" | "ol"; items: string[] };
       }
       continue;
     }
