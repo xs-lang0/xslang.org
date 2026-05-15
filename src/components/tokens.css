@@ -26,12 +26,12 @@
   --link:       var(--accent-dark);
   --link-hover: var(--accent-dark-hover);
 
-  --kw:  #E0A89A;
-  --str: #B5C99B;
-  --num: #D9B17C;
-  --com: #6A6459;
-  --fn:  #D4CFC4;
-  --typ: #C4ACE6;
+  --kw:  #C792EA;   /* mauve, keywords + decorators + arrows */
+  --str: #C3E88D;   /* lime, strings */
+  --num: #FFAB70;   /* peach, numbers + booleans + escape sequences */
+  --com: #5F6680;   /* slate, comments */
+  --fn:  #82AAFF;   /* azure, function names + str-tag */
+  --typ: #79DAFA;   /* cyan, types + interpolation */
 
   --selection: rgba(168, 201, 155, 0.25);
 }
@@ -49,12 +49,12 @@
   --link:       var(--accent-light);
   --link-hover: var(--accent-light-hover);
 
-  --kw:  #B0533F;
-  --str: #4F6A37;
-  --num: #8A5A1F;
-  --com: #8A8478;
-  --fn:  #1C1A17;
-  --typ: #6E4FAA;
+  --kw:  #7C3AED;   /* violet */
+  --str: #2F7A1F;   /* forest */
+  --num: #B45309;   /* amber */
+  --com: #8A8478;   /* warm gray */
+  --fn:  #1D4ED8;   /* royal blue */
+  --typ: #0E7490;   /* deep cyan */
 
   --selection: rgba(92, 122, 79, 0.25);
 }
@@ -70,12 +70,12 @@
     --text-faint: #8A8478;
     --link:       var(--accent-light);
     --link-hover: var(--accent-light-hover);
-    --kw:  #B0533F;
-    --str: #4F6A37;
-    --num: #8A5A1F;
+    --kw:  #7C3AED;
+    --str: #2F7A1F;
+    --num: #B45309;
     --com: #8A8478;
-    --fn:  #1C1A17;
-    --typ: #6E4FAA;
+    --fn:  #1D4ED8;
+    --typ: #0E7490;
     --selection: rgba(92, 122, 79, 0.25);
   }
 }
