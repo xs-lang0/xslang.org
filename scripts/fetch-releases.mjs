@@ -47,8 +47,10 @@ export function parseReleases(raw) {
 }
 
 async function main() {
+  const c = new AbortController();
+  const t = setTimeout(() => c.abort(), 15000);
   try {
-    const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=50`);
+    const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=50`, { signal: c.signal });
     if (!res.ok) throw new Error(`github api ${res.status}`);
     const raw = await res.json();
     const out = parseReleases(raw);
@@ -57,6 +59,8 @@ async function main() {
   } catch (e) {
     console.warn(`fetch-releases: ${e.message}; writing empty list`);
     writeFileSync(dest, "[]");
+  } finally {
+    clearTimeout(t);
   }
 }
 
