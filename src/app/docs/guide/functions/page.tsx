@@ -171,14 +171,10 @@ println(is_odd(7))               -- true`}
 
       <CodeBlock
         runnable
-        code={`-- @pure: sema verifies no I/O or side effects
-@pure
-fn add(a, b) { return a + b }
-
--- @test: marks the function as a test case (run by xs test)
+        code={`-- @test: marks the function as a test case (run by xs test)
 @test
 fn test_add() {
-  assert_eq(add(1, 2), 3)
+  assert_eq(1 + 2, 3)
 }
 
 -- @deprecated: warns callers at check time

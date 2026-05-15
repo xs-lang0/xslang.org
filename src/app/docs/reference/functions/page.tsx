@@ -23,7 +23,7 @@ export default function Page() {
         are supported. Functions with the same name but different arities coexist as overloads; the
         first exact-arity match wins. Closures capture by reference and mutations are visible to the
         outer scope. Type parameters use <code>{"<T>"}</code>; trait bounds use <code>T: Trait</code>.
-        Attributes like <code>@pure</code>, <code>@test</code>, <code>@deprecated</code>, and{" "}
+        Attributes like <code>@test</code>, <code>@deprecated</code>, and{" "}
         <code>@scoped</code> control static analysis behavior. <code>fn main()</code> is auto-called
         if defined.
       </P>

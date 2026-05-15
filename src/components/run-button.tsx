@@ -72,10 +72,8 @@ function Highlighted({ code }: { code: string }) {
     <>
       {tokens.map((token, i) => {
         const color = TOKEN_COLORS[token.type];
-        const weight = token.type === "keyword" || token.type === "fn" ? 500 : undefined;
-        const style = token.type === "comment" ? "italic" : undefined;
         return color ? (
-          <span key={i} style={{ color, fontWeight: weight, fontStyle: style }}>{token.text}</span>
+          <span key={i} style={{ color }}>{token.text}</span>
         ) : (
           <span key={i}>{token.text}</span>
         );
@@ -84,6 +82,21 @@ function Highlighted({ code }: { code: string }) {
     </>
   );
 }
+
+const editorTextStyle: React.CSSProperties = {
+  fontFamily: "var(--mono)",
+  fontSize: "13px",
+  lineHeight: "1.65",
+  letterSpacing: 0,
+  wordSpacing: 0,
+  textIndent: 0,
+  tabSize: 2,
+  fontVariantLigatures: "none",
+  fontFeatureSettings: '"calt" 0',
+  fontWeight: 400,
+  fontStyle: "normal",
+  margin: 0,
+};
 
 export function RunnableBlock({ code: original, filename }: { code: string; filename?: string }) {
   const [code, setCode] = useState(original);
@@ -160,12 +173,13 @@ export function RunnableBlock({ code: original, filename }: { code: string; file
           </button>
         </div>
       </div>
-      <div className="relative overflow-x-auto">
+      <div className="relative overflow-x-auto runnable-editor">
         <pre
-          className="pointer-events-none absolute inset-0 px-[18px] py-4 font-mono text-[13px] leading-[1.65] text-[color:var(--text)]"
+          className="pointer-events-none absolute inset-0 px-[18px] py-4 text-[color:var(--text)]"
           aria-hidden="true"
+          style={editorTextStyle}
         >
-          <code><Highlighted code={code} /></code>
+          <code style={editorTextStyle}><Highlighted code={code} /></code>
         </pre>
         <textarea
           ref={textareaRef}
@@ -177,8 +191,13 @@ export function RunnableBlock({ code: original, filename }: { code: string; file
           autoCorrect="off"
           autoCapitalize="off"
           rows={Math.max(lines + 1, 3)}
-          className="relative block w-full resize-y border-none bg-transparent px-[18px] py-4 font-mono text-[13px] leading-[1.65] text-transparent caret-[color:var(--link)] outline-none"
-          style={{ tabSize: 2 }}
+          className="relative block w-full resize-y border-none bg-transparent px-[18px] py-4 outline-none"
+          style={{
+            ...editorTextStyle,
+            color: "transparent",
+            WebkitTextFillColor: "transparent",
+            caretColor: "var(--link)",
+          }}
         />
       </div>
       {state === "done" && (
