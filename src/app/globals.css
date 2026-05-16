@@ -118,6 +118,16 @@
     66%       { opacity: 0.6; }
   }
 
+  /* Modal */
+  @keyframes modal-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes modal-pop-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
   /* Nav underline hover */
   .nav-link {
     position: relative;

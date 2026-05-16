@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Wrap } from "@/components/wrap";
 import { XSEditor, type XSEditorHandle } from "@/components/xs-codemirror";
 import { PlaygroundFiles } from "@/components/playground-files";
+import { ConfirmModal, type ConfirmKind } from "@/components/confirm-modal";
 
 // Same-origin xs.js / xs.wasm so the /playground route's COOP/COEP isolation
 // (set in next.config.ts) actually allows SharedArrayBuffer for stdin. A
@@ -226,6 +227,13 @@ export default function PlaygroundPage() {
   const [waitingForInput, setWaitingForInput] = useState(false);
   const [stdinValue, setStdinValue] = useState("");
   const [filesPanelOpen, setFilesPanelOpen] = useState(true);
+  const [confirm, setConfirm] = useState<{
+    title?: string;
+    message: string;
+    confirmLabel?: string;
+    kind?: ConfirmKind;
+    onConfirm: () => void;
+  } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<XSEditorHandle>(null);
   const stdinInputRef = useRef<HTMLInputElement>(null);
@@ -495,16 +503,23 @@ export default function PlaygroundPage() {
       setTimeout(() => setShareNote(null), 1500);
       return;
     }
-    if (!window.confirm(`delete ${name}?`)) return;
-    const next = { ...files };
-    delete next[name];
-    if (xsRef.current) { try { void xsRef.current.deleteFile(name); } catch { /* ignore */ } }
-    setFiles(next);
-    if (activeFile === name) {
-      const remaining = Object.keys(next);
-      setActiveFile(remaining[0]);
-      editorRef.current?.setValue(next[remaining[0]]);
-    }
+    setConfirm({
+      title: "delete file",
+      message: `Delete ${name}? This can't be undone.`,
+      confirmLabel: "delete",
+      kind: "danger",
+      onConfirm: () => {
+        const next = { ...files };
+        delete next[name];
+        if (xsRef.current) { try { void xsRef.current.deleteFile(name); } catch { /* ignore */ } }
+        setFiles(next);
+        if (activeFile === name) {
+          const remaining = Object.keys(next);
+          setActiveFile(remaining[0]);
+          editorRef.current?.setValue(next[remaining[0]]);
+        }
+      },
+    });
   }, [files, activeFile]);
 
   const handleDuplicate = useCallback((name: string) => {
@@ -719,6 +734,18 @@ export default function PlaygroundPage() {
           Real XS interpreter via WebAssembly. Files persist locally in your browser. Networking, native plugins, JIT, and the REPL aren&apos;t available.
         </p>
       </section>
+      <ConfirmModal
+        open={confirm !== null}
+        title={confirm?.title}
+        message={confirm?.message ?? ""}
+        confirmLabel={confirm?.confirmLabel}
+        kind={confirm?.kind}
+        onConfirm={() => {
+          confirm?.onConfirm();
+          setConfirm(null);
+        }}
+        onCancel={() => setConfirm(null)}
+      />
     </Wrap>
   );
 }
