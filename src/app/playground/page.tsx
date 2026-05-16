@@ -473,7 +473,10 @@ function Playground() {
   }, [submitStdin, handleStop]);
 
   const switchFile = useCallback((name: string) => {
-    if (!files[name]) return;
+    // Use `in` so an empty file still counts as present -- a fresh
+    // `main.xs` you haven't typed into yet is "" and `!files[name]`
+    // would reject the switch, locking you out of an empty file.
+    if (!(name in files)) return;
     if (name === activeFileRef.current) return;
     // Flush any in-flight edits in the editor into the OLD file's slot
     // before swapping. CodeMirror's onChange is debounced via React's
@@ -496,7 +499,7 @@ function Playground() {
       if (!v) return "name required";
       if (!/^[A-Za-z0-9._\-/]+$/.test(v)) return "only letters, digits, . _ - / allowed";
       const cleaned = v.endsWith(".xs") ? v : v + ".xs";
-      if (cleaned !== ignore && existing[cleaned]) return `${cleaned} already exists`;
+      if (cleaned !== ignore && cleaned in existing) return `${cleaned} already exists`;
       return null;
     };
   }, []);
@@ -533,7 +536,7 @@ function Playground() {
   const handleRename = useCallback(async (oldName: string, newName: string) => {
     const cleaned = newName.trim().endsWith(".xs") ? newName.trim() : newName.trim() + ".xs";
     if (cleaned === oldName) return;
-    if (files[cleaned]) {
+    if (cleaned in files) {
       await dialogs.alert({
         title: "rename failed",
         message: `${cleaned} already exists. Pick another name.`,
