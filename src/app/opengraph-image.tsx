@@ -14,20 +14,67 @@ export default async function OGImage() {
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "flex-start",
-          padding: "80px 96px",
+          justifyContent: "space-between",
+          padding: "72px 88px",
           background: "#1C1A17",
           color: "#D4CFC4",
           fontFamily: "monospace",
         }}
       >
-        <div style={{ fontSize: 32, color: "#A8C99B", marginBottom: 24 }}>xs</div>
-        <div style={{ fontSize: 72, fontWeight: 600, lineHeight: 1.05, letterSpacing: "-0.01em", maxWidth: 880 }}>
-          XS is a programming language.
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 12,
+              background: "#26221E",
+              border: "1px solid #2E2A25",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#A8C99B",
+              fontSize: 28,
+              fontWeight: 600,
+            }}
+          >
+            xs
+          </div>
+          <div style={{ fontSize: 24, color: "#948D81" }}>xslang.org</div>
         </div>
-        <div style={{ fontSize: 26, color: "#948D81", marginTop: 32, maxWidth: 880, lineHeight: 1.4 }}>
-          Native, JavaScript, WebAssembly. Pattern matching, algebraic effects, gradual typing.
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+          <div
+            style={{
+              fontSize: 76,
+              fontWeight: 600,
+              lineHeight: 1.05,
+              letterSpacing: "-0.015em",
+              maxWidth: 1000,
+              color: "#D4CFC4",
+            }}
+          >
+            One language for everything.
+          </div>
+          <div
+            style={{
+              fontSize: 28,
+              color: "#948D81",
+              maxWidth: 980,
+              lineHeight: 1.4,
+            }}
+          >
+            Pattern matching, algebraic effects, gradual typing, real concurrency.
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 28, fontSize: 22, color: "#6A6459" }}>
+          <span>native</span>
+          <span style={{ color: "#3A352F" }}>·</span>
+          <span>javascript</span>
+          <span style={{ color: "#3A352F" }}>·</span>
+          <span>webassembly</span>
+          <span style={{ color: "#3A352F" }}>·</span>
+          <span>zero deps</span>
         </div>
       </div>
     ),

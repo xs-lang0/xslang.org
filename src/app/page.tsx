@@ -3,6 +3,24 @@ import { Wrap } from "@/components/wrap";
 import { CodeBlock } from "@/components/code-block";
 import { InstallRow } from "@/components/install-row";
 
+// Schema.org payload Google reads for the rich-result panel. Kept inline
+// rather than in a component so it lands in the HTML the crawler sees first.
+const SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "XS",
+  alternateName: ["XS Lang", "xslang"],
+  url: "https://xslang.org/",
+  description:
+    "One language for everything. Pattern matching, algebraic effects, gradual typing, real concurrency. Compiles to native, JavaScript, and WebAssembly. Zero runtime dependencies.",
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "macOS, Linux, Windows",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  license: "https://www.apache.org/licenses/LICENSE-2.0",
+  author: { "@type": "Person", name: "xs-lang0", url: "https://github.com/xs-lang0" },
+  sameAs: ["https://github.com/xs-lang0/xs"],
+};
+
 const HERO = `-- effects, types, pattern matching, durations
 effect Log { fn log(msg: str) }
 
@@ -18,6 +36,10 @@ handle spawn Worker {
 export default function Home() {
   return (
     <Wrap>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(SCHEMA) }}
+      />
       <section className="pt-[72px] pb-14">
         <h1 className="text-[26px] font-semibold tracking-[-0.01em] text-[color:var(--text)] mb-[22px] reveal-load d1">
           XS is a programming language.

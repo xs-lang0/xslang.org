@@ -24,15 +24,31 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://xslang.org"),
   title: { default: "XS, a programming language", template: "%s, XS" },
-  description: "A fast, expressive programming language with gradual typing, algebraic effects, and zero dependencies. Compiles to native, JavaScript, and WebAssembly.",
+  description: "One language for everything: scripts, services, the browser. Pattern matching, algebraic effects, gradual typing, real concurrency. Compiles to native, JavaScript, and WebAssembly. Zero runtime dependencies.",
+  applicationName: "XS",
+  keywords: ["xs", "xs language", "xs lang", "xslang", "programming language", "gradual typing", "algebraic effects", "wasm", "transpiler", "structs", "traits", "actors", "channels", "nurseries"],
+  authors: [{ name: "xs-lang0" }],
+  creator: "xs-lang0",
+  publisher: "xs-lang0",
+  alternates: { canonical: "https://xslang.org/" },
   openGraph: {
     title: "XS, a programming language",
-    description: "Native, JavaScript, WebAssembly. Pattern matching, algebraic effects, gradual typing. ~2.4 MB binary, zero runtime dependencies.",
+    description: "Pattern matching, algebraic effects, gradual typing, real concurrency. Compiles to native, JavaScript, and WebAssembly. Zero runtime dependencies.",
     url: "https://xslang.org/",
     siteName: "XS",
     type: "website",
+    locale: "en_US",
   },
-  twitter: { card: "summary_large_image", title: "XS, a programming language", description: "Native, JavaScript, WebAssembly. ~2.4 MB binary." },
+  twitter: {
+    card: "summary_large_image",
+    title: "XS, a programming language",
+    description: "Pattern matching, effects, gradual typing. Native, JavaScript, WebAssembly. Zero runtime dependencies.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
