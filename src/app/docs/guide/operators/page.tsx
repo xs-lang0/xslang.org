@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Operators and arithmetic, XS Guide" };
+export const metadata = {
+  title: { absolute: "Operators and arithmetic · XS Guide" },
+  description: "XS has the usual arithmetic and comparison operators, plus a pipe operator, null coalescing, and optional chaining.",
+};
 
 export const headings: Heading[] = [
   { id: "arithmetic", label: "Arithmetic", level: 2 },

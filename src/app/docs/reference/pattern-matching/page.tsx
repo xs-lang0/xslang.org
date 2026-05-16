@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Pattern matching, XS Reference" };
+export const metadata = {
+  title: { absolute: "Pattern matching · XS Reference" },
+  description: "match is an expression; its arms cover literals, tuples, structs, enums, ranges, slices, regex, string prefixes, or-patterns, and guards.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

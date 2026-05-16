@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, H3, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "io, XS Stdlib" };
+export const metadata = {
+  title: { absolute: "io, XS Stdlib · XS Docs" },
+  description: "File I/O, directory utilities, stdin, and stdout/stderr sub-objects.",
+};
 
 export const headings: Heading[] = [
   { id: "import", label: "Import", level: 2 },

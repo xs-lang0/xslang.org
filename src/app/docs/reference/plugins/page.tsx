@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, H3, Lead, P, Note, Warn, UL } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Plugin system, XS Reference" };
+export const metadata = {
+  title: { absolute: "Plugin system · XS Reference" },
+  description: "Plugins are .xs files that get access to a special plugin object and can inject globals, add methods to built-in types, define new syntax, and hook into evaluation and parsing.",
+};
 
 export const headings: Heading[] = [
   { id: "what-is-a-plugin", label: "What is a plugin", level: 2 },

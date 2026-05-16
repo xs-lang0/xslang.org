@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, H3, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "time, XS Stdlib" };
+export const metadata = {
+  title: { absolute: "time, XS Stdlib · XS Docs" },
+  description: "Wall-clock access, sleep, stopwatch, and timestamp formatting.",
+};
 
 export const headings: Heading[] = [
   { id: "import", label: "Import", level: 2 },

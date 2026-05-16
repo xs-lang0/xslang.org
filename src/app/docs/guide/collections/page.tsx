@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Collections, XS Guide" };
+export const metadata = {
+  title: { absolute: "Collections · XS Guide" },
+  description: "Arrays, tuples, maps, and ranges. Each has its own literal syntax and a full set of methods.",
+};
 
 export const headings: Heading[] = [
   { id: "arrays", label: "Arrays", level: 2 },

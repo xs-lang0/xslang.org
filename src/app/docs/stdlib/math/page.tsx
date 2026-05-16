@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, H3, Lead, P, UL } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "math, XS Stdlib" };
+export const metadata = {
+  title: { absolute: "math, XS Stdlib · XS Docs" },
+  description: "Numeric functions and constants for scientific and general-purpose computation.",
+};
 
 export const headings: Heading[] = [
   { id: "import", label: "Import", level: 2 },

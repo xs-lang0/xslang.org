@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Reactive bindings, XS Reference" };
+export const metadata = {
+  title: { absolute: "Reactive bindings · XS Reference" },
+  description: "bind declares a name that auto-recomputes when any of its dependencies change.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

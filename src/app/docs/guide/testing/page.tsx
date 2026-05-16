@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Testing, XS Guide" };
+export const metadata = {
+  title: { absolute: "Testing · XS Guide" },
+  description: "Mark functions with @test and run xs test. Assertions are built in. No test framework to install.",
+};
 
 export const headings: Heading[] = [
   { id: "test-attribute", label: "@test attribute", level: 2 },

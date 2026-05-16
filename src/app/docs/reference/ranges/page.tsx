@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Ranges, XS Reference" };
+export const metadata = {
+  title: { absolute: "Ranges · XS Reference" },
+  description: "Exclusive and inclusive integer ranges used in for loops, match patterns, and membership tests.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Functions and closures, XS Guide" };
+export const metadata = {
+  title: { absolute: "Functions and closures · XS Guide" },
+  description: "Functions are first-class values. XS supports default parameters, variadic args, closures, generators, and overloading by argument count.",
+};
 
 export const headings: Heading[] = [
   { id: "basics", label: "Basics", level: 2 },

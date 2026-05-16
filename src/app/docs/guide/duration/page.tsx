@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Duration and temporal, XS Guide" };
+export const metadata = {
+  title: { absolute: "Duration and temporal · XS Guide" },
+  description: "Duration is a first-class type. Write 5s, 200ms, 2m30s anywhere a value is expected. No import required.",
+};
 
 export const headings: Heading[] = [
   { id: "duration-literals", label: "Duration literals", level: 2 },

@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Decorators, XS Guide" };
+export const metadata = {
+  title: { absolute: "Decorators · XS Guide" },
+  description: "Decorators attach to function declarations. Trigger decorators schedule when the function runs. Wrapping decorators intercept every call and delegate to the original.",
+};
 
 export const headings: Heading[] = [
   { id: "trigger-decorators", label: "Trigger decorators", level: 2 },

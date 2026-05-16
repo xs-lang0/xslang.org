@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Pattern matching, XS Guide" };
+export const metadata = {
+  title: { absolute: "Pattern matching · XS Guide" },
+  description: "match scrutinises a value against a sequence of patterns and runs the first arm that matches. It is an expression: it returns the matched arm{\"'\"}s value.",
+};
 
 export const headings: Heading[] = [
   { id: "basics", label: "Basics", level: 2 },

@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Control flow, XS Guide" };
+export const metadata = {
+  title: { absolute: "Control flow · XS Guide" },
+  description: "Braces are always required. if is an expression. loop can return a value. Loops can be labeled for nested breaks.",
+};
 
 export const headings: Heading[] = [
   { id: "if-elif-else", label: "if / elif / else", level: 2 },

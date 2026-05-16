@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Structs and impl, XS Guide" };
+export const metadata = {
+  title: { absolute: "Structs and impl · XS Guide" },
+  description: "Structs are named product types. Methods go in an impl block. Operators, spread syntax, and destructuring all work out of the box.",
+};
 
 export const headings: Heading[] = [
   { id: "declaration", label: "Declaration", level: 2 },

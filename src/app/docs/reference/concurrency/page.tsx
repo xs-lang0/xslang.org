@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Concurrency, XS Reference" };
+export const metadata = {
+  title: { absolute: "Concurrency · XS Reference" },
+  description: "Spawn, async/await, channels, actors, and nurseries for structured concurrency.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Maps, XS Reference" };
+export const metadata = {
+  title: { absolute: "Maps · XS Reference" },
+  description: "Hash maps with insertion-order iteration and a #{\"{}\"} literal syntax.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

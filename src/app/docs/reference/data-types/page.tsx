@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Data types, XS Reference" };
+export const metadata = {
+  title: { absolute: "Data types · XS Reference" },
+  description: "Every value in XS has a type; the built-in ones cover the full range from scalars to collections.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

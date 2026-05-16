@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Enums, XS Reference" };
+export const metadata = {
+  title: { absolute: "Enums · XS Reference" },
+  description: "Sum types with optional associated data, accessed via Enum::Variant and destructured in pattern matching.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

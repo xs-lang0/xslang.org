@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Regex, XS Reference" };
+export const metadata = {
+  title: { absolute: "Regex · XS Reference" },
+  description: "Regex is a first-class type with literal syntax and a Thompson NFA engine.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

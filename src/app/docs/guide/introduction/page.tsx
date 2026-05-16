@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, Lead, P, UL, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Introduction, XS Guide" };
+export const metadata = {
+  title: { absolute: "Introduction · XS Guide" },
+  description: "XS is a general-purpose language that scales from 5-line scripts to large systems, with gradual typing, multiple backends, and zero external dependencies.",
+};
 
 export const headings: Heading[] = [
   { id: "what-it-is", label: "What it is", level: 2 },
@@ -137,7 +140,10 @@ println(result)`}
       <P>
         <strong>Concurrency.</strong> Spawn real OS threads, pass messages over
         channels, model state with actors, bound task lifetimes with nurseries.
-        Async/await for I/O-bound work.
+        Async/await for I/O-bound work. A global lock keeps two threads from
+        running pure-compute work at the same time; the lock releases around
+        sleeps, I/O, and channel receives, so spawn-and-block does parallelise.
+        Same model as CPython.
       </P>
 
       <P>
@@ -146,14 +152,15 @@ println(result)`}
       </P>
 
       <P>
-        <strong>Zero dependencies.</strong> No "also install openssl". BearSSL
+        <strong>Zero dependencies.</strong> No &ldquo;also install openssl&rdquo;. BearSSL
         is bundled for TLS. HTTP uses raw POSIX sockets. Works offline and on
         air-gapped machines.
       </P>
 
       <Note>
-        XS is production-ready as of v1.0. The language is stable; breaking
-        changes go through a deprecation cycle.
+        v1.0 marks the API-stable boundary. The language will not break
+        under you in a 1.x release; deprecated behaviour goes through a
+        one-release sunset before it is removed.
       </Note>
 
       <H2 id="next-steps">Next steps</H2>

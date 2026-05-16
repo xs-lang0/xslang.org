@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Modules and packages, XS Guide" };
+export const metadata = {
+  title: { absolute: "Modules and packages · XS Guide" },
+  description: "import loads standard library modules. use loads local files or directories. module defines an inline namespace. The package manager connects to reg.xslang.org .",
+};
 
 export const headings: Heading[] = [
   { id: "stdlib-import", label: "Importing stdlib", level: 2 },

@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Lexical structure, XS Reference" };
+export const metadata = {
+  title: { absolute: "Lexical structure · XS Reference" },
+  description: "Comments and statement separators: the two most basic rules of XS source text.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

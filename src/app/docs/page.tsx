@@ -8,7 +8,10 @@ const CARDS = [
   { id: "stdlib", title: "Stdlib", desc: "One page per standard library module.", first: "math" },
 ];
 
-export const metadata = { title: "Docs, XS" };
+export const metadata = {
+  title: "Docs",
+  description: "Three sections. Read the Guide first if you are new. Reference and Stdlib are organised for lookup once you know what you are looking for. Cmd-K opens search anywhere on the site.",
+};
 
 export default function DocsLanding() {
   return (

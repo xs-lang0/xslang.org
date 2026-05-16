@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Variables and bindings, XS Guide" };
+export const metadata = {
+  title: { absolute: "Variables and bindings · XS Guide" },
+  description: "Three binding forms: immutable let, mutable var, and constant const. All support type annotations and destructuring.",
+};
 
 export const headings: Heading[] = [
   { id: "let-var-const", label: "let, var, const", level: 2 },

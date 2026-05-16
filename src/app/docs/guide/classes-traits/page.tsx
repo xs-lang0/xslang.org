@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Classes and traits, XS Guide" };
+export const metadata = {
+  title: { absolute: "Classes and traits · XS Guide" },
+  description: "Classes support single inheritance with constructors and field defaults. Traits define shared behaviour across unrelated types. Both integrate with the type system.",
+};
 
 export const headings: Heading[] = [
   { id: "classes", label: "Classes", level: 2 },

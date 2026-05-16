@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, H3, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "random, XS Stdlib" };
+export const metadata = {
+  title: { absolute: "random, XS Stdlib · XS Docs" },
+  description: "Pseudorandom number generation, sampling, and shuffling.",
+};
 
 export const headings: Heading[] = [
   { id: "import", label: "Import", level: 2 },

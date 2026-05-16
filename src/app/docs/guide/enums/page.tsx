@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Enums, XS Guide" };
+export const metadata = {
+  title: { absolute: "Enums · XS Guide" },
+  description: "Enums are algebraic data types. Variants can carry associated data. Pattern matching on enums is exhaustiveness-checked.",
+};
 
 export const headings: Heading[] = [
   { id: "simple-enums", label: "Simple enums", level: 2 },

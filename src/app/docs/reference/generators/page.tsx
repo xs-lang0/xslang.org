@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Generators, XS Reference" };
+export const metadata = {
+  title: { absolute: "Generators · XS Reference" },
+  description: "Generator functions use fn* and yield to produce values lazily on demand.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

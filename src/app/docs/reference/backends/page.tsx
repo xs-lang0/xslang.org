@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Execution backends, XS Reference" };
+export const metadata = {
+  title: { absolute: "Execution backends · XS Reference" },
+  description: "Four ways to run XS: the bytecode VM (default), the tree-walker interpreter, the JIT, and transpilation to JS or C.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

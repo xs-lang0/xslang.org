@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Effects, XS Guide" };
+export const metadata = {
+  title: { absolute: "Effects · XS Guide" },
+  description: "Algebraic effects let a function declare a side requirement without knowing how it will be satisfied. The handler decides, and can resume execution from the perform site.",
+};
 
 export const headings: Heading[] = [
   { id: "the-idea", label: "The idea", level: 2 },

@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, H3, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "re, XS Stdlib" };
+export const metadata = {
+  title: { absolute: "re, XS Stdlib · XS Docs" },
+  description: "Regular expression matching, searching, and replacement using the Thompson NFA engine.",
+};
 
 export const headings: Heading[] = [
   { id: "import", label: "Import", level: 2 },

@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, H3, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "net, XS Stdlib" };
+export const metadata = {
+  title: { absolute: "net, XS Stdlib · XS Docs" },
+  description: "Low-level TCP client/server and DNS lookup using raw POSIX sockets.",
+};
 
 export const headings: Heading[] = [
   { id: "import", label: "Import", level: 2 },

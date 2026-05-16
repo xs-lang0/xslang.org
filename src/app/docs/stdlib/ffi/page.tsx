@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, H3, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "ffi, XS Stdlib" };
+export const metadata = {
+  title: { absolute: "ffi, XS Stdlib · XS Docs" },
+  description: "Foreign function interface for calling symbols in shared libraries.",
+};
 
 export const headings: Heading[] = [
   { id: "import", label: "Import", level: 2 },

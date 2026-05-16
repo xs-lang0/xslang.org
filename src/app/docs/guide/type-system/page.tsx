@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Type system, XS Guide" };
+export const metadata = {
+  title: { absolute: "Type system · XS Guide" },
+  description: "XS uses gradual typing. Code runs fine without annotations. Add them where you want enforcement; the checker activates only on annotated code.",
+};
 
 export const headings: Heading[] = [
   { id: "gradual-typing", label: "Gradual typing", level: 2 },

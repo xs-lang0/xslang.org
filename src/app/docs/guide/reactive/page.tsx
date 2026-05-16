@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Reactive bindings and contracts, XS Guide" };
+export const metadata = {
+  title: { absolute: "Reactive bindings and contracts · XS Guide" },
+  description: "bind creates a variable that recomputes automatically when its dependencies change. where clauses add runtime enforcement to bindings and parameters.",
+};
 
 export const headings: Heading[] = [
   { id: "reactive-bindings", label: "Reactive bindings", level: 2 },

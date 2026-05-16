@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Strings, XS Guide" };
+export const metadata = {
+  title: { absolute: "Strings · XS Guide" },
+  description: "Single and double quotes are identical. Both support interpolation, escape sequences, and all string methods.",
+};
 
 export const headings: Heading[] = [
   { id: "basics", label: "Basics", level: 2 },

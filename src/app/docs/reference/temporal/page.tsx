@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Temporal decorators, XS Reference" };
+export const metadata = {
+  title: { absolute: "Temporal decorators · XS Reference" },
+  description: "Scheduling via decorators: @every, @after, and @cron.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

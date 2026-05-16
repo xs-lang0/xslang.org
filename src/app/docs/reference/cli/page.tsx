@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "CLI reference, XS Reference" };
+export const metadata = {
+  title: { absolute: "CLI reference · XS Reference" },
+  description: "All commands and flags exposed by the xs binary.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

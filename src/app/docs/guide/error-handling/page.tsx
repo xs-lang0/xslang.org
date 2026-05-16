@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Error handling, XS Guide" };
+export const metadata = {
+  title: { absolute: "Error handling · XS Guide" },
+  description: "XS uses try/catch for recoverable errors and panic for unrecoverable ones. defer runs cleanup code regardless of how a function exits.",
+};
 
 export const headings: Heading[] = [
   { id: "try-catch-finally", label: "try / catch / finally", level: 2 },

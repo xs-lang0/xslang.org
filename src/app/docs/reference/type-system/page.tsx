@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Type system, XS Reference" };
+export const metadata = {
+  title: { absolute: "Type system · XS Reference" },
+  description: "Gradual typing: unannotated code runs silently; annotations are checked statically before execution.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

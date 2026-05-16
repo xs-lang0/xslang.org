@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Traits, XS Reference" };
+export const metadata = {
+  title: { absolute: "Traits · XS Reference" },
+  description: "Named interfaces with default method implementations, supertrait requirements, associated types, and static checking.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

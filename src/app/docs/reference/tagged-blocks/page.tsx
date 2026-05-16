@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Tagged blocks, XS Reference" };
+export const metadata = {
+  title: { absolute: "Tagged blocks · XS Reference" },
+  description: "User-defined control structures: define a tag, call it with a trailing block, and let the tag body control execution via yield.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

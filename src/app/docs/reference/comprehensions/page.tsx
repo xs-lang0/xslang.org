@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Comprehensions and spread, XS Reference" };
+export const metadata = {
+  title: { absolute: "Comprehensions and spread · XS Reference" },
+  description: "List comprehensions, map comprehensions, and the spread operator for building collections concisely.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

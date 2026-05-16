@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Variables, XS Reference" };
+export const metadata = {
+  title: { absolute: "Variables · XS Reference" },
+  description: "Three binding forms, reactive bindings, contracts, and destructuring.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

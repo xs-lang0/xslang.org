@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Numeric behavior, XS Reference" };
+export const metadata = {
+  title: { absolute: "Numeric behavior · XS Reference" },
+  description: "Integer division, modulo semantics, division by zero, float-to-int conversion, and overflow promotion.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

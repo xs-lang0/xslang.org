@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, Lead, P, Note, Warn } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Concurrency, XS Guide" };
+export const metadata = {
+  title: { absolute: "Concurrency · XS Guide" },
+  description: "XS has real OS threads via spawn, async/await for I/O, channels for message passing, actors for encapsulated state, and nurseries for structured concurrency.",
+};
 
 export const headings: Heading[] = [
   { id: "spawn", label: "spawn", level: 2 },

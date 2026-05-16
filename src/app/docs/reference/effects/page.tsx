@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Algebraic effects, XS Reference" };
+export const metadata = {
+  title: { absolute: "Algebraic effects · XS Reference" },
+  description: "Declare an effect, perform it at the call site, and handle it further up the stack - all without knowing the handler in advance.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

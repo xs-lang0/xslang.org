@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Modules and imports, XS Reference" };
+export const metadata = {
+  title: { absolute: "Modules and imports · XS Reference" },
+  description: "import for stdlib, use for files or directories, and inline module blocks for declaring sub-namespaces.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

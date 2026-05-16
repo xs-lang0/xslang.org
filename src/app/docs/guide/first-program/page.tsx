@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Your first program, XS Guide" };
+export const metadata = {
+  title: { absolute: "Your first program · XS Guide" },
+  description: "Write a file, run it, then poke around in the REPL.",
+};
 
 export const headings: Heading[] = [
   { id: "hello-world", label: "Hello, world", level: 2 },

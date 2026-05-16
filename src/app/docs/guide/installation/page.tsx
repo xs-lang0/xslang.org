@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, H3, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Installation, XS Guide" };
+export const metadata = {
+  title: { absolute: "Installation · XS Guide" },
+  description: "Install XS with a single command. No dependencies, no package manager prerequisites.",
+};
 
 export const headings: Heading[] = [
   { id: "one-liner", label: "One-liner install", level: 2 },

@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Operators, XS Reference" };
+export const metadata = {
+  title: { absolute: "Operators · XS Reference" },
+  description: "Arithmetic, comparison, logical, bitwise, pipe, membership, type, and compound assignment operators with a full precedence table.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Classes, XS Reference" };
+export const metadata = {
+  title: { absolute: "Classes · XS Reference" },
+  description: "Classes add constructors, field defaults, and single inheritance on top of the struct/impl model.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },

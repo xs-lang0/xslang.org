@@ -3,7 +3,10 @@ import { CodeBlock } from "@/components/code-block";
 import { H1, H2, H3, Lead, P, Note } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "base64, XS Stdlib" };
+export const metadata = {
+  title: { absolute: "base64, XS Stdlib · XS Docs" },
+  description: "Base64 encode and decode strings.",
+};
 
 export const headings: Heading[] = [
   { id: "import", label: "Import", level: 2 },

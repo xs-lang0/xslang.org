@@ -3,7 +3,10 @@ import { RefSnippet } from "@/components/ref-snippet";
 import { H1, H2, Lead, P } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
-export const metadata = { title: "Error handling, XS Reference" };
+export const metadata = {
+  title: { absolute: "Error handling · XS Reference" },
+  description: "try/catch/finally, throw, panic, and defer for recoverable and unrecoverable errors.",
+};
 
 export const headings: Heading[] = [
   { id: "summary", label: "Summary", level: 2 },
