@@ -23,17 +23,17 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://xslang.org"),
-  title: { default: "XS, a programming language", template: "%s, XS" },
-  description: "One language for everything: scripts, services, the browser. Pattern matching, algebraic effects, gradual typing, real concurrency. Compiles to native, JavaScript, and WebAssembly. Zero runtime dependencies.",
+  title: { default: "XS", template: "%s · XS" },
+  description: "A programming language. Anywhere, anytime, by anyone. One binary, no runtime dependencies; runs on a tree-walk interpreter, a bytecode VM, or a register-allocating JIT, and transpiles to JavaScript, C, and WebAssembly.",
   applicationName: "XS",
-  keywords: ["xs", "xs language", "xs lang", "xslang", "programming language", "gradual typing", "algebraic effects", "wasm", "transpiler", "structs", "traits", "actors", "channels", "nurseries"],
+  keywords: ["xs", "xs language", "xs lang", "xslang", "programming language"],
   authors: [{ name: "xs-lang0" }],
   creator: "xs-lang0",
   publisher: "xs-lang0",
   alternates: { canonical: "https://xslang.org/" },
   openGraph: {
-    title: "XS, a programming language",
-    description: "Pattern matching, algebraic effects, gradual typing, real concurrency. Compiles to native, JavaScript, and WebAssembly. Zero runtime dependencies.",
+    title: "XS",
+    description: "A programming language. Anywhere, anytime, by anyone.",
     url: "https://xslang.org/",
     siteName: "XS",
     type: "website",
@@ -41,8 +41,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "XS, a programming language",
-    description: "Pattern matching, effects, gradual typing. Native, JavaScript, WebAssembly. Zero runtime dependencies.",
+    title: "XS",
+    description: "A programming language. Anywhere, anytime, by anyone.",
   },
   robots: {
     index: true,

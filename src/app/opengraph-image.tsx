@@ -42,18 +42,28 @@ export default async function OGImage() {
           <div style={{ fontSize: 24, color: "#948D81" }}>xslang.org</div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <div
             style={{
-              fontSize: 76,
+              fontSize: 92,
               fontWeight: 600,
-              lineHeight: 1.05,
-              letterSpacing: "-0.015em",
-              maxWidth: 1000,
+              lineHeight: 1.0,
+              letterSpacing: "-0.02em",
               color: "#D4CFC4",
             }}
           >
-            One language for everything.
+            XS
+          </div>
+          <div
+            style={{
+              fontSize: 36,
+              color: "#A8C99B",
+              maxWidth: 980,
+              lineHeight: 1.3,
+              letterSpacing: "-0.005em",
+            }}
+          >
+            A programming language.
           </div>
           <div
             style={{
@@ -63,18 +73,16 @@ export default async function OGImage() {
               lineHeight: 1.4,
             }}
           >
-            Pattern matching, algebraic effects, gradual typing, real concurrency.
+            Anywhere, anytime, by anyone.
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 28, fontSize: 22, color: "#6A6459" }}>
-          <span>native</span>
+        <div style={{ display: "flex", gap: 22, fontSize: 18, color: "#6A6459" }}>
+          <span>v1.0 stable</span>
           <span style={{ color: "#3A352F" }}>·</span>
-          <span>javascript</span>
+          <span>one binary</span>
           <span style={{ color: "#3A352F" }}>·</span>
-          <span>webassembly</span>
-          <span style={{ color: "#3A352F" }}>·</span>
-          <span>zero deps</span>
+          <span>apache 2.0</span>
         </div>
       </div>
     ),
