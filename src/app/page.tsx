@@ -78,16 +78,11 @@ export default function Home() {
         </p>
 
         <p className="text-[15px] leading-[1.7] text-[color:var(--text-muted)] mb-8 max-w-[64ch] reveal-load d2">
-          The distribution is one statically-linked binary. It contains
-          the compiler, the language server, the debugger, the formatter,
-          the linter, the test runner, the profiler, and the package
-          manager. There is nothing else to install.
-        </p>
-
-        <p className="text-[15px] leading-[1.7] text-[color:var(--text-muted)] mb-8 max-w-[64ch] reveal-load d2">
-          Source compiles to native machine code, JavaScript, or
-          WebAssembly. The same source runs unchanged on Linux, macOS,
-          Windows, WASI, iOS, Android, ESP32, and Raspberry Pi.
+          One statically-linked binary contains the compiler, the
+          language server, the debugger, the formatter, the linter, the
+          test runner, the profiler, and the package manager. The same
+          source runs unchanged on Linux, macOS, Windows, WASI, iOS,
+          Android, ESP32, and Raspberry Pi.
         </p>
 
         <div className="reveal-load d3">
@@ -107,11 +102,11 @@ export default function Home() {
           <Link href="/downloads" className="text-[color:var(--text-muted)] hover:text-[color:var(--text)]">
             /downloads
           </Link>
-          . After install, <code>xs</code> drops into a REPL.
+          .
         </p>
 
         <h2 className="text-[14px] uppercase tracking-[0.10em] text-[color:var(--text-faint)] mt-12 mb-4 font-mono reveal-load d5">
-          Numbers
+          Benchmarks
         </h2>
         <dl className="font-mono text-[13.5px] leading-[1.85] reveal-load d5 mb-3">
           {NUMBERS.map((r) => (
@@ -130,7 +125,7 @@ export default function Home() {
         </p>
 
         <h2 className="text-[14px] uppercase tracking-[0.10em] text-[color:var(--text-faint)] mt-12 mb-4 font-mono reveal-load d5">
-          Six places it runs
+          Backends
         </h2>
         <dl className="font-mono text-[13.5px] leading-[1.75] reveal-load d5">
           {BACKENDS.map((r) => (
