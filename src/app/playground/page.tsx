@@ -5,6 +5,7 @@ import { Wrap } from "@/components/wrap";
 import { XSEditor, type XSEditorHandle } from "@/components/xs-codemirror";
 import { PlaygroundFiles } from "@/components/playground-files";
 import { DialogsProvider, useDialogs } from "@/components/confirm-modal";
+import { PlaygroundSettings, loadPrefs, savePrefs, DEFAULT_PREFS, type EditorPrefs } from "@/components/playground-settings";
 
 // Same-origin xs.js / xs.wasm so the /playground route's COOP/COEP isolation
 // (set in next.config.ts) actually allows SharedArrayBuffer for stdin. A
@@ -236,6 +237,7 @@ function Playground() {
   const [waitingForInput, setWaitingForInput] = useState(false);
   const [stdinValue, setStdinValue] = useState("");
   const [filesPanelOpen, setFilesPanelOpen] = useState(true);
+  const [editorPrefs, setEditorPrefs] = useState<EditorPrefs>(DEFAULT_PREFS);
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<XSEditorHandle>(null);
   const stdinInputRef = useRef<HTMLInputElement>(null);
@@ -246,9 +248,17 @@ function Playground() {
   const stdinResolverRef = useRef<((value: string) => void) | null>(null);
 
   const code = files[activeFile] ?? "";
+  // Mirror activeFile in a ref so setCode never captures a stale name via
+  // closure. Without this, a keystroke that fires onChange after the
+  // user clicks a different file (but before React commits the new
+  // activeFile to setCode's closure) writes the new file's content into
+  // the OLD file's slot -- the file-overwrite bug the panel hit.
+  const activeFileRef = useRef(activeFile);
+  useEffect(() => { activeFileRef.current = activeFile; }, [activeFile]);
   const setCode = useCallback((next: string) => {
-    setFiles(prev => prev[activeFile] === next ? prev : { ...prev, [activeFile]: next });
-  }, [activeFile]);
+    const name = activeFileRef.current;
+    setFiles(prev => prev[name] === next ? prev : { ...prev, [name]: next });
+  }, []);
 
   const appendChunk = useCallback((kind: OutChunk["kind"], text: string) => {
     setChunks(prev => {
@@ -303,6 +313,7 @@ function Playground() {
       editorRef.current?.setValue(nextFiles[fallback]);
     }
     setLayout(loadLayout());
+    setEditorPrefs(loadPrefs());
     setMounted(true);
   }, []);
 
@@ -319,6 +330,10 @@ function Playground() {
     if (!mounted) return;
     try { localStorage.setItem(STORAGE_LAYOUT, JSON.stringify(layout)); } catch { /* ignore */ }
   }, [layout, mounted]);
+  useEffect(() => {
+    if (!mounted) return;
+    savePrefs(editorPrefs);
+  }, [editorPrefs, mounted]);
 
   // Boot the runtime once. The xsRef is stable across all example / file switches.
   // bootRuntime is also re-callable to recreate the runtime after a cancel.
@@ -459,7 +474,19 @@ function Playground() {
 
   const switchFile = useCallback((name: string) => {
     if (!files[name]) return;
+    if (name === activeFileRef.current) return;
+    // Flush any in-flight edits in the editor into the OLD file's slot
+    // before swapping. CodeMirror's onChange is debounced via React's
+    // batching so a still-in-flight keystroke would otherwise vanish.
+    const cur = editorRef.current?.getValue();
+    const oldName = activeFileRef.current;
+    setFiles(prev => {
+      const next = { ...prev };
+      if (cur !== undefined && prev[oldName] !== cur) next[oldName] = cur;
+      return next;
+    });
     setActiveFile(name);
+    activeFileRef.current = name; // keep ref ahead of React commit
     editorRef.current?.setValue(files[name]);
   }, [files]);
 
@@ -638,6 +665,7 @@ function Playground() {
             </span>
           )}
           <button onClick={handleShare} className={BTN}>share</button>
+          <PlaygroundSettings prefs={editorPrefs} onChange={setEditorPrefs} />
           <button
             onClick={() => setFilesPanelOpen(o => !o)}
             className={BTN + " md:hidden"}
@@ -692,6 +720,7 @@ function Playground() {
                 initialValue={code}
                 onChange={setCode}
                 onRun={handleRun}
+                opts={editorPrefs}
               />
             </div>
           </div>

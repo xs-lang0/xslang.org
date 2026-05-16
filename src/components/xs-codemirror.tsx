@@ -433,34 +433,67 @@ export type XSEditorHandle = {
   focus: () => void;
 };
 
+export type EditorOpts = {
+  wordWrap?: boolean;
+  fontSize?: "S" | "M" | "L";
+  tabSize?: 2 | 4;
+  lineNumbers?: boolean;
+};
+
 type Props = {
   initialValue: string;
   onChange?: (next: string) => void;
   onRun?: () => void;
   className?: string;
+  opts?: EditorOpts;
 };
 
+const FONT_SIZES = { S: "12px", M: "13px", L: "15px" } as const;
+
+function buildOptsExtensions(opts: EditorOpts) {
+  const ext = [];
+  if (opts.wordWrap) ext.push(EditorView.lineWrapping);
+  if (opts.lineNumbers !== false) ext.push(lineNumbers());
+  ext.push(indentUnit.of(" ".repeat(opts.tabSize ?? 4)));
+  ext.push(EditorView.theme({
+    "&": { fontSize: FONT_SIZES[opts.fontSize ?? "M"] },
+  }));
+  return ext;
+}
+
 export const XSEditor = forwardRef<XSEditorHandle, Props>(function XSEditor(
-  { initialValue, onChange, onRun, className }, ref
+  { initialValue, onChange, onRun, className, opts = {} }, ref
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   const onRunRef = useRef(onRun);
+  // setValue() programmatic swaps must not be reported back as user
+  // edits -- otherwise the parent's onChange handler captures the new
+  // file's content under the OLD activeFile (the swap happens before
+  // React's setActiveFile commits) and clobbers the wrong slot. The
+  // file-panel switch bug was exactly this: editing in file A, clicking
+  // file B, the new content of B was written into A.
+  const suppressChangeRef = useRef(false);
   useEffect(() => { onChangeRef.current = onChange; });
   useEffect(() => { onRunRef.current = onRun; });
 
   // Compartment so we can swap value externally without recreating the view.
   const themeCompartmentRef = useRef(new Compartment());
+  const optsCompartmentRef = useRef(new Compartment());
+  // Stash latest opts in a ref so the create-once effect below can read
+  // them without re-mounting the editor on every render.
+  const optsRef = useRef(opts);
+  useEffect(() => { optsRef.current = opts; }, [opts]);
 
   useEffect(() => {
     if (!containerRef.current) return;
     if (viewRef.current) return; // singleton
 
     const updateListener = EditorView.updateListener.of((u) => {
-      if (u.docChanged && onChangeRef.current) {
-        onChangeRef.current(u.state.doc.toString());
-      }
+      if (!u.docChanged) return;
+      if (suppressChangeRef.current) return;
+      if (onChangeRef.current) onChangeRef.current(u.state.doc.toString());
     });
 
     const runKey = keymap.of([
@@ -478,7 +511,7 @@ export const XSEditor = forwardRef<XSEditorHandle, Props>(function XSEditor(
     const state = EditorState.create({
       doc: initialValue,
       extensions: [
-        lineNumbers(),
+        optsCompartmentRef.current.of(buildOptsExtensions(optsRef.current)),
         foldGutter(),
         highlightActiveLineGutter(),
         highlightSpecialChars(),
@@ -493,7 +526,6 @@ export const XSEditor = forwardRef<XSEditorHandle, Props>(function XSEditor(
         highlightSelectionMatches(),
         search({ top: true }),
         xsLanguage(),
-        indentUnit.of("    "),
         themeCompartmentRef.current.of([syntaxHighlighting(xsHighlight), xsTheme]),
         keymap.of([
           ...closeBracketsKeymap,
@@ -518,6 +550,15 @@ export const XSEditor = forwardRef<XSEditorHandle, Props>(function XSEditor(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Live-reconfigure the view when opts change, no remount.
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({
+      effects: optsCompartmentRef.current.reconfigure(buildOptsExtensions(opts)),
+    });
+  }, [opts]);
+
   useImperativeHandle(ref, () => ({
     getValue: () => viewRef.current?.state.doc.toString() ?? "",
     setValue: (next: string) => {
@@ -525,9 +566,12 @@ export const XSEditor = forwardRef<XSEditorHandle, Props>(function XSEditor(
       if (!view) return;
       const cur = view.state.doc.toString();
       if (cur === next) return;
-      view.dispatch({
-        changes: { from: 0, to: cur.length, insert: next },
-      });
+      suppressChangeRef.current = true;
+      try {
+        view.dispatch({ changes: { from: 0, to: cur.length, insert: next } });
+      } finally {
+        suppressChangeRef.current = false;
+      }
     },
     focus: () => viewRef.current?.focus(),
   }));
