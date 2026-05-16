@@ -17,6 +17,11 @@ function staticBase(): string {
   return window.location.origin;
 }
 
+// Cache-bust on every shipped fix to xs.js / xs.wasm. /xs.js is served with a
+// 1-hour public cache, so without this users keep running the previous
+// build's runtime until their TTL rolls. Bump when either asset changes.
+const RUNTIME_VERSION = "2026-05-15-2";
+
 const samples: Record<string, string> = {
   "Hello world": `println("hello, world!")
 
@@ -240,7 +245,7 @@ export default function PlaygroundPage() {
         try {
           // @ts-expect-error - loadXS is attached to window by the script
           const runtime: XS = await window.loadXS({
-            wasmUrl: `${base}/xs.wasm`,
+            wasmUrl: `${base}/xs.wasm?v=${RUNTIME_VERSION}`,
             persist: "playground",
             worker: true,
             stdout: (line: string) => stdoutCbRef.current?.(line + "\n"),
@@ -265,7 +270,7 @@ export default function PlaygroundPage() {
       if (existing) { start(); return; }
 
       const script = document.createElement("script");
-      script.src = `${base}/xs.js`;
+      script.src = `${base}/xs.js?v=${RUNTIME_VERSION}`;
       script.onload = start;
       script.onerror = () => resolve(null);
       document.head.appendChild(script);
