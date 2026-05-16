@@ -49,7 +49,13 @@ function walkDocs(dir, base = "") {
 }
 
 function extractFromTsx(src) {
-  const titleM = /title:\s*["'`]([^"'`]+)["'`]/.exec(src);
+  // Two metadata shapes are in use:
+  //   title: "Concurrency · XS Guide"
+  //   title: { absolute: "Concurrency · XS Guide" }
+  // Try the absolute form first; fall back to the bare string. Without this
+  // every page indexed as "Untitled" after the title format change.
+  let titleM = /title:\s*\{\s*absolute:\s*["'`]([^"'`]+)["'`]/.exec(src);
+  if (!titleM) titleM = /title:\s*["'`]([^"'`]+)["'`]/.exec(src);
   const headingsM = /export\s+const\s+headings\s*=\s*(\[[\s\S]*?\])\s*;?\s*\n/.exec(src);
   let headings = [];
   if (headingsM) {

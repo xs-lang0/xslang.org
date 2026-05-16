@@ -67,7 +67,12 @@ export function CmdK() {
               onClick={() => go(h)}
               className={`px-4 py-2 cursor-pointer flex items-baseline justify-between ${i === active ? "bg-[color:var(--rule-soft)]" : ""}`}
             >
-              <span className="text-[color:var(--text)]">{h.title}</span>
+              <span className="text-[color:var(--text)]">
+                {/* The section column on the right already says Guide /
+                 * Reference / Stdlib; trim the redundant suffix from the
+                 * title so the row reads as just the topic. */}
+                {h.title.replace(/\s*[·,]\s*XS\s+(Guide|Reference|Stdlib|Docs)\s*$/i, "")}
+              </span>
               <span className="font-mono text-xs text-[color:var(--text-faint)]">{h.section}</span>
             </li>
           ))}
