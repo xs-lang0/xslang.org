@@ -12,7 +12,7 @@ export const headings: Heading[] = [
   { id: "what-it-is", label: "What it is", level: 2 },
   { id: "minimal", label: "Minimal page", level: 2 },
   { id: "options", label: "loadXS options", level: 2 },
-  { id: "vs-emit-js", label: "vs --emit js", level: 2 },
+  { id: "vs-emit-js", label: "vs. --emit js", level: 2 },
 ];
 
 const MIN_HTML = `<!doctype html>
@@ -88,7 +88,7 @@ export default function Page() {
       </P>
       <CodeBlock code={STDIN_HTML} />
 
-      <H2 id="vs-emit-js">vs --emit js</H2>
+      <H2 id="vs-emit-js">vs. --emit js</H2>
       <P>
         <code>xs --emit js</code> rewrites your XS program as JavaScript that
         runs directly in Node or a browser, no XS runtime needed. It is the

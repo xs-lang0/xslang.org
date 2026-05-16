@@ -14,7 +14,7 @@ export const headings: Heading[] = [
   { id: "resuming", label: "Resuming with a value", level: 2 },
   { id: "accumulating", label: "Accumulating effects", level: 2 },
   { id: "multi-shot", label: "Multi-shot resume", level: 2 },
-  { id: "vs-exceptions", label: "Effects vs exceptions", level: 2 },
+  { id: "vs-exceptions", label: "Effects vs. exceptions", level: 2 },
 ];
 
 export default function Page() {
@@ -176,7 +176,7 @@ handle {
 println(results)                 -- [10, 20, 30]`}
       />
 
-      <H2 id="vs-exceptions">Effects vs exceptions</H2>
+      <H2 id="vs-exceptions">Effects vs. exceptions</H2>
 
       <P>
         Exceptions abort and unwind; there is no way to resume. Effects are
