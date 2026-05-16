@@ -22,8 +22,10 @@ export default function Page() {
       <H2 id="summary">Summary</H2>
       <P>
         The VM is the default and the production target; it is a few times faster than the
-        interpreter on every workload. The interpreter (<code>--interp</code>) is the behavioral
-        source of truth and is used for AST-level plugin hooks and REPL sessions. The JIT
+        interpreter on every workload. The interpreter (<code>--interp</code>) is reserved
+        for the REPL and for plugins that need AST-level runtime hooks. Both backends are
+        run against the same test suite on every commit and their outputs are diff&apos;d;
+        a divergence fails the test even when each backend passes on its own. The JIT
         (<code>--jit</code>) is a single register-allocating tier targeting x86-64 and aarch64;
         protos with unsupported opcodes fall back to the VM. <code>xs build</code> compiles to
         <code>.xsc</code> bytecode for distribution without the source. WASM: build with{" "}

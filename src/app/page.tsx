@@ -27,7 +27,7 @@ const HERO = `fn fib(n) {
 println(fib(30))    -- 832040`;
 
 // Plain-text rows, no UI chrome around them; the page is the table.
-type Row = { label: string; value: string; note?: string };
+type Row = { label: string; value: string; note?: React.ReactNode };
 const NUMBERS: Row[] = [
   { label: "startup, hello world",      value: "3 ms"       },
   { label: "fib(30) on the JIT",        value: "31 ms"      },
@@ -36,16 +36,29 @@ const NUMBERS: Row[] = [
   { label: "fib(30) on CPython 3.13",   value: "71 ms"      },
   { label: "binary size, stripped",     value: "2.9 MB"     },
   { label: "C source (excluding BearSSL)", value: "132 KLOC" },
-  { label: "regression + conformance",  value: "76 files"   },
 ];
 
 const BACKENDS: Row[] = [
-  { label: "xs --interp",  value: "tree-walk interpreter", note: "REPL, plugin debugging, source-of-truth behaviour" },
+  { label: "xs --interp",  value: "tree-walk interpreter", note: "for the REPL and AST-level plugin debugging" },
   { label: "xs (default)", value: "bytecode VM",           note: "what normal runs go through" },
   { label: "xs --jit",     value: "register-allocating JIT",note: "x86-64 + aarch64; opcodes outside its set fall back to the VM" },
   { label: "xs --emit c",  value: "C transpiler",          note: "self-contained C source for any reasonable compiler" },
-  { label: "xs --emit js", value: "JavaScript transpiler", note: "for Node and the browser" },
-  { label: "xs.wasm",      value: "runtime build",         note: "the same compiler running in a browser" },
+  { label: "xs --emit js", value: "JavaScript transpiler", note: "Node or the browser; ships less than xs.wasm if you only need one program" },
+  {
+    label: "xs.wasm",
+    value: "runtime build",
+    note: (
+      <>
+        the same compiler running in a browser; ships a virtual filesystem
+        and behaves like the native binary, so any XS program can be
+        evaluated at runtime.{" "}
+        <Link href="/docs/guide/embedding" className="text-[color:var(--link)]">
+          how to embed it
+        </Link>
+        .
+      </>
+    ),
+  },
 ];
 
 export default function Home() {
@@ -78,7 +91,7 @@ export default function Home() {
         </p>
 
         <div className="reveal-load d3">
-          <CodeBlock code={HERO} />
+          <CodeBlock code={HERO} runnable filename="hero.xs" />
         </div>
 
         <div className="flex flex-col gap-1.5 mt-8 reveal-load d4">
@@ -130,42 +143,6 @@ export default function Home() {
             </div>
           ))}
         </dl>
-
-        <h2 className="text-[14px] uppercase tracking-[0.10em] text-[color:var(--text-faint)] mt-12 mb-4 font-mono reveal-load d5">
-          Stability
-        </h2>
-        <p className="text-[14.5px] leading-[1.7] text-[color:var(--text-muted)] max-w-[64ch] reveal-load d5">
-          v1.0 is the API-stable baseline. The 1.x line will not break a
-          program; deprecated behaviour gets one release before it is
-          removed. Per-feature, per-backend coverage is on{" "}
-          <Link href="/docs/reference/backends" className="text-[color:var(--link)]">
-            /docs/reference/backends
-          </Link>
-          .
-        </p>
-
-        <h2 className="text-[14px] uppercase tracking-[0.10em] text-[color:var(--text-faint)] mt-12 mb-4 font-mono reveal-load d5">
-          The honest part
-        </h2>
-        <p className="text-[14.5px] leading-[1.7] text-[color:var(--text-muted)] max-w-[64ch] reveal-load d5 mb-4">
-          <code>spawn</code> creates real OS threads. The bytecode VM
-          holds a global lock during its dispatch loop, so two
-          pure-compute threads take turns rather than running in
-          parallel. The lock releases around sleep, I/O, channel
-          receive, and the like, so spawn-and-block parallelises the way
-          you would expect. Same model that CPython uses.
-        </p>
-        <p className="text-[14.5px] leading-[1.7] text-[color:var(--text-muted)] max-w-[64ch] reveal-load d5 mb-4">
-          HTTPS uses an embedded BearSSL with a permissive x509 wrapper:
-          certificates are parsed, the trust chain is not validated.
-          Documented gap; suitable for self-hosted clients, not for
-          general public HTTPS in production.
-        </p>
-        <p className="text-[14.5px] leading-[1.7] text-[color:var(--text-muted)] max-w-[64ch] reveal-load d5">
-          Effect handlers on <code>--emit c</code> are single-shot.
-          <code>perform</code> on <code>--emit wasm</code> traps. Native
-          plugins do not load through the WebAssembly build.
-        </p>
 
         <div className="flex flex-wrap gap-[22px] pt-8 mt-12 border-t border-[color:var(--rule-soft)] text-sm reveal-load d5">
           <Link href="/docs">Read the docs -&gt;</Link>

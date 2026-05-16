@@ -29,6 +29,15 @@ export default function Page() {
         HTTPS is supported on Linux and macOS via the embedded BearSSL library.
       </Note>
 
+      <Note>
+        The HTTPS client parses certificates but does not validate the trust
+        chain. That is documented and intentional for the current release; it
+        means the client is suitable for talking to known endpoints (a private
+        registry, a self-hosted service) but not for general public HTTPS in
+        production where a man-in-the-middle would go undetected. Trust-chain
+        validation is on the roadmap.
+      </Note>
+
       <H2 id="client">HTTP client</H2>
 
       <H3 id="fn-get">{`http.get(url: str, opts?: map) -> map`}</H3>

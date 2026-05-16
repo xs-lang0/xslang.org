@@ -28,6 +28,7 @@ export const docsTree: DocSection[] = [
       { slug: "decorators", label: "Decorators" },
       { slug: "modules", label: "Modules and packages" },
       { slug: "testing", label: "Testing" },
+      { slug: "embedding", label: "Embedding xs.wasm" },
     ],
   },
   {
