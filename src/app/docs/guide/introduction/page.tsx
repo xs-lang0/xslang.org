@@ -1,16 +1,17 @@
 import { DocLayout } from "@/components/doc-layout";
 import { CodeBlock } from "@/components/code-block";
-import { H1, H2, Lead, P, UL, Note } from "@/components/prose";
+import { H1, H2, Lead, P, UL } from "@/components/prose";
 import type { Heading } from "@/lib/headings";
 
 export const metadata = {
   title: { absolute: "Introduction · XS Guide" },
-  description: "XS is a general-purpose language that scales from 5-line scripts to large systems, with gradual typing, multiple backends, and zero external dependencies.",
+  description: "What XS is, what ships in the binary, and where to start reading.",
 };
 
 export const headings: Heading[] = [
   { id: "what-it-is", label: "What it is", level: 2 },
-  { id: "key-features", label: "Key features", level: 2 },
+  { id: "what-ships", label: "What ships in the binary", level: 2 },
+  { id: "what-it-does", label: "What it does", level: 2 },
   { id: "next-steps", label: "Next steps", level: 2 },
 ];
 
@@ -19,24 +20,21 @@ export default function Page() {
     <DocLayout section="guide" slug="introduction" headings={headings}>
       <H1>Introduction</H1>
       <Lead>
-        XS is a general-purpose language that scales from 5-line scripts to
-        large systems, with gradual typing, multiple backends, and zero
-        external dependencies.
+        What XS is, what ships in the binary, and where to start reading.
       </Lead>
-
-      <P>
-        The core idea: one language for scripting, systems, and the web. Types
-        are optional until you want them. The same source file can run on the
-        bytecode VM, get compiled to native via C, or transpile to JavaScript
-        or WebAssembly.
-      </P>
 
       <H2 id="what-it-is">What it is</H2>
 
       <P>
-        XS is written in C and builds on Linux, macOS, and Windows with no
-        build or runtime dependencies. The binary is around 2.4 MB stripped.
-        Install it with a single command and run scripts immediately.
+        XS is a programming language. Anywhere, anytime, by anyone.
+      </P>
+
+      <P>
+        The same source compiles to native machine code, JavaScript, or
+        WebAssembly, and runs unchanged on Linux, macOS, Windows, WASI, iOS,
+        Android, ESP32, and Raspberry Pi. Types are optional. Write a script
+        the way you would write a script; add types when the program grows
+        large enough that they pay for themselves.
       </P>
 
       <CodeBlock
@@ -51,8 +49,9 @@ println(fib(10))`}
       />
 
       <P>
-        Add annotations when you want enforcement. The type checker only
-        activates on annotated code and passes everything else through silently.
+        Add annotations when something benefits from enforcement. The type
+        checker only activates on annotated code; everything else passes
+        through.
       </P>
 
       <CodeBlock
@@ -65,30 +64,22 @@ println(fib(10))`}
 println(fib(10))`}
       />
 
-      <H2 id="key-features">Key features</H2>
+      <H2 id="what-ships">What ships in the binary</H2>
 
       <P>
-        A quick tour of what makes XS worth learning. Each of these has its own
-        guide chapter.
+        One statically-linked binary, around 2.9 MB on Linux x86-64. It
+        contains the compiler, the language server, the debugger, the
+        formatter, the linter, the test runner, the profiler, and the
+        package manager. There is nothing else to install. HTTPS uses an
+        embedded BearSSL; HTTP uses raw POSIX sockets. The binary builds
+        with gcc or clang and GNU make from a clean checkout.
       </P>
 
-      <P>
-        <strong>Gradual typing.</strong> Write untyped code, annotate where it
-        matters, enforce everything with <code>--strict</code>. No separate
-        typed and untyped worlds.
-      </P>
-
-      <CodeBlock
-        runnable
-        code={`let x = 42          -- untyped, fine
-let y: int = 42     -- annotated, checked
-println(x + y)`}
-      />
+      <H2 id="what-it-does">What it does</H2>
 
       <P>
-        <strong>Pattern matching.</strong> Scrutinise any value against
-        literals, destructured structs, ranges, regex, and more. The semantic
-        analyser verifies exhaustiveness.
+        Pattern matching with literal, range, struct, and enum patterns;
+        guards on any arm; the semantic analyser checks exhaustiveness.
       </P>
 
       <CodeBlock
@@ -108,9 +99,9 @@ println(describe(100))`}
       />
 
       <P>
-        <strong>Algebraic effects.</strong> Declare side requirements as named
-        effects; let callers decide how they are handled. Effects are resumable,
-        so the handler can send a value back to the perform site.
+        Algebraic effects: declare a side requirement as a named effect, let
+        the caller decide how it is handled. The handler can resume back to
+        the perform site with a value.
       </P>
 
       <CodeBlock
@@ -132,57 +123,43 @@ println(result)`}
       />
 
       <P>
-        <strong>Multiple backends.</strong> The bytecode VM is the default.
-        The JIT compiles hot paths to native x86-64 or aarch64. The transpilers
-        produce standalone JavaScript, C, or WASM.
+        Concurrency primitives: <code>spawn</code> for real OS threads,
+        channels for message passing, actors for encapsulated state,
+        nurseries for structured concurrency, async / await for I/O. The
+        bytecode VM holds a global lock during its dispatch loop, so two
+        pure-compute threads take turns rather than running in parallel; the
+        lock releases around sleep, I/O, and channel receive, so
+        spawn-and-block parallelises the way you would expect. Same model as
+        CPython.
       </P>
 
       <P>
-        <strong>Concurrency.</strong> Spawn real OS threads, pass messages over
-        channels, model state with actors, bound task lifetimes with nurseries.
-        Async/await for I/O-bound work. A global lock keeps two threads from
-        running pure-compute work at the same time; the lock releases around
-        sleeps, I/O, and channel receives, so spawn-and-block does parallelise.
-        Same model as CPython.
+        Backends: a tree-walk interpreter for the REPL and AST-level plugin
+        hooks, a bytecode VM for the default path, a register-allocating JIT
+        for x86-64 and aarch64, plus transpilers to C, JavaScript, and
+        WebAssembly. The interp and the VM are diff&apos;d against each
+        other on every commit; a divergence fails the test even if each
+        backend passes on its own.
       </P>
-
-      <P>
-        <strong>Structs, classes, and traits.</strong> Both data-oriented
-        struct+impl+trait and OOP class+inheritance. Pick what fits the problem.
-      </P>
-
-      <P>
-        <strong>Zero dependencies.</strong> No &ldquo;also install openssl&rdquo;. BearSSL
-        is bundled for TLS. HTTP uses raw POSIX sockets. Works offline and on
-        air-gapped machines.
-      </P>
-
-      <Note>
-        v1.0 marks the API-stable boundary. The language will not break
-        under you in a 1.x release; deprecated behaviour goes through a
-        one-release sunset before it is removed.
-      </Note>
 
       <H2 id="next-steps">Next steps</H2>
 
       <P>
-        The guide reads top to bottom: each chapter builds on the last. Start
-        with installation and a first program, then work through types,
-        functions, and the more advanced features.
+        The guide reads top to bottom: each chapter builds on the last.
       </P>
 
       <UL>
         <li>
-          <a href="/docs/guide/installation">Installation</a> - get XS on your
-          machine in one command
+          <a href="/docs/guide/installation">Installation</a> — get XS on a
+          machine.
         </li>
         <li>
-          <a href="/docs/guide/first-program">Your first program</a> - write,
-          run, and explore the REPL
+          <a href="/docs/guide/first-program">Your first program</a> — write,
+          run, REPL.
         </li>
         <li>
-          <a href="/docs/guide/variables">Variables and bindings</a> - let, var,
-          const, destructuring
+          <a href="/docs/guide/variables">Variables and bindings</a> — let,
+          var, const, destructuring.
         </li>
       </UL>
     </DocLayout>

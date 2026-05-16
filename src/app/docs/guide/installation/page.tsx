@@ -19,8 +19,8 @@ export default function Page() {
     <DocLayout section="guide" slug="installation" headings={headings}>
       <H1>Installation</H1>
       <Lead>
-        Install XS with a single command. No dependencies, no package manager
-        prerequisites.
+        One command. No package-manager prerequisites, no other tools to
+        install first.
       </Lead>
 
       <H2 id="one-liner">One-liner install</H2>
@@ -84,24 +84,18 @@ make wasm         -- produces xs.wasm via wasi-sdk`}
       <CodeBlock code={`xs --version`} />
 
       <P>
-        You should see the installed version. Then run the REPL to confirm
-        everything works:
-      </P>
-
-      <CodeBlock code={`xs`} />
-
-      <P>
-        Type <code>println("hello")</code> and press Enter. Type{" "}
+        Bare <code>xs</code> drops into the REPL. Type{" "}
+        <code>println(&quot;hello&quot;)</code> and press Enter; type{" "}
         <code>:quit</code> to exit.
       </P>
 
       <Note>
-        The browser playground loads <code>xs.js</code> (the JS shim) and{" "}
-        <code>xs.wasm</code> (the runtime) from{" "}
-        <a href="https://static.xslang.org">static.xslang.org</a>. This is a
-        Vercel-hosted CDN of the WASM build cut from the same source as the
-        native binaries. If you embed the playground on your own page, you can
-        fetch from the same URL.
+        The browser playground loads <code>xs.js</code> and{" "}
+        <code>xs.wasm</code> from{" "}
+        <a href="https://static.xslang.org">static.xslang.org</a>, the same
+        WASM build cut from the same source as the native binaries. To embed
+        it on a page of your own see{" "}
+        <a href="/docs/guide/embedding">/docs/guide/embedding</a>.
       </Note>
     </DocLayout>
   );

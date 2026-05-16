@@ -5,7 +5,7 @@ import type { Heading } from "@/lib/headings";
 
 export const metadata = {
   title: { absolute: "Structs and impl · XS Guide" },
-  description: "Structs are named product types. Methods go in an impl block. Operators, spread syntax, and destructuring all work out of the box.",
+  description: "Structs are named product types. Methods go in an impl block. Operators, spread syntax, and destructuring apply to any struct without extra opt-in.",
 };
 
 export const headings: Heading[] = [
@@ -23,8 +23,8 @@ export default function Page() {
       <H1>Structs and impl</H1>
       <Lead>
         Structs are named product types. Methods go in an <code>impl</code>{" "}
-        block. Operators, spread syntax, and destructuring all work out of the
-        box.
+        block. Operators, spread syntax, and destructuring apply to any
+        struct without extra opt-in.
       </Lead>
 
       <H2 id="declaration">Declaration</H2>

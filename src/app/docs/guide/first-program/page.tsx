@@ -37,8 +37,8 @@ export default function Page() {
       <CodeBlock code={`xs hello.xs`} />
 
       <P>
-        That is all there is to it. No main function required for simple scripts,
-        though you can define one and it gets called automatically:
+        No <code>main</code> required for scripts. Define one anyway and it
+        gets called automatically:
       </P>
 
       <CodeBlock
@@ -75,8 +75,7 @@ export default function Page() {
       <H2 id="a-small-program">A small program</H2>
 
       <P>
-        Here is a slightly more interesting example that covers variables,
-        a conditional, and a loop:
+        Variables, an <code>if</code> expression, a loop:
       </P>
 
       <CodeBlock
@@ -95,10 +94,9 @@ for name in names {
       />
 
       <P>
-        A few things to notice: <code>if</code> is an expression and returns
-        the value of the taken branch. String interpolation uses{" "}
-        <code>{"{name}"}</code> inside the string. Comments start with{" "}
-        <code>--</code>.
+        <code>if</code> is an expression and returns the value of the taken
+        branch. String interpolation uses <code>{"{name}"}</code> inside the
+        string. Comments start with <code>--</code>.
       </P>
 
       <Note>

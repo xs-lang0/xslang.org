@@ -1,7 +1,7 @@
 # xslang.org
 
-Marketing site for the [XS programming language](https://github.com/xs-lang0/xs).
-Next.js, deployed on Vercel.
+The website for the [XS programming language](https://github.com/xs-lang0/xs).
+Landing page, docs, downloads, browser playground. Next.js on Vercel.
 
 ```sh
 npm install
