@@ -514,6 +514,8 @@ function Playground() {
     const cleaned = name.trim().endsWith(".xs") ? name.trim() : name.trim() + ".xs";
     setFiles(prev => ({ ...prev, [cleaned]: "" }));
     setActiveFile(cleaned);
+    activeFileRef.current = cleaned; // sync ref before setValue so any
+                                     // in-flight onChange routes to the new file
     editorRef.current?.setValue("");
     setTimeout(() => editorRef.current?.focus(), 0);
   }, [files, dialogs, validateFilename]);
@@ -523,6 +525,7 @@ function Playground() {
     const content = samples[sampleName];
     setFiles(prev => ({ ...prev, [fileName]: content }));
     setActiveFile(fileName);
+    activeFileRef.current = fileName;
     editorRef.current?.setValue(content);
     setTimeout(() => editorRef.current?.focus(), 0);
   }, [files]);
@@ -546,7 +549,10 @@ function Playground() {
       return next;
     });
     if (xsRef.current) { try { void xsRef.current.deleteFile(oldName); } catch { /* ignore */ } }
-    if (activeFile === oldName) setActiveFile(cleaned);
+    if (activeFile === oldName) {
+      setActiveFile(cleaned);
+      activeFileRef.current = cleaned;
+    }
   }, [files, activeFile, dialogs]);
 
   const handleDelete = useCallback(async (name: string) => {
@@ -571,6 +577,7 @@ function Playground() {
     if (activeFile === name) {
       const remaining = Object.keys(next);
       setActiveFile(remaining[0]);
+      activeFileRef.current = remaining[0];
       editorRef.current?.setValue(next[remaining[0]]);
     }
   }, [files, activeFile, dialogs]);
@@ -588,6 +595,7 @@ function Playground() {
     const cleaned = dup.trim().endsWith(".xs") ? dup.trim() : dup.trim() + ".xs";
     setFiles(prev => ({ ...prev, [cleaned]: prev[name] }));
     setActiveFile(cleaned);
+    activeFileRef.current = cleaned;
     editorRef.current?.setValue(files[name]);
   }, [files, dialogs, validateFilename]);
 

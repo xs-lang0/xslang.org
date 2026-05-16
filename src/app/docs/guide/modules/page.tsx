@@ -92,56 +92,45 @@ println(helper())`}
       <H2 id="exporting">Exporting names</H2>
 
       <P>
-        Cross-file imports respect <code>pub</code>. A name in the imported
-        file is visible through the namespace only if its declaration is
-        marked public; everything else stays file-local.
+        A file's public surface is whatever its <code>export &#123; ... &#125;</code>{" "}
+        list names. Everything else stays file-local. The list lives at the
+        top level of the file (typically last), and an <code>as</code>{" "}
+        clause publishes a name under a different spelling.
       </P>
 
       <CodeBlock
         code={`-- math_utils.xs
-pub fn double(x) { return x * 2 }      -- visible
-pub let TAU = 6.2831                   -- visible
-pub const E  = 2.71828                 -- visible
-pub struct Point { x: int, y: int }    -- visible
-pub enum Status { Ok, Failed }         -- visible (variants too)
+fn double(x) { return x * 2 }
+fn triple(x) { return x * 3 }
+fn helper(x) { return x + 1 }       -- not in the export list
+let TAU = 6.2831
+let seed = 42                       -- not in the export list
+struct Point { x: int, y: int }
 
-fn _helper(x) { return x + 1 }         -- private, file-local
-let _seed = 42                         -- private, file-local`}
+fn rgb_to_hex(r, g, b) { ... }
+
+export { double, triple, TAU, Point, rgb_to_hex as rgbToHex }`}
       />
 
       <CodeBlock
         code={`use "math_utils.xs"
 
-println(math_utils.double(5))          -- 10
-println(math_utils.TAU)                -- 6.2831
-println(math_utils._helper)            -- null (private)`}
+println(math_utils.double(5))                -- 10
+println(math_utils.TAU)                      -- 6.2831
+println(math_utils.helper)                   -- null (not exported)
+println(math_utils.rgbToHex(255, 0, 0))      -- callable under the alias
+println(math_utils.rgb_to_hex)               -- null (alias is the public name)`}
       />
 
       <P>
-        <code>@export("alias")</code> on a function exposes it under a public
-        name distinct from the local name. Useful when the in-file name reads
-        better with one convention and the published name with another.
+        A file with no <code>export</code> list at all falls back to exposing
+        every top-level binding. Quick scripts work without ceremony; add an
+        export list and strict filtering kicks in.
       </P>
 
-      <CodeBlock
-        code={`-- color.xs
-@export("rgbToHex")
-fn rgb_to_hex(r, g, b) {
-    return "#" + fmt.hex(r) + fmt.hex(g) + fmt.hex(b)
-}`}
-      />
-
-      <CodeBlock
-        code={`use "color.xs"
-color.rgbToHex(255, 128, 0)            -- callable under the alias
-color.rgb_to_hex(255, 128, 0)          -- still works under the local name too`}
-      />
-
       <P>
-        A file with no <code>pub</code> or <code>@export</code> anywhere falls
-        back to exposing every top-level binding. That keeps short scripts
-        and quick experiments working without ceremony; once you mark even
-        one declaration <code>pub</code>, the strict rule kicks in.
+        There is no <code>pub</code> modifier and no <code>@export</code>{" "}
+        decorator. The export list is the one and only mechanism.
       </P>
 
       <H2 id="inline-modules">Inline modules</H2>
