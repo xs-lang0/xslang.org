@@ -11,6 +11,7 @@ export const metadata = {
 export const headings: Heading[] = [
   { id: "stdlib-import", label: "Importing stdlib", level: 2 },
   { id: "file-import", label: "Importing files", level: 2 },
+  { id: "exporting", label: "Exporting names", level: 2 },
   { id: "inline-modules", label: "Inline modules", level: 2 },
   { id: "packages", label: "Packages", level: 2 },
 ];
@@ -86,6 +87,61 @@ println(helper())`}
       <P>
         For directories, <code>use "lib/"</code> imports all <code>.xs</code>{" "}
         files in the directory.
+      </P>
+
+      <H2 id="exporting">Exporting names</H2>
+
+      <P>
+        Cross-file imports respect <code>pub</code>. A name in the imported
+        file is visible through the namespace only if its declaration is
+        marked public; everything else stays file-local.
+      </P>
+
+      <CodeBlock
+        code={`-- math_utils.xs
+pub fn double(x) { return x * 2 }      -- visible
+pub let TAU = 6.2831                   -- visible
+pub const E  = 2.71828                 -- visible
+pub struct Point { x: int, y: int }    -- visible
+pub enum Status { Ok, Failed }         -- visible (variants too)
+
+fn _helper(x) { return x + 1 }         -- private, file-local
+let _seed = 42                         -- private, file-local`}
+      />
+
+      <CodeBlock
+        code={`use "math_utils.xs"
+
+println(math_utils.double(5))          -- 10
+println(math_utils.TAU)                -- 6.2831
+println(math_utils._helper)            -- null (private)`}
+      />
+
+      <P>
+        <code>@export("alias")</code> on a function exposes it under a public
+        name distinct from the local name. Useful when the in-file name reads
+        better with one convention and the published name with another.
+      </P>
+
+      <CodeBlock
+        code={`-- color.xs
+@export("rgbToHex")
+fn rgb_to_hex(r, g, b) {
+    return "#" + fmt.hex(r) + fmt.hex(g) + fmt.hex(b)
+}`}
+      />
+
+      <CodeBlock
+        code={`use "color.xs"
+color.rgbToHex(255, 128, 0)            -- callable under the alias
+color.rgb_to_hex(255, 128, 0)          -- still works under the local name too`}
+      />
+
+      <P>
+        A file with no <code>pub</code> or <code>@export</code> anywhere falls
+        back to exposing every top-level binding. That keeps short scripts
+        and quick experiments working without ceremony; once you mark even
+        one declaration <code>pub</code>, the strict rule kicks in.
       </P>
 
       <H2 id="inline-modules">Inline modules</H2>
