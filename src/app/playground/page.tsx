@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Wrap } from "@/components/wrap";
 import { XSEditor, type XSEditorHandle } from "@/components/xs-codemirror";
 import { PlaygroundFiles } from "@/components/playground-files";
-import { ConfirmModal, type ConfirmKind } from "@/components/confirm-modal";
+import { DialogsProvider, useDialogs } from "@/components/confirm-modal";
 
 // Same-origin xs.js / xs.wasm so the /playground route's COOP/COEP isolation
 // (set in next.config.ts) actually allows SharedArrayBuffer for stdin. A
@@ -213,6 +213,15 @@ function exampleToFilename(name: string): string {
 }
 
 export default function PlaygroundPage() {
+  return (
+    <DialogsProvider>
+      <Playground />
+    </DialogsProvider>
+  );
+}
+
+function Playground() {
+  const dialogs = useDialogs();
   const [mounted, setMounted] = useState(false);
   const [files, setFiles] = useState<Record<string, string>>({ [DEFAULT_FILE]: samples["hello-world"] });
   const [activeFile, setActiveFile] = useState(DEFAULT_FILE);
@@ -227,13 +236,6 @@ export default function PlaygroundPage() {
   const [waitingForInput, setWaitingForInput] = useState(false);
   const [stdinValue, setStdinValue] = useState("");
   const [filesPanelOpen, setFilesPanelOpen] = useState(true);
-  const [confirm, setConfirm] = useState<{
-    title?: string;
-    message: string;
-    confirmLabel?: string;
-    kind?: ConfirmKind;
-    onConfirm: () => void;
-  } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<XSEditorHandle>(null);
   const stdinInputRef = useRef<HTMLInputElement>(null);
@@ -461,13 +463,33 @@ export default function PlaygroundPage() {
     editorRef.current?.setValue(files[name]);
   }, [files]);
 
-  const handleNewBlank = useCallback(() => {
-    const name = uniqueName("untitled.xs", files);
-    setFiles(prev => ({ ...prev, [name]: "" }));
-    setActiveFile(name);
+  const validateFilename = useCallback((existing: Record<string, string>, ignore?: string) => {
+    return (raw: string): string | null => {
+      const v = raw.trim();
+      if (!v) return "name required";
+      if (!/^[A-Za-z0-9._\-/]+$/.test(v)) return "only letters, digits, . _ - / allowed";
+      const cleaned = v.endsWith(".xs") ? v : v + ".xs";
+      if (cleaned !== ignore && existing[cleaned]) return `${cleaned} already exists`;
+      return null;
+    };
+  }, []);
+
+  const handleNewBlank = useCallback(async () => {
+    const name = await dialogs.prompt({
+      title: "new file",
+      message: "name your file (.xs is added if you leave it off)",
+      defaultValue: uniqueName("untitled.xs", files),
+      placeholder: "scratch.xs",
+      confirmLabel: "create",
+      validate: validateFilename(files),
+    });
+    if (!name) return;
+    const cleaned = name.trim().endsWith(".xs") ? name.trim() : name.trim() + ".xs";
+    setFiles(prev => ({ ...prev, [cleaned]: "" }));
+    setActiveFile(cleaned);
     editorRef.current?.setValue("");
     setTimeout(() => editorRef.current?.focus(), 0);
-  }, [files]);
+  }, [files, dialogs, validateFilename]);
 
   const handleLoadExample = useCallback((sampleName: string) => {
     const fileName = uniqueName(exampleToFilename(sampleName), files);
@@ -478,11 +500,14 @@ export default function PlaygroundPage() {
     setTimeout(() => editorRef.current?.focus(), 0);
   }, [files]);
 
-  const handleRename = useCallback((oldName: string, newName: string) => {
-    const cleaned = newName.endsWith(".xs") ? newName : newName + ".xs";
-    if (files[cleaned] && cleaned !== oldName) {
-      setShareNote(`${cleaned} already exists`);
-      setTimeout(() => setShareNote(null), 1500);
+  const handleRename = useCallback(async (oldName: string, newName: string) => {
+    const cleaned = newName.trim().endsWith(".xs") ? newName.trim() : newName.trim() + ".xs";
+    if (cleaned === oldName) return;
+    if (files[cleaned]) {
+      await dialogs.alert({
+        title: "rename failed",
+        message: `${cleaned} already exists. Pick another name.`,
+      });
       return;
     }
     setFiles(prev => {
@@ -495,39 +520,49 @@ export default function PlaygroundPage() {
     });
     if (xsRef.current) { try { void xsRef.current.deleteFile(oldName); } catch { /* ignore */ } }
     if (activeFile === oldName) setActiveFile(cleaned);
-  }, [files, activeFile]);
+  }, [files, activeFile, dialogs]);
 
-  const handleDelete = useCallback((name: string) => {
+  const handleDelete = useCallback(async (name: string) => {
     if (Object.keys(files).length <= 1) {
-      setShareNote("can't delete the last file");
-      setTimeout(() => setShareNote(null), 1500);
+      await dialogs.alert({
+        title: "can't delete",
+        message: "you need at least one file. Create another first, then delete this one.",
+      });
       return;
     }
-    setConfirm({
+    const ok = await dialogs.confirm({
       title: "delete file",
       message: `Delete ${name}? This can't be undone.`,
       confirmLabel: "delete",
       kind: "danger",
-      onConfirm: () => {
-        const next = { ...files };
-        delete next[name];
-        if (xsRef.current) { try { void xsRef.current.deleteFile(name); } catch { /* ignore */ } }
-        setFiles(next);
-        if (activeFile === name) {
-          const remaining = Object.keys(next);
-          setActiveFile(remaining[0]);
-          editorRef.current?.setValue(next[remaining[0]]);
-        }
-      },
     });
-  }, [files, activeFile]);
+    if (!ok) return;
+    const next = { ...files };
+    delete next[name];
+    if (xsRef.current) { try { void xsRef.current.deleteFile(name); } catch { /* ignore */ } }
+    setFiles(next);
+    if (activeFile === name) {
+      const remaining = Object.keys(next);
+      setActiveFile(remaining[0]);
+      editorRef.current?.setValue(next[remaining[0]]);
+    }
+  }, [files, activeFile, dialogs]);
 
-  const handleDuplicate = useCallback((name: string) => {
-    const dup = uniqueName(name, files);
-    setFiles(prev => ({ ...prev, [dup]: prev[name] }));
-    setActiveFile(dup);
+  const handleDuplicate = useCallback(async (name: string) => {
+    const suggested = uniqueName(name, files);
+    const dup = await dialogs.prompt({
+      title: "duplicate file",
+      message: `name the copy of ${name}`,
+      defaultValue: suggested,
+      confirmLabel: "duplicate",
+      validate: validateFilename(files),
+    });
+    if (!dup) return;
+    const cleaned = dup.trim().endsWith(".xs") ? dup.trim() : dup.trim() + ".xs";
+    setFiles(prev => ({ ...prev, [cleaned]: prev[name] }));
+    setActiveFile(cleaned);
     editorRef.current?.setValue(files[name]);
-  }, [files]);
+  }, [files, dialogs, validateFilename]);
 
   const handleShare = useCallback(async () => {
     const url = `${window.location.origin}${window.location.pathname}#s=${encodeShare(code)}`;
@@ -734,18 +769,6 @@ export default function PlaygroundPage() {
           Real XS interpreter via WebAssembly. Files persist locally in your browser. Networking, native plugins, JIT, and the REPL aren&apos;t available.
         </p>
       </section>
-      <ConfirmModal
-        open={confirm !== null}
-        title={confirm?.title}
-        message={confirm?.message ?? ""}
-        confirmLabel={confirm?.confirmLabel}
-        kind={confirm?.kind}
-        onConfirm={() => {
-          confirm?.onConfirm();
-          setConfirm(null);
-        }}
-        onCancel={() => setConfirm(null)}
-      />
     </Wrap>
   );
 }
