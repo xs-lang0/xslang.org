@@ -39,7 +39,7 @@ const NUMBERS: Row[] = [
 // "this column is JIT, this column is Node" without scanning labels.
 const FIB30: { runtime: string; ms: string }[] = [
   { runtime: "xs --jit",       ms: "31 ms"  },
-  { runtime: "xs (vm)",        ms: "180 ms" },
+  { runtime: "xs (vm)",        ms: "138 ms" },
   { runtime: "node 20",        ms: "62 ms"  },
   { runtime: "cpython 3.13",   ms: "71 ms"  },
 ];

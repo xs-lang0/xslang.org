@@ -26,7 +26,7 @@ function staticBase(): string {
 // Cache-bust on every shipped fix to xs.js / xs.wasm. /xs.js is served with a
 // 1-hour public cache, so without this users keep running the previous
 // build's runtime until their TTL rolls. Bump when either asset changes.
-const RUNTIME_VERSION = "1.2.18";
+const RUNTIME_VERSION = "1.2.19";
 
 const samples: Record<string, string> = {
   "hello-world": `println("hello, world!")
