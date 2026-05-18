@@ -20,23 +20,28 @@ const SCHEMA = {
   sameAs: ["https://github.com/xs-lang0/xs"],
 };
 
-const HERO = `fn fib(n) {
+const HERO = `{- classic recursive fib, memoised -}
+@memoize
+fn fib(n) {
     if n < 2 { return n }
     return fib(n - 1) + fib(n - 2)
 }
-
-println(fib(30))    -- 832040`;
+println(fib(30))   -- 832040`;
 
 // Plain-text rows, no UI chrome around them; the page is the table.
 type Row = { label: string; value: string; note?: React.ReactNode };
 const NUMBERS: Row[] = [
   { label: "startup, hello world",      value: "3 ms"       },
-  { label: "fib(30) on the JIT",        value: "31 ms"      },
-  { label: "fib(30) on the VM",         value: "180 ms"     },
-  { label: "fib(30) on Node 20",        value: "62 ms"      },
-  { label: "fib(30) on CPython 3.13",   value: "71 ms"      },
-  { label: "binary size, stripped",     value: "2.9 MB"     },
   { label: "C source (excluding BearSSL)", value: "132 KLOC" },
+];
+
+// fib(30) across every runtime. Lives in its own table so the eye reads
+// "this column is JIT, this column is Node" without scanning labels.
+const FIB30: { runtime: string; ms: string }[] = [
+  { runtime: "xs --jit",       ms: "31 ms"  },
+  { runtime: "xs (vm)",        ms: "180 ms" },
+  { runtime: "node 20",        ms: "62 ms"  },
+  { runtime: "cpython 3.13",   ms: "71 ms"  },
 ];
 
 const BACKENDS: Row[] = [
@@ -126,7 +131,7 @@ export default function Home() {
         <h2 className="text-[14px] uppercase tracking-[0.10em] text-[color:var(--text-faint)] mt-12 mb-4 font-mono reveal-load d5">
           Benchmarks
         </h2>
-        <dl className="font-mono text-[13.5px] leading-[1.85] reveal-load d5 mb-3">
+        <dl className="font-mono text-[13.5px] leading-[1.85] reveal-load d5 mb-5">
           {NUMBERS.map((r) => (
             <div key={r.label} className="grid grid-cols-[1fr_auto] gap-x-6 border-b border-[color:var(--rule-soft)] py-[3px]">
               <dt className="text-[color:var(--text-muted)]">{r.label}</dt>
@@ -134,6 +139,30 @@ export default function Home() {
             </div>
           ))}
         </dl>
+
+        <div className="reveal-load d5">
+          <div className="font-mono text-[12px] uppercase tracking-[0.08em] text-[color:var(--text-faint)] mb-2">fib(30)</div>
+          <table className="font-mono text-[13.5px] w-full border-collapse">
+            <thead>
+              <tr className="border-b border-[color:var(--rule-soft)]">
+                {FIB30.map((c) => (
+                  <th key={c.runtime} className="text-left text-[color:var(--text-muted)] font-normal py-[3px] pr-6">
+                    {c.runtime}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                {FIB30.map((c) => (
+                  <td key={c.runtime} className="text-[color:var(--text)] tabular-nums py-[5px] pr-6">
+                    {c.ms}
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
         <p className="text-[11.5px] text-[color:var(--text-faint)] mt-3 max-w-[60ch] reveal-load d5">
           Measured on a Linux x86-64 box, each binary cold from disk,
           best of three runs. Reproduce with{" "}

@@ -101,14 +101,14 @@ fn tick() {
       />
 
       <P>
-        <strong>@after</strong> runs the function once after the given delay:
+        <strong>@delayed</strong> runs the function once after the given delay:
       </P>
 
       <CodeBlock
         noRun
-        code={`@after(500ms)
-fn delayed() {
-  println("delayed hello")
+        code={`@delayed(500ms)
+fn warmup() {
+  prefetch()
 }`}
       />
 
