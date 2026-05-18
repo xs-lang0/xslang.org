@@ -290,14 +290,43 @@ export function tokenize(code: string): Token[] {
 import { CopyButton } from "@/components/copy-button";
 import { RunnableBlock } from "@/components/run-button";
 
+// Map a filename's extension (or a freeform tag like "shell" / "json") to a
+// short label rendered in the top-right of the block. Returning "" hides it.
+function langLabel(filename?: string, lang?: string): string {
+  if (lang) return lang;
+  if (!filename) return "xs";
+  const dot = filename.lastIndexOf(".");
+  if (dot < 0) return "";
+  const ext = filename.slice(dot + 1).toLowerCase();
+  const map: Record<string, string> = {
+    xs: "xs",
+    js: "js",
+    ts: "ts",
+    json: "json",
+    sh: "sh",
+    bash: "sh",
+    ps1: "ps",
+    py: "py",
+    c: "c",
+    h: "c",
+    md: "md",
+    toml: "toml",
+    yml: "yaml",
+    yaml: "yaml",
+  };
+  return map[ext] ?? ext;
+}
+
 export function CodeBlock({
   code,
   filename,
+  lang,
   runnable,
   noRun,
 }: {
   code: string;
   filename?: string;
+  lang?: string;
   runnable?: boolean;
   noRun?: boolean;
 }) {
@@ -308,16 +337,30 @@ export function CodeBlock({
   }
 
   const tokens = tokenize(trimmed);
+  const label = langLabel(filename, lang);
 
   return (
-    <div className="my-6 rounded-[6px] border border-[color:var(--rule)] bg-[color:var(--panel)]">
+    <div className="my-6 rounded-[6px] border border-[color:var(--rule)] bg-[color:var(--panel)] overflow-hidden">
       {filename && (
         <div className="flex items-center justify-between border-b border-[color:var(--rule)] px-4 py-2 font-mono text-xs text-[color:var(--text-faint)]">
           <span>{filename}</span>
+          {label && (
+            <span className="uppercase tracking-[0.08em] text-[10px] text-[color:var(--text-faint)]">{label}</span>
+          )}
         </div>
       )}
-      <div className="relative">
-        <div className="absolute right-3 top-3"><CopyButton text={trimmed} /></div>
+      <div className="relative group">
+        {!filename && label && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute right-3 top-2 font-mono uppercase tracking-[0.08em] text-[10px] text-[color:var(--text-faint)] opacity-60 group-hover:opacity-0 transition-opacity z-0"
+          >
+            {label}
+          </span>
+        )}
+        <div className="absolute right-3 top-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity z-10">
+          <CopyButton text={trimmed} />
+        </div>
         <pre className="overflow-x-auto px-[18px] py-4 text-[13px] leading-[1.65] text-[color:var(--text)]">
           <code>
             {tokens.map((t, i) => {

@@ -176,10 +176,39 @@ const STORAGE_FILES = "xs_files_v1";
 const STORAGE_ACTIVE = "xs_active_v1";
 const STORAGE_LAYOUT = "xs_layout_v1";
 
-const BTN = "inline-flex items-center gap-1.5 border border-[color:var(--rule)] bg-[color:var(--panel)] px-3 py-1.5 rounded-[6px] font-mono text-xs text-[color:var(--text)] hover:border-[color:var(--link)] hover:text-[color:var(--link)] transition-colors";
-const STOP_BTN = "inline-flex items-center gap-1.5 border border-[color:var(--kw)] bg-[color:var(--panel)] px-3 py-1.5 rounded-[6px] font-mono text-xs text-[color:var(--kw)] hover:bg-[color:var(--kw)] hover:text-[color:var(--bg)] transition-colors";
+const BTN = "inline-flex items-center gap-1.5 border border-[color:var(--rule)] bg-[color:var(--panel)] px-3 py-1.5 rounded-[6px] font-mono text-xs text-[color:var(--text)] hover:border-[color:var(--link)] hover:text-[color:var(--link)] focus-visible:outline-none focus-visible:border-[color:var(--link)] transition-colors";
+const RUN_BTN = "inline-flex items-center gap-2 border border-[color:var(--link)] bg-[color:var(--link)] text-[color:var(--bg)] px-3.5 py-1.5 rounded-[6px] font-mono text-xs font-medium hover:bg-[color:var(--link-hover)] hover:border-[color:var(--link-hover)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-offset-1 focus-visible:ring-[color:var(--link)] transition-colors";
+const STOP_BTN = "inline-flex items-center gap-1.5 border border-[color:var(--kw)] bg-[color:var(--panel)] px-3.5 py-1.5 rounded-[6px] font-mono text-xs text-[color:var(--kw)] hover:bg-[color:var(--kw)] hover:text-[color:var(--bg)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[color:var(--kw)] transition-colors";
+const KBD = "inline-flex items-center px-1.5 rounded-[3px] border border-[color:var(--bg)] font-mono text-[10px] leading-[1.4] opacity-90";
 
 type OutChunk = { kind: "out" | "err" | "in"; text: string };
+
+// Pull out file:line:col addresses inside stderr text and emphasise them so
+// the eye lands on the location instead of scanning the whole error blob.
+// Matches forms like `main.xs:5:12`, `at script.xs:42`, or a bare `5:12` at
+// the start of a line. Anything that doesn't match is rendered as-is.
+const ADDR_RE = /(\b[A-Za-z0-9_./-]+\.xs:\d+(?::\d+)?|\bline\s+\d+(?::\d+)?|\b\d+:\d+\b)/g;
+function renderError(text: string) {
+  if (!ADDR_RE.test(text)) return text;
+  ADDR_RE.lastIndex = 0;
+  const out: React.ReactNode[] = [];
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let key = 0;
+  while ((m = ADDR_RE.exec(text)) !== null) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    out.push(
+      <span
+        key={key++}
+        className="font-medium underline decoration-dotted underline-offset-[3px]"
+        style={{ color: "var(--num)" }}
+      >{m[0]}</span>
+    );
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return <>{out}</>;
+}
 
 type Layout = { files: number; output: number };
 const DEFAULT_LAYOUT: Layout = { files: 200, output: 38 };
@@ -660,14 +689,19 @@ function Playground() {
       <section className="pt-10 pb-12">
         <div className="flex items-center gap-3 flex-wrap mb-4 font-mono text-xs">
           {running ? (
-            <button onClick={handleStop} className={STOP_BTN}>stop</button>
+            <button onClick={handleStop} className={STOP_BTN} title="stop the running program">
+              <span aria-hidden>■</span> stop
+            </button>
           ) : (
             <button
               onClick={handleRun}
               disabled={loading}
-              className={BTN + " disabled:opacity-40"}
+              className={RUN_BTN + " disabled:opacity-40 disabled:cursor-not-allowed"}
+              title="run the active file (Ctrl+Enter)"
             >
-              {loading ? "loading..." : "run"}
+              <span aria-hidden>▶</span>
+              {loading ? "loading" : "run"}
+              <span className={KBD + " ml-1"} aria-hidden>{"^⏎"}</span>
             </button>
           )}
           {running && (
@@ -774,7 +808,9 @@ function Playground() {
                             ? "var(--link)"
                             : "var(--text)",
                       }}
-                    >{c.text}</span>
+                    >
+                      {c.kind === "err" ? renderError(c.text) : c.text}
+                    </span>
                   ))
               }
               {waitingForInput && (

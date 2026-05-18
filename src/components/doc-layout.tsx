@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { DocSidebar } from "./doc-sidebar";
 import { DocTOC } from "./doc-toc";
 import { DocSearchButton } from "./doc-search-button";
+import { DocsPager } from "./docs-pager";
 import { EditOnGitHub } from "./edit-on-github";
 import type { Heading } from "@/lib/headings";
 
@@ -30,6 +31,7 @@ export function DocLayout({
           <DocSearchButton />
         </div>
         {children}
+        <DocsPager section={section} slug={slug} />
         <EditOnGitHub path={filePath} />
       </article>
       <aside className="hidden lg:block sticky top-6 self-start">

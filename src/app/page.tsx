@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Wrap } from "@/components/wrap";
 import { CodeBlock } from "@/components/code-block";
 import { InstallRow } from "@/components/install-row";
+import { XS_VERSION } from "@/lib/version";
 
 const SCHEMA = {
   "@context": "https://schema.org",
@@ -69,11 +70,14 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(SCHEMA) }}
       />
       <section className="pt-[72px] pb-14">
-        <h1 className="text-[26px] font-semibold tracking-[-0.01em] text-[color:var(--text)] mb-[18px] reveal-load d1">
-          XS
-        </h1>
+        <div className="flex items-baseline gap-3 mb-[18px] reveal-load d1">
+          <h1 className="text-[44px] font-semibold tracking-[-0.025em] leading-[1] text-[color:var(--text)]">
+            XS
+          </h1>
+          <span className="font-mono text-[12px] text-[color:var(--text-faint)]">v{XS_VERSION}</span>
+        </div>
 
-        <p className="text-[16.5px] leading-[1.7] text-[color:var(--text-muted)] mb-8 max-w-[64ch] reveal-load d2">
+        <p className="text-[20px] leading-[1.45] tracking-[-0.005em] text-[color:var(--text)] mb-6 max-w-[36ch] reveal-load d2">
           A programming language. Anywhere, anytime, by anyone.
         </p>
 
@@ -84,6 +88,20 @@ export default function Home() {
           source runs unchanged on Linux, macOS, Windows, WASI, iOS,
           Android, ESP32, and Raspberry Pi.
         </p>
+
+        <dl className="grid grid-cols-2 sm:grid-cols-4 gap-y-3 gap-x-6 my-7 max-w-[560px] reveal-load d2">
+          {[
+            { n: "6", t: "backends" },
+            { n: "3", t: "transpile targets" },
+            { n: "0", t: "runtime deps" },
+            { n: "2.9", t: "MB binary" },
+          ].map(s => (
+            <div key={s.t} className="border-l border-[color:var(--rule-soft)] pl-3">
+              <dt className="font-mono text-[22px] tabular-nums text-[color:var(--text)] tracking-tight leading-[1.1]">{s.n}</dt>
+              <dd className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-[color:var(--text-faint)] mt-1">{s.t}</dd>
+            </div>
+          ))}
+        </dl>
 
         <div className="reveal-load d3">
           <CodeBlock code={HERO} runnable filename="hero.xs" />
