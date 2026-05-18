@@ -6,6 +6,9 @@ import { XSEditor, type XSEditorHandle } from "@/components/xs-codemirror";
 import { PlaygroundFiles } from "@/components/playground-files";
 import { DialogsProvider, useDialogs } from "@/components/confirm-modal";
 import { PlaygroundSettings, loadPrefs, savePrefs, DEFAULT_PREFS, type EditorPrefs } from "@/components/playground-settings";
+import { ShareModal } from "@/components/share-modal";
+import { decodeWorkspace } from "@/lib/share";
+import { fetchGist, parseGistRef } from "@/lib/gist";
 
 // Same-origin xs.js / xs.wasm so the /playground route's COOP/COEP isolation
 // (set in next.config.ts) actually allows SharedArrayBuffer for stdin. A
@@ -150,27 +153,6 @@ type XS = {
   terminate?: () => void;
 };
 
-// URL fragment sharing
-function encodeShare(code: string): string {
-  const utf8 = new TextEncoder().encode(code);
-  let bin = "";
-  for (let i = 0; i < utf8.length; i++) bin += String.fromCharCode(utf8[i]);
-  const b64 = btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  return b64;
-}
-function decodeShare(s: string): string | null {
-  try {
-    let b64 = s.replace(/-/g, "+").replace(/_/g, "/");
-    while (b64.length % 4) b64 += "=";
-    const bin = atob(b64);
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return new TextDecoder().decode(bytes);
-  } catch {
-    return null;
-  }
-}
-
 const DEFAULT_FILE = "main.xs";
 const STORAGE_FILES = "xs_files_v1";
 const STORAGE_ACTIVE = "xs_active_v1";
@@ -262,6 +244,7 @@ function Playground() {
   const [draggingFiles, setDraggingFiles] = useState(false);
   const [draggingOutput, setDraggingOutput] = useState(false);
   const [shareNote, setShareNote] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
   const [showOutput, setShowOutput] = useState(false);
   const [waitingForInput, setWaitingForInput] = useState(false);
   const [stdinValue, setStdinValue] = useState("");
@@ -300,50 +283,73 @@ function Playground() {
     });
   }, []);
 
-  // Mount: hydrate everything synchronously from localStorage, then flip the
-  // mounted flag to swap the SSR skeleton for the real UI. Avoids the
-  // hello-world flash because the first paint of the real UI already has the
-  // user's last-active file content.
+  // Mount: hydrate everything from localStorage, then flip the mounted
+  // flag to swap the SSR skeleton for the real UI. Avoids the hello-world
+  // flash because the first paint of the real UI already has the user's
+  // last-active file content. Share-link hydration is async (gzip-aware
+  // decoder) so the rest of mount is wrapped in the same task.
   useEffect(() => {
-    let nextFiles: Record<string, string> | null = null;
-    let nextActive: string | null = null;
-    try {
-      const raw = localStorage.getItem(STORAGE_FILES);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === "object") {
-          nextFiles = {};
-          for (const [k, v] of Object.entries(parsed)) {
-            if (typeof v === "string") nextFiles[k] = v;
+    let cancelled = false;
+    (async () => {
+      let nextFiles: Record<string, string> | null = null;
+      let nextActive: string | null = null;
+      try {
+        const raw = localStorage.getItem(STORAGE_FILES);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === "object") {
+            nextFiles = {};
+            for (const [k, v] of Object.entries(parsed)) {
+              if (typeof v === "string") nextFiles[k] = v;
+            }
+          }
+        }
+        const a = localStorage.getItem(STORAGE_ACTIVE);
+        if (a) nextActive = a;
+      } catch { /* ignore */ }
+
+      // Share fragment overrides. v1+ payloads carry a whole workspace;
+      // legacy payloads (raw base64 of one source file) are decoded as
+      // a single shared.xs added next to whatever the user already had,
+      // matching the old behaviour.
+      const hash = typeof window !== "undefined" ? window.location.hash : "";
+      if (hash.startsWith("#s=")) {
+        const ws = await decodeWorkspace(hash.slice(3));
+        if (ws) {
+          const isLegacySingle =
+            Object.keys(ws.files).length === 1 &&
+            ws.active === "shared.xs" &&
+            "shared.xs" in ws.files;
+          if (isLegacySingle) {
+            const base = nextFiles && Object.keys(nextFiles).length > 0
+              ? nextFiles
+              : { [DEFAULT_FILE]: samples["hello-world"] };
+            const sharedName = uniqueName("shared.xs", base);
+            nextFiles = { ...base, [sharedName]: ws.files["shared.xs"] };
+            nextActive = sharedName;
+          } else {
+            // Multi-file share replaces the workspace wholesale -- the
+            // sharer's intent is "look at this project," not "merge into
+            // mine." Local state stays in localStorage until the user
+            // changes anything (the persistence effect will overwrite then).
+            nextFiles = { ...ws.files };
+            nextActive = ws.active;
           }
         }
       }
-      const a = localStorage.getItem(STORAGE_ACTIVE);
-      if (a) nextActive = a;
-    } catch { /* ignore */ }
 
-    // Share fragment overrides: drop the user into a one-off file with the
-    // shared content but don't clobber existing state.
-    const hash = typeof window !== "undefined" ? window.location.hash : "";
-    if (hash.startsWith("#s=")) {
-      const decoded = decodeShare(hash.slice(3));
-      if (decoded) {
-        const base = nextFiles && Object.keys(nextFiles).length > 0 ? nextFiles : { [DEFAULT_FILE]: samples["hello-world"] };
-        const sharedName = uniqueName("shared.xs", base);
-        nextFiles = { ...base, [sharedName]: decoded };
-        nextActive = sharedName;
+      if (cancelled) return;
+      if (nextFiles && Object.keys(nextFiles).length > 0) {
+        setFiles(nextFiles);
+        const fallback = nextActive && nextFiles[nextActive] ? nextActive : Object.keys(nextFiles)[0];
+        setActiveFile(fallback);
+        editorRef.current?.setValue(nextFiles[fallback]);
       }
-    }
-
-    if (nextFiles && Object.keys(nextFiles).length > 0) {
-      setFiles(nextFiles);
-      const fallback = nextActive && nextFiles[nextActive] ? nextActive : Object.keys(nextFiles)[0];
-      setActiveFile(fallback);
-      editorRef.current?.setValue(nextFiles[fallback]);
-    }
-    setLayout(loadLayout());
-    setEditorPrefs(loadPrefs());
-    setMounted(true);
+      setLayout(loadLayout());
+      setEditorPrefs(loadPrefs());
+      setMounted(true);
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   // Persist files + active file to localStorage on change.
@@ -632,16 +638,61 @@ function Playground() {
   }, [files, dialogs, validateFilename]);
 
   const handleShare = useCallback(async () => {
-    const url = `${window.location.origin}${window.location.pathname}#s=${encodeShare(code)}`;
+    setShareOpen(true);
+  }, []);
+
+  const handleLoadGist = useCallback(async () => {
+    const ref = await dialogs.prompt({
+      title: "load from gist",
+      message: "paste a gist URL or ID. only .xs files are imported.",
+      placeholder: "https://gist.github.com/user/abc123...",
+      confirmLabel: "load",
+      validate: (raw) => {
+        const v = raw.trim();
+        if (!v) return "paste a gist URL or ID";
+        if (!parseGistRef(v)) return "doesn't look like a gist URL or ID";
+        return null;
+      },
+    });
+    if (!ref) return;
+    const id = parseGistRef(ref);
+    if (!id) return;
+    let imported: Record<string, string>;
     try {
-      await navigator.clipboard.writeText(url);
-      setShareNote("share link copied to clipboard");
-    } catch {
-      window.history.replaceState(null, "", `#s=${encodeShare(code)}`);
-      setShareNote("URL updated; copy to share");
+      imported = await fetchGist(id);
+    } catch (err) {
+      await dialogs.alert({
+        title: "gist failed",
+        message: err instanceof Error ? err.message : "could not fetch the gist",
+      });
+      return;
     }
+    const names = Object.keys(imported);
+    if (names.length === 0) {
+      await dialogs.alert({
+        title: "no .xs files",
+        message: "this gist doesn't contain any .xs files.",
+      });
+      return;
+    }
+    const collisions = names.filter(n => n in files);
+    if (collisions.length > 0) {
+      const ok = await dialogs.confirm({
+        title: "overwrite existing?",
+        message: `${collisions.length === 1 ? "this file" : "these files"} already exist and will be replaced: ${collisions.join(", ")}.`,
+        confirmLabel: "overwrite",
+        kind: "danger",
+      });
+      if (!ok) return;
+    }
+    setFiles(prev => ({ ...prev, ...imported }));
+    const first = names[0];
+    setActiveFile(first);
+    activeFileRef.current = first;
+    editorRef.current?.setValue(imported[first]);
+    setShareNote(`loaded ${names.length} file${names.length === 1 ? "" : "s"} from gist`);
     setTimeout(() => setShareNote(null), 2500);
-  }, [code]);
+  }, [dialogs, files]);
 
   // Drag handles
   useEffect(() => {
@@ -709,7 +760,8 @@ function Playground() {
               running<span style={{ animation: "running-blink 1.2s step-start infinite" }}>...</span>
             </span>
           )}
-          <button onClick={handleShare} className={BTN}>share</button>
+          <button onClick={handleShare} className={BTN} title="share or embed this workspace">share</button>
+          <button onClick={handleLoadGist} className={BTN} title="import .xs files from a public gist">gist</button>
           <PlaygroundSettings prefs={editorPrefs} onChange={setEditorPrefs} />
           <button
             onClick={() => setFilesPanelOpen(o => !o)}
@@ -845,6 +897,13 @@ function Playground() {
           Real XS interpreter via WebAssembly. Files persist locally in your browser. Networking, native plugins, JIT, and the REPL aren&apos;t available.
         </p>
       </section>
+      {shareOpen && (
+        <ShareModal
+          files={files}
+          active={activeFile}
+          onClose={() => setShareOpen(false)}
+        />
+      )}
     </Wrap>
   );
 }
