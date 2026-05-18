@@ -21,11 +21,11 @@ const SCHEMA = {
 };
 
 const HERO = `{- classic recursive fib, memoised -}
-@memoize
-fn fib(n) {
+@memoize fn fib(n) {
     if n < 2 { return n }
     return fib(n - 1) + fib(n - 2)
 }
+
 println(fib(30))   -- 832040`;
 
 // Plain-text rows, no UI chrome around them; the page is the table.
