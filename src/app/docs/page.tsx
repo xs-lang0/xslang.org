@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Wrap } from "@/components/wrap";
 import { H1, Lead } from "@/components/prose";
+import { DocSearchButton } from "@/components/doc-search-button";
 
 const CARDS = [
   { id: "guide", title: "Guide", desc: "Read top to bottom to learn XS. Tutorials and topical chapters.", first: "installation" },
@@ -19,8 +20,11 @@ export default function DocsLanding() {
       <section className="pt-14 pb-12">
         <H1>Documentation</H1>
         <Lead>
-          Three sections. Read the Guide first if you are new. Reference and Stdlib are organised for lookup once you know what you are looking for. Cmd-K opens search anywhere on the site.
+          Three sections. Read the Guide first if you are new. Reference and Stdlib are organised for lookup once you know what you are looking for.
         </Lead>
+        <div className="max-w-[420px] mt-6">
+          <DocSearchButton />
+        </div>
         <div className="grid gap-4 md:grid-cols-3 mt-10">
           {CARDS.map(c => (
             <Link
