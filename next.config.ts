@@ -31,14 +31,25 @@ const config: NextConfig = {
           { key: "Access-Control-Allow-Origin", value: "*" },
         ],
       },
-      // Cross-origin isolation for /playground so SharedArrayBuffer is
-      // available. The SAB is what backs the worker -> main-thread stdin
-      // channel; without it, input() returns immediately with an empty string.
+      // Cross-origin isolation for /playground and /embed so
+      // SharedArrayBuffer is available. The SAB is what backs the worker
+      // -> main-thread stdin channel; without it, input() returns
+      // immediately with an empty string.
       {
         source: "/playground",
         headers: [
           { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
           { key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
+        ],
+      },
+      {
+        source: "/embed",
+        headers: [
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          { key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
+          // The whole point of /embed is to be iframed from anywhere.
+          // No frame-ancestor restriction; the host page bears the COEP
+          // requirement via `allow="cross-origin-isolated"` on the iframe.
         ],
       },
     ];

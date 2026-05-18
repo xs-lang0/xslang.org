@@ -12,6 +12,7 @@ export const headings: Heading[] = [
   { id: "what-it-is", label: "What it is", level: 2 },
   { id: "minimal", label: "Minimal page", level: 2 },
   { id: "options", label: "loadXS options", level: 2 },
+  { id: "iframe", label: "Iframe the playground", level: 2 },
   { id: "vs-emit-js", label: "vs. --emit js", level: 2 },
 ];
 
@@ -42,6 +43,15 @@ const STDIN_HTML = `const xs = await loadXS({
   stdin: async () => prompt("?") + "\\n",
 });
 await xs.run('let n = input("number: "); println(int(n) * 2)');`;
+
+const IFRAME_HTML = `<iframe
+  src="https://xslang.org/embed?code=<encoded>"
+  width="100%"
+  height="420"
+  frameborder="0"
+  allow="cross-origin-isolated"
+  loading="lazy"
+></iframe>`;
 
 export default function Page() {
   return (
@@ -87,6 +97,33 @@ export default function Page() {
         origin isolated page).
       </P>
       <CodeBlock code={STDIN_HTML} />
+
+      <H2 id="iframe">Iframe the playground</H2>
+      <P>
+        If you just want a runnable snippet on a page (a docs site, a
+        blog post, a tutorial) and don&apos;t care about owning the
+        chrome, drop an iframe pointing at <code>xslang.org/embed</code>.
+        The frame renders the same editor + run button + output panel
+        the main playground uses, with no nav, no sidebar, no file
+        sheet.
+      </P>
+      <CodeBlock code={IFRAME_HTML} />
+      <P>
+        The <code>?code=</code> parameter carries the whole workspace
+        (multiple files, with a chosen active tab) in a URL-safe gzip
+        payload. Don&apos;t hand-roll it. Open the workspace in the
+        playground, click <em>share</em>, switch to the <em>embed</em>{" "}
+        tab, and copy the iframe snippet it produces. Optional{" "}
+        <code>?file=&lt;name&gt;</code> overrides which tab opens, and{" "}
+        <code>?theme=light|dark</code> pins the colour scheme.
+      </P>
+      <Note>
+        The iframe needs <code>allow=&quot;cross-origin-isolated&quot;</code>{" "}
+        so the embedded page can keep <code>SharedArrayBuffer</code> -- the
+        stdin / sleep channel between the worker and the main thread runs
+        through it. Without the allow-attribute the run button still works,
+        but <code>input()</code> returns an empty string.
+      </Note>
 
       <H2 id="vs-emit-js">vs. --emit js</H2>
       <P>

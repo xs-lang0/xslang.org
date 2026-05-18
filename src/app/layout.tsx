@@ -5,6 +5,7 @@ import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import { CmdK } from "@/components/cmdk";
 import { PageFade } from "@/components/page-fade";
+import { ChromeGate } from "@/components/chrome-gate";
 import "./globals.css";
 
 const sans = IBM_Plex_Sans({
@@ -58,12 +59,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeScript />
       </head>
       <body>
-        <Nav />
+        <ChromeGate><Nav /></ChromeGate>
         <PageFade>
           <main className="flex-1">{children}</main>
         </PageFade>
-        <Footer />
-        <CmdK />
+        <ChromeGate><Footer /></ChromeGate>
+        <ChromeGate><CmdK /></ChromeGate>
       </body>
     </html>
   );
