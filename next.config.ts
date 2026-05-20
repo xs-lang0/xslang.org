@@ -16,6 +16,12 @@ const config: NextConfig = {
         headers: [
           { key: "Content-Type", value: "application/wasm" },
           { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+          // The playground spawns the runtime worker from a blob URL,
+          // which is a separate (null) origin. Under COEP: require-corp
+          // on /playground, that worker's fetch of xs.wasm needs the
+          // resource to opt in via CORP, otherwise the response is
+          // treated as cross-origin-blocked.
+          { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
         ],
       },
       {
@@ -23,6 +29,7 @@ const config: NextConfig = {
         headers: [
           { key: "Cache-Control", value: "public, max-age=3600" },
           { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
         ],
       },
       {
