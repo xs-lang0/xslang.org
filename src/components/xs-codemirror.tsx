@@ -448,6 +448,7 @@ type Props = {
   initialValue: string;
   onChange?: (next: string) => void;
   onRun?: () => void;
+  onCursorChange?: (line: number, col: number) => void;
   className?: string;
   opts?: EditorOpts;
 };
@@ -466,12 +467,13 @@ function buildOptsExtensions(opts: EditorOpts) {
 }
 
 export const XSEditor = forwardRef<XSEditorHandle, Props>(function XSEditor(
-  { initialValue, onChange, onRun, className, opts = {} }, ref
+  { initialValue, onChange, onRun, onCursorChange, className, opts = {} }, ref
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   const onRunRef = useRef(onRun);
+  const onCursorChangeRef = useRef(onCursorChange);
   // setValue() programmatic swaps must not be reported back as user
   // edits -- otherwise the parent's onChange handler captures the new
   // file's content under the OLD activeFile (the swap happens before
@@ -481,6 +483,7 @@ export const XSEditor = forwardRef<XSEditorHandle, Props>(function XSEditor(
   const suppressChangeRef = useRef(false);
   useEffect(() => { onChangeRef.current = onChange; });
   useEffect(() => { onRunRef.current = onRun; });
+  useEffect(() => { onCursorChangeRef.current = onCursorChange; });
 
   // Compartment so we can swap value externally without recreating the view.
   const themeCompartmentRef = useRef(new Compartment());
@@ -495,9 +498,14 @@ export const XSEditor = forwardRef<XSEditorHandle, Props>(function XSEditor(
     if (viewRef.current) return; // singleton
 
     const updateListener = EditorView.updateListener.of((u) => {
-      if (!u.docChanged) return;
-      if (suppressChangeRef.current) return;
-      if (onChangeRef.current) onChangeRef.current(u.state.doc.toString());
+      if (u.docChanged && !suppressChangeRef.current) {
+        if (onChangeRef.current) onChangeRef.current(u.state.doc.toString());
+      }
+      if ((u.selectionSet || u.docChanged) && onCursorChangeRef.current) {
+        const head = u.state.selection.main.head;
+        const lineInfo = u.state.doc.lineAt(head);
+        onCursorChangeRef.current(lineInfo.number, head - lineInfo.from + 1);
+      }
     });
 
     const runKey = keymap.of([

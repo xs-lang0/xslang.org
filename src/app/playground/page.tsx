@@ -334,6 +334,8 @@ function Playground() {
   const [rightTab, setRightTab] = useState<RightTab>("output");
   const [emitCache, setEmitCache] = useState<EmitCache>({});
   const [emitLoading, setEmitLoading] = useState<RightTab | null>(null);
+  const [cursor, setCursor] = useState<{ line: number; col: number }>({ line: 1, col: 1 });
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const [stdinValue, setStdinValue] = useState("");
   const [filesPanelOpen, setFilesPanelOpen] = useState(true);
   const [editorPrefs, setEditorPrefs] = useState<EditorPrefs>(DEFAULT_PREFS);
@@ -870,6 +872,60 @@ function Playground() {
 
   const fileCount = useMemo(() => Object.keys(files).length, [files]);
 
+  // Cmd / Ctrl + K opens the command palette from anywhere on the page.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen(o => !o);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // Command-palette action set. Rebuilt when handlers / files / examples
+  // change so closures capture fresh state. Each action ends up driving
+  // an existing UI handler, so the palette is purely a navigation surface.
+  const paletteActions = useMemo<PaletteAction[]>(() => {
+    const acts: PaletteAction[] = [];
+    acts.push({ id: "run",        label: "run active file",   group: "run", hint: "^⏎", run: handleRun });
+    acts.push({ id: "stop",       label: "stop running",      group: "run", run: handleStop });
+    acts.push({ id: "share",      label: "share workspace",   group: "io",  run: handleShare });
+    acts.push({ id: "gist",       label: "load gist",         group: "io",  run: handleLoadGist });
+    acts.push({ id: "newfile",    label: "new blank file",    group: "file", run: handleNewBlank });
+    acts.push({ id: "togglefiles",label: "toggle files panel",group: "view", run: () => setFilesPanelOpen(o => !o) });
+    acts.push({ id: "clearout",   label: "clear output",      group: "view", run: () => { setChunks([]); setShowOutput(false); setRunMs(null); } });
+    for (const tab of RIGHT_TABS) {
+      acts.push({
+        id: "tab-" + tab.key,
+        label: "show " + tab.label + (tab.emitArg ? " (emit " + tab.emitArg + ")" : ""),
+        group: "view",
+        run: () => setRightTab(tab.key),
+      });
+    }
+    for (const name of Object.keys(files)) {
+      acts.push({
+        id: "switch-" + name,
+        label: "open " + name,
+        group: "file",
+        run: () => switchFile(name),
+      });
+    }
+    for (const group of EXAMPLE_GROUPS) {
+      for (const item of group.items) {
+        acts.push({
+          id: "example-" + item.key,
+          label: "load example: " + item.label,
+          hint: item.description,
+          group: "example",
+          run: () => handleLoadExample(item.key),
+        });
+      }
+    }
+    return acts;
+  }, [files, handleRun, handleStop, handleShare, handleLoadGist, handleNewBlank, handleLoadExample, switchFile]);
+
   // SSR-safe skeleton: render the chrome but no editor / output content until
   // we've read localStorage. Prevents the flash of the default hello-world
   // example on every refresh.
@@ -911,6 +967,10 @@ function Playground() {
               running<span style={{ animation: "running-blink 1.2s step-start infinite" }}>...</span>
             </span>
           )}
+          <button onClick={() => setPaletteOpen(true)} className={BTN} title="command palette (Ctrl+K)">
+            <span>commands</span>
+            <span className={KBD + " ml-1"} aria-hidden>{"^K"}</span>
+          </button>
           <button onClick={handleShare} className={BTN} title="share or embed this workspace">share</button>
           <button onClick={handleLoadGist} className={BTN} title="import .xs files from a public gist">gist</button>
           <PlaygroundSettings prefs={editorPrefs} onChange={setEditorPrefs} />
@@ -958,9 +1018,31 @@ function Playground() {
 
           {/* editor */}
           <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-            <div className="border-b border-[color:var(--rule)] px-4 py-1.5 font-mono text-xs text-[color:var(--text-faint)] flex items-center justify-between">
-              <span>{activeFile}</span>
-              <span className="text-[10px] text-[color:var(--text-faint)]">Ctrl+Enter to run</span>
+            <div className="border-b border-[color:var(--rule)] flex items-stretch overflow-x-auto font-mono text-xs">
+              {Object.keys(files).map(name => {
+                const active = name === activeFile;
+                return (
+                  <button
+                    key={name}
+                    onClick={() => switchFile(name)}
+                    className={
+                      "px-3 py-1.5 border-r border-[color:var(--rule)] whitespace-nowrap transition-colors " +
+                      (active
+                        ? "text-[color:var(--text)] bg-[color:var(--bg)] border-b border-b-[color:var(--link)]"
+                        : "text-[color:var(--text-faint)] hover:text-[color:var(--text-muted)]")
+                    }
+                    title={name}
+                  >{name}</button>
+                );
+              })}
+              <button
+                onClick={handleNewBlank}
+                className="px-3 py-1.5 border-r border-[color:var(--rule)] text-[color:var(--text-faint)] hover:text-[color:var(--text)]"
+                title="new file"
+                aria-label="new file"
+              >+</button>
+              <div className="flex-1" />
+              <span className="px-3 py-1.5 text-[10px] text-[color:var(--text-faint)] whitespace-nowrap">^⏎ to run, ^K for actions</span>
             </div>
             <div className="flex-1 overflow-hidden">
               <XSEditor
@@ -968,6 +1050,7 @@ function Playground() {
                 initialValue={code}
                 onChange={setCode}
                 onRun={handleRun}
+                onCursorChange={(line, col) => setCursor({ line, col })}
                 opts={editorPrefs}
               />
             </div>
@@ -1113,7 +1196,23 @@ function Playground() {
           </div>
         </div>
 
-        <p className="mt-4 text-xs text-[color:var(--text-faint)] hidden sm:block">
+        <div className="mt-2 flex items-center gap-3 font-mono text-[10px] text-[color:var(--text-faint)] border border-[color:var(--rule)] rounded-[6px] px-3 py-1 bg-[color:var(--panel)]">
+          <span>XS v{RUNTIME_VERSION}</span>
+          <span className="text-[color:var(--rule)]">|</span>
+          <span>{activeFile}</span>
+          <span className="text-[color:var(--rule)]">|</span>
+          <span>line {cursor.line}, col {cursor.col}</span>
+          <div className="flex-1" />
+          {running ? (
+            <span className="text-[color:var(--link)]">running</span>
+          ) : runMs != null ? (
+            <span>last run {runMs < 10 ? runMs.toFixed(1) : Math.round(runMs)}ms</span>
+          ) : (
+            <span>idle</span>
+          )}
+        </div>
+
+        <p className="mt-3 text-xs text-[color:var(--text-faint)] hidden sm:block">
           Real XS interpreter via WebAssembly. Files persist locally in your browser. Networking, native plugins, JIT, and the REPL aren&apos;t available.
         </p>
       </section>
@@ -1124,6 +1223,103 @@ function Playground() {
           onClose={() => setShareOpen(false)}
         />
       )}
+      {paletteOpen && (
+        <CommandPalette
+          onClose={() => setPaletteOpen(false)}
+          actions={paletteActions}
+        />
+      )}
     </Wrap>
+  );
+}
+
+// --- Command palette ------------------------------------------------------
+type PaletteAction = { id: string; label: string; hint?: string; group: string; run: () => void };
+
+function CommandPalette({ actions, onClose }: { actions: PaletteAction[]; onClose: () => void }) {
+  const [query, setQuery] = useState("");
+  const [focused, setFocused] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return actions;
+    return actions
+      .map(a => {
+        const hay = (a.label + " " + a.group + " " + (a.hint ?? "")).toLowerCase();
+        let score = 0;
+        let qi = 0;
+        for (let i = 0; i < hay.length && qi < q.length; i++) {
+          if (hay[i] === q[qi]) { score += (i === 0 || hay[i - 1] === " " ? 2 : 1); qi++; }
+        }
+        if (qi < q.length) return null;
+        return { action: a, score };
+      })
+      .filter((x): x is { action: PaletteAction; score: number } => x !== null)
+      .sort((a, b) => b.score - a.score)
+      .map(x => x.action);
+  }, [actions, query]);
+
+  useEffect(() => { setFocused(0); }, [query]);
+
+  const choose = (idx: number) => {
+    const act = filtered[idx];
+    if (!act) return;
+    onClose();
+    requestAnimationFrame(() => act.run());
+  };
+
+  const handleKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") { e.preventDefault(); onClose(); return; }
+    if (e.key === "Enter") { e.preventDefault(); choose(focused); return; }
+    if (e.key === "ArrowDown") { e.preventDefault(); setFocused(i => Math.min(filtered.length - 1, i + 1)); return; }
+    if (e.key === "ArrowUp") { e.preventDefault(); setFocused(i => Math.max(0, i - 1)); return; }
+  };
+
+  return (
+    <div
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[12vh] bg-black/40 backdrop-blur-sm"
+    >
+      <div className="w-[560px] max-w-[92vw] rounded-[8px] border border-[color:var(--rule)] bg-[color:var(--panel)] shadow-2xl overflow-hidden">
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          onKeyDown={handleKey}
+          placeholder="type a command, file, or example..."
+          className="w-full px-4 py-3 bg-transparent border-b border-[color:var(--rule)] font-mono text-sm text-[color:var(--text)] outline-none placeholder:text-[color:var(--text-faint)]"
+          spellCheck={false}
+          autoComplete="off"
+        />
+        <div className="max-h-[40vh] overflow-y-auto py-1">
+          {filtered.length === 0 && (
+            <div className="px-4 py-3 font-mono text-xs text-[color:var(--text-faint)]">no matches</div>
+          )}
+          {filtered.map((a, i) => (
+            <button
+              key={a.id}
+              onClick={() => choose(i)}
+              onMouseEnter={() => setFocused(i)}
+              className={
+                "w-full text-left px-4 py-1.5 flex items-center gap-3 font-mono text-[13px] " +
+                (i === focused ? "bg-[color:var(--rule-soft)] text-[color:var(--text)]" : "text-[color:var(--text-muted)]")
+              }
+            >
+              <span className="text-[10px] uppercase tracking-[0.06em] text-[color:var(--text-faint)] w-16 shrink-0">{a.group}</span>
+              <span className="flex-1 truncate">{a.label}</span>
+              {a.hint && <span className="text-[10px] text-[color:var(--text-faint)]">{a.hint}</span>}
+            </button>
+          ))}
+        </div>
+        <div className="px-4 py-1.5 border-t border-[color:var(--rule)] flex items-center gap-3 font-mono text-[10px] text-[color:var(--text-faint)]">
+          <span>↑↓ navigate</span>
+          <span>↵ run</span>
+          <span>esc close</span>
+        </div>
+      </div>
+    </div>
   );
 }
