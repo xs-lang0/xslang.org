@@ -283,6 +283,45 @@ function renderError(
 type Layout = { files: number; output: number };
 const DEFAULT_LAYOUT: Layout = { files: 200, output: 38 };
 
+// Parse the text output of `xs --emit ast` into a flat outline of the
+// program's top-level declarations. The emit format is indented two
+// spaces per nesting level; the PROGRAM root is depth 0, so anything at
+// depth 1 (`  KIND ...`) is a top-level statement. We pick out the
+// declaration kinds we care about and look up each one's line number by
+// finding the first matching source line (the AST emit doesn't carry
+// spans, so source lookup is the cheapest way to anchor the entry).
+const AST_KINDS: Record<string, string> = {
+  FN_DECL: "fn", LAMBDA: "fn", STRUCT: "struct", STRUCT_DECL: "struct",
+  CLASS_DECL: "class", ENUM_DECL: "enum", TRAIT_DECL: "trait", IMPL_DECL: "impl",
+  TAG_DECL: "tag", EFFECT_DECL: "effect", LET: "let", VAR: "var", CONST: "const",
+  ACTOR_DECL: "actor",
+};
+function parseAstOutline(astOut: string, source: string): OutlineItem[] {
+  if (!astOut) return [];
+  const items: OutlineItem[] = [];
+  const srcLines = source.split("\n");
+  const used = new Set<number>();
+  for (const raw of astOut.split("\n")) {
+    if (!raw.startsWith("  ") || raw.startsWith("    ")) continue; // top-level only
+    const trimmed = raw.slice(2);
+    const kindMatch = /^([A-Z_]+)\b/.exec(trimmed);
+    if (!kindMatch) continue;
+    const kindLabel = AST_KINDS[kindMatch[1]];
+    if (!kindLabel) continue;
+    const nameMatch = /\bname=([A-Za-z_][A-Za-z0-9_]*)/.exec(trimmed);
+    if (!nameMatch) continue;
+    const name = nameMatch[1];
+    const declRe = new RegExp("^\\s*(?:pub\\s+)?(?:async\\s+)?" + kindLabel + "\\*?\\s+" + name + "\\b");
+    let line = -1;
+    for (let i = 0; i < srcLines.length; i++) {
+      if (used.has(i)) continue;
+      if (declRe.test(srcLines[i])) { line = i + 1; used.add(i); break; }
+    }
+    items.push({ kind: kindLabel, name, line: line > 0 ? line : 1 });
+  }
+  return items;
+}
+
 function loadLayout(): Layout {
   if (typeof window === "undefined") return DEFAULT_LAYOUT;
   try {
@@ -992,10 +1031,11 @@ function Playground() {
 
   const fileCount = useMemo(() => Object.keys(files).length, [files]);
 
-  // Scan the active file for top-level declarations. Naive line-by-line
-  // matcher, but it does the right thing for the playground's small
-  // snippets: a real parse would catch nested fns and string-literal
-  // false positives that this misses. Trade-off is fine here.
+  // Outline: best-effort regex scan as the immediate result, refined to
+  // an AST-confirmed list once `xs --emit ast` returns. The regex catches
+  // string-literal false positives and misses nothing useful; the AST
+  // pass filters out anything not actually present in the program AST and
+  // adds kinds the regex doesn't recognise (effect_decl etc.).
   const outline = useMemo<OutlineItem[]>(() => {
     const src = files[activeFile] ?? "";
     const items: OutlineItem[] = [];
@@ -1004,13 +1044,36 @@ function Playground() {
     for (let i = 0; i < lines.length; i++) {
       const m = re.exec(lines[i]);
       if (!m) continue;
-      // Skip indented declarations: outline is top-level only so nested
-      // helpers don't drown the list.
       if (/^\s/.test(lines[i])) continue;
       items.push({ kind: m[1], name: m[2], line: i + 1 });
     }
     return items;
   }, [files, activeFile]);
+
+  const [astOutline, setAstOutline] = useState<OutlineItem[] | null>(null);
+  // Debounced AST refresh. Throttles compiler work to once per 350ms of
+  // typing-idle so the playground doesn't recompile-on-every-keystroke.
+  // Falls back to the regex outline when the AST emit fails or returns
+  // nothing useful.
+  useEffect(() => {
+    const src = files[activeFile] ?? "";
+    if (!src.trim()) { setAstOutline(null); return; }
+    if (!xsRef.current) return;
+    const timer = setTimeout(async () => {
+      try {
+        const file = "/__outline__.xs";
+        await xsRef.current!.writeFile(file, src);
+        const { stdout, stderr } = await xsRef.current!.exec(["--emit", "ast", file]);
+        if (stderr && !stdout) { setAstOutline(null); return; }
+        setAstOutline(parseAstOutline(stdout, src));
+      } catch {
+        setAstOutline(null);
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [files, activeFile]);
+
+  const effectiveOutline = astOutline ?? outline;
 
   // Global keys: Cmd/Ctrl+K opens the command palette, Ctrl+` toggles
   // the REPL drawer (mirrors vscode's terminal binding).
@@ -1173,7 +1236,7 @@ function Playground() {
                   files={files}
                   activeFile={activeFile}
                   exampleGroups={EXAMPLE_GROUPS}
-                  outline={outline}
+                  outline={effectiveOutline}
                   onJumpToLine={(line) => editorRef.current?.gotoLine(line)}
                   onSelect={switchFile}
                   onNewBlank={handleNewBlank}
