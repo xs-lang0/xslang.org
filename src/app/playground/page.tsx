@@ -211,6 +211,7 @@ const STOP_BTN = "inline-flex items-center gap-1.5 border border-[color:var(--kw
 const KBD = "inline-flex items-center px-1.5 rounded-[3px] border border-[color:var(--bg)] font-mono text-[10px] leading-[1.4] opacity-90";
 
 type OutChunk = { kind: "out" | "err" | "in"; text: string };
+type OutlineItem = { kind: string; name: string; line: number };
 type RightTab = "output" | "emit-c" | "emit-js" | "emit-wasm" | "emit-ast" | "emit-bytecode";
 type EmitCache = Partial<Record<RightTab, { forSource: string; text: string; isError: boolean }>>;
 
@@ -895,6 +896,26 @@ function Playground() {
 
   const fileCount = useMemo(() => Object.keys(files).length, [files]);
 
+  // Scan the active file for top-level declarations. Naive line-by-line
+  // matcher, but it does the right thing for the playground's small
+  // snippets: a real parse would catch nested fns and string-literal
+  // false positives that this misses. Trade-off is fine here.
+  const outline = useMemo<OutlineItem[]>(() => {
+    const src = files[activeFile] ?? "";
+    const items: OutlineItem[] = [];
+    const lines = src.split("\n");
+    const re = /^\s*(?:pub\s+)?(?:async\s+)?(fn\*?|struct|class|enum|trait|impl|tag|effect|let|var|const|actor)\s+([A-Za-z_][A-Za-z0-9_]*)/;
+    for (let i = 0; i < lines.length; i++) {
+      const m = re.exec(lines[i]);
+      if (!m) continue;
+      // Skip indented declarations: outline is top-level only so nested
+      // helpers don't drown the list.
+      if (/^\s/.test(lines[i])) continue;
+      items.push({ kind: m[1], name: m[2], line: i + 1 });
+    }
+    return items;
+  }, [files, activeFile]);
+
   // Cmd / Ctrl + K opens the command palette from anywhere on the page.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -1024,6 +1045,8 @@ function Playground() {
                   files={files}
                   activeFile={activeFile}
                   exampleGroups={EXAMPLE_GROUPS}
+                  outline={outline}
+                  onJumpToLine={(line) => editorRef.current?.gotoLine(line)}
                   onSelect={switchFile}
                   onNewBlank={handleNewBlank}
                   onLoadExample={handleLoadExample}

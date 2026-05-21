@@ -7,18 +7,24 @@ export type FileEntry = { name: string; content: string };
 export type ExampleItem = { key: string; label: string; description: string };
 export type ExampleGroup = { category: string; items: ExampleItem[] };
 
+export type OutlineEntry = { kind: string; name: string; line: number };
+
 type Props = {
   files: Record<string, string>;
   activeFile: string;
   /** Categorised example list. Each item's `key` is what `onLoadExample`
    * receives (and what the parent uses to look up the body content). */
   exampleGroups: ExampleGroup[];
+  /** Top-level declarations in the active file. Clicking jumps the
+   * editor to that line. */
+  outline: OutlineEntry[];
   onSelect: (name: string) => void;
   onNewBlank: () => void;
   onLoadExample: (sampleName: string) => void;
   onRename: (oldName: string, newName: string) => void;
   onDelete: (name: string) => void;
   onDuplicate: (name: string) => void;
+  onJumpToLine: (line: number) => void;
 };
 
 const ROW_BTN = "w-full text-left px-2 py-[3px] rounded-[4px] flex items-center gap-2 group transition-colors";
@@ -133,6 +139,8 @@ export function PlaygroundFiles({
   files,
   activeFile,
   exampleGroups,
+  outline,
+  onJumpToLine,
   onSelect,
   onNewBlank,
   onLoadExample,
@@ -149,6 +157,18 @@ export function PlaygroundFiles({
     setExamplesOpen(o => {
       const next = !o;
       try { localStorage.setItem("xs_examples_open", next ? "1" : "0"); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
+
+  const [outlineOpen, setOutlineOpen] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("xs_outline_open") !== "0";
+  });
+  const toggleOutline = useCallback(() => {
+    setOutlineOpen(o => {
+      const next = !o;
+      try { localStorage.setItem("xs_outline_open", next ? "1" : "0"); } catch { /* ignore */ }
       return next;
     });
   }, []);
@@ -182,6 +202,38 @@ export function PlaygroundFiles({
         </div>
 
         <div className="mt-3 border-t border-[color:var(--rule)] pt-1">
+          <button
+            onClick={toggleOutline}
+            className="w-full px-3 py-1.5 flex items-center gap-2 text-[11px] uppercase tracking-[0.08em] text-[color:var(--text-faint)] font-mono hover:text-[color:var(--text-muted)]"
+          >
+            <span className="text-[9px]">{outlineOpen ? "▾" : "▸"}</span>
+            outline
+            <span className="ml-auto text-[10px] text-[color:var(--text-faint)] normal-case">{outline.length}</span>
+          </button>
+          {outlineOpen && (
+            <div className="px-1 pb-1 space-y-px">
+              {outline.length === 0 && (
+                <div className="px-2 py-1 text-[11px] text-[color:var(--text-faint)] italic font-mono">
+                  no top-level declarations
+                </div>
+              )}
+              {outline.map((item, i) => (
+                <button
+                  key={i}
+                  onClick={() => onJumpToLine(item.line)}
+                  className="w-full text-left px-2 py-[3px] rounded-[4px] flex items-center gap-2 text-[12px] font-mono text-[color:var(--text-muted)] hover:bg-[color:var(--rule-soft)] hover:text-[color:var(--text)]"
+                  title={`${item.kind} ${item.name} (line ${item.line})`}
+                >
+                  <span aria-hidden className="text-[9px] uppercase text-[color:var(--text-faint)] w-8 shrink-0">{item.kind}</span>
+                  <span className="truncate">{item.name}</span>
+                  <span className="ml-auto text-[9px] text-[color:var(--text-faint)]">{item.line}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-2 border-t border-[color:var(--rule)] pt-1">
           <button
             onClick={toggleExamples}
             className="w-full px-3 py-1.5 flex items-center gap-2 text-[11px] uppercase tracking-[0.08em] text-[color:var(--text-faint)] font-mono hover:text-[color:var(--text-muted)]"
