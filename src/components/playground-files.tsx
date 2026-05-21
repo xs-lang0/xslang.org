@@ -1,30 +1,17 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export type FileEntry = { name: string; content: string };
-
-export type ExampleItem = { key: string; label: string; description: string };
-export type ExampleGroup = { category: string; items: ExampleItem[] };
-
-export type OutlineEntry = { kind: string; name: string; line: number };
 
 type Props = {
   files: Record<string, string>;
   activeFile: string;
-  /** Categorised example list. Each item's `key` is what `onLoadExample`
-   * receives (and what the parent uses to look up the body content). */
-  exampleGroups: ExampleGroup[];
-  /** Top-level declarations in the active file. Clicking jumps the
-   * editor to that line. */
-  outline: OutlineEntry[];
   onSelect: (name: string) => void;
   onNewBlank: () => void;
-  onLoadExample: (sampleName: string) => void;
   onRename: (oldName: string, newName: string) => void;
   onDelete: (name: string) => void;
   onDuplicate: (name: string) => void;
-  onJumpToLine: (line: number) => void;
 };
 
 const ROW_BTN = "w-full text-left px-2 py-[3px] rounded-[4px] flex items-center gap-2 group transition-colors";
@@ -138,43 +125,13 @@ function FileRow({
 export function PlaygroundFiles({
   files,
   activeFile,
-  exampleGroups,
-  outline,
-  onJumpToLine,
   onSelect,
   onNewBlank,
-  onLoadExample,
   onRename,
   onDelete,
   onDuplicate,
 }: Props) {
-  const [examplesOpen, setExamplesOpen] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("xs_examples_open") === "1";
-  });
-
-  const toggleExamples = useCallback(() => {
-    setExamplesOpen(o => {
-      const next = !o;
-      try { localStorage.setItem("xs_examples_open", next ? "1" : "0"); } catch { /* ignore */ }
-      return next;
-    });
-  }, []);
-
-  const [outlineOpen, setOutlineOpen] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return localStorage.getItem("xs_outline_open") !== "0";
-  });
-  const toggleOutline = useCallback(() => {
-    setOutlineOpen(o => {
-      const next = !o;
-      try { localStorage.setItem("xs_outline_open", next ? "1" : "0"); } catch { /* ignore */ }
-      return next;
-    });
-  }, []);
-
   const fileNames = Object.keys(files).sort();
-
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="px-3 py-1.5 border-b border-[color:var(--rule)] flex items-center justify-between">
@@ -185,90 +142,18 @@ export function PlaygroundFiles({
           className="text-[color:var(--text-muted)] hover:text-[color:var(--link)] px-1 text-[14px] leading-none"
         >+</button>
       </div>
-
-      <div className="flex-1 overflow-y-auto py-1">
-        <div className="px-1 space-y-px">
-          {fileNames.map(name => (
-            <FileRow
-              key={name}
-              name={name}
-              active={name === activeFile}
-              onSelect={() => onSelect(name)}
-              onRename={(next) => onRename(name, next)}
-              onDelete={() => onDelete(name)}
-              onDuplicate={() => onDuplicate(name)}
-            />
-          ))}
-        </div>
-
-        <div className="mt-3 border-t border-[color:var(--rule)] pt-1">
-          <button
-            onClick={toggleOutline}
-            className="w-full px-3 py-1.5 flex items-center gap-2 text-[11px] uppercase tracking-[0.08em] text-[color:var(--text-faint)] font-mono hover:text-[color:var(--text-muted)]"
-          >
-            <span className="text-[9px]">{outlineOpen ? "▾" : "▸"}</span>
-            outline
-            <span className="ml-auto text-[10px] text-[color:var(--text-faint)] normal-case">{outline.length}</span>
-          </button>
-          {outlineOpen && (
-            <div className="px-1 pb-1 space-y-px">
-              {outline.length === 0 && (
-                <div className="px-2 py-1 text-[11px] text-[color:var(--text-faint)] italic font-mono">
-                  no top-level declarations
-                </div>
-              )}
-              {outline.map((item, i) => (
-                <button
-                  key={i}
-                  onClick={() => onJumpToLine(item.line)}
-                  className="w-full text-left px-2 py-[3px] rounded-[4px] flex items-center gap-2 text-[12px] font-mono text-[color:var(--text-muted)] hover:bg-[color:var(--rule-soft)] hover:text-[color:var(--text)]"
-                  title={`${item.kind} ${item.name} (line ${item.line})`}
-                >
-                  <span aria-hidden className="text-[9px] uppercase text-[color:var(--text-faint)] w-8 shrink-0">{item.kind}</span>
-                  <span className="truncate">{item.name}</span>
-                  <span className="ml-auto text-[9px] text-[color:var(--text-faint)]">{item.line}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="mt-2 border-t border-[color:var(--rule)] pt-1">
-          <button
-            onClick={toggleExamples}
-            className="w-full px-3 py-1.5 flex items-center gap-2 text-[11px] uppercase tracking-[0.08em] text-[color:var(--text-faint)] font-mono hover:text-[color:var(--text-muted)]"
-          >
-            <span className="text-[9px]">{examplesOpen ? "▾" : "▸"}</span>
-            examples
-            <span className="ml-auto text-[10px] text-[color:var(--text-faint)] normal-case">
-              {exampleGroups.reduce((n, g) => n + g.items.length, 0)}
-            </span>
-          </button>
-          {examplesOpen && (
-            <div className="px-1 pb-1">
-              {exampleGroups.map(group => (
-                <div key={group.category} className="mb-2 last:mb-0">
-                  <div className="px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-[color:var(--text-faint)] font-mono">
-                    {group.category}
-                  </div>
-                  <div className="space-y-px">
-                    {group.items.map(item => (
-                      <button
-                        key={item.key}
-                        onClick={() => onLoadExample(item.key)}
-                        className="w-full text-left px-2 py-[3px] rounded-[4px] flex items-center gap-2 text-[12.5px] font-mono text-[color:var(--text-muted)] hover:bg-[color:var(--rule-soft)] hover:text-[color:var(--text)]"
-                        title={item.description}
-                      >
-                        <span aria-hidden className="text-[10px] w-3 text-[color:var(--text-faint)]">↗</span>
-                        <span className="truncate">{item.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+      <div className="flex-1 overflow-y-auto py-1 px-1 space-y-px">
+        {fileNames.map(name => (
+          <FileRow
+            key={name}
+            name={name}
+            active={name === activeFile}
+            onSelect={() => onSelect(name)}
+            onRename={(next) => onRename(name, next)}
+            onDelete={() => onDelete(name)}
+            onDuplicate={() => onDuplicate(name)}
+          />
+        ))}
       </div>
     </div>
   );

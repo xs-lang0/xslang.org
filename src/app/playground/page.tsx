@@ -31,167 +31,10 @@ function staticBase(): string {
 // changes even if the xsypy binary version stayed put.
 const RUNTIME_VERSION = "1.2.32-r3";
 
-type Example = { key: string; label: string; description: string; content: string };
-type ExampleGroup = { category: string; items: Example[] };
 
-const EXAMPLE_GROUPS: ExampleGroup[] = [
-  {
-    category: "basics",
-    items: [
-      { key: "hello-world", label: "hello world", description: "println, string concatenation, let bindings.", content: `println("hello, world!")
-
-let name = "XS"
-println("welcome to " + name)` },
-      { key: "fizzbuzz", label: "fizzbuzz", description: "for loops and match guards.", content: `for i in 1..=20 {
-    match 0 {
-        _ if i % 15 == 0 => println("FizzBuzz")
-        _ if i % 3 == 0  => println("Fizz")
-        _ if i % 5 == 0  => println("Buzz")
-        _                 => println(str(i))
-    }
-}` },
-      { key: "interactive-input", label: "interactive input", description: "input() blocks on the playground stdin field.", content: `let name = input("what's your name? ")
-println("hi, " + name + "!")
-
-let n = int(input("enter a number: "))
-println("doubled: " + str(n * 2))` },
-    ],
-  },
-  {
-    category: "functions",
-    items: [
-      { key: "fibonacci", label: "fibonacci", description: "recursive functions and ranges.", content: `fn fib(n) {
-    if n <= 1 { return n }
-    return fib(n - 1) + fib(n - 2)
-}
-
-for i in 0..10 {
-    println("fib(" + str(i) + ") = " + str(fib(i)))
-}` },
-      { key: "closures", label: "closures", description: "returning a function that captures outer state.", content: `fn make_counter(start) {
-    var n = start
-    return fn() {
-        n = n + 1
-        return n
-    }
-}
-
-let count = make_counter(0)
-println(count())
-println(count())
-println(count())` },
-      { key: "generators", label: "generators", description: "fn* with yield, consumed by for-in.", content: `fn* range_step(start, stop, step) {
-    var i = start
-    while i < stop {
-        yield i
-        i = i + step
-    }
-}
-
-for n in range_step(0, 20, 3) {
-    println(n)
-}` },
-      { key: "error-handling", label: "error handling", description: "throw / try / catch, plus a fall-through return.", content: `fn safe_divide(a, b) {
-    try {
-        if b == 0 {
-            throw "cannot divide by zero"
-        }
-        return a / b
-    } catch e {
-        println("error: " + e)
-        return null
-    }
-}
-
-println(safe_divide(10, 3))
-println(safe_divide(10, 0))
-println(safe_divide(42, 7))` },
-    ],
-  },
-  {
-    category: "types",
-    items: [
-      { key: "pattern-matching", label: "pattern matching", description: "match arms with guards, literal and wildcard patterns.", content: `fn describe(value) {
-    match value {
-        0          => "zero"
-        n if n > 0 => "positive: " + str(n)
-        _          => "negative"
-    }
-}
-
-println(describe(0))
-println(describe(42))
-println(describe(-7))` },
-      { key: "enums", label: "enums", description: "tagged unions destructured by match.", content: `enum Shape {
-    Circle(r)
-    Rect(w, h)
-}
-
-fn area(s) {
-    match s {
-        Shape::Circle(r) => 3.14159 * r * r
-        Shape::Rect(w, h) => w * h
-    }
-}
-
-println(area(Shape::Circle(5)))
-println(area(Shape::Rect(3, 4)))` },
-      { key: "structs", label: "structs", description: "named fields with an impl block.", content: `struct Point { x, y }
-
-impl Point {
-    fn distance(self, other) {
-        let dx = self.x - other.x
-        let dy = self.y - other.y
-        return (dx * dx + dy * dy) ** 0.5
-    }
-}
-
-let a = Point(0, 0)
-let b = Point(3, 4)
-println(a.distance(b))` },
-    ],
-  },
-  {
-    category: "advanced",
-    items: [
-      { key: "durations", label: "durations", description: "first-class time values with unit suffixes.", content: `let warmup = 2m30s
-let frame  = 16ms
-
-println(typeof(warmup))    -- duration
-println(warmup)            -- 2m30s
-println(warmup + frame)    -- 2m30.016s
-println((1500ms).s)        -- 1.5
-println(2s / 250ms)        -- 8` },
-      { key: "decorators", label: "decorators", description: "lifecycle hooks: @on_start, @every, @on_exit.", content: `var ticks = 0
-
-@on_start fn boot() {
-    println("starting")
-}
-
-@every(50ms) fn tick() {
-    ticks = ticks + 1
-    if ticks >= 3 {
-        println("ran {ticks} times")
-        exit(0)
-    }
-}
-
-@on_exit fn bye() {
-    println("done")
-}` },
-      { key: "json-roundtrip", label: "json roundtrip", description: "parse a JSON string, mutate, and re-stringify.", content: `import json
-
-let raw = "{\\"name\\": \\"xs\\", \\"version\\": \\"1.2\\", \\"tags\\": [\\"lang\\", \\"wasm\\"]}"
-let obj = json.parse(raw)
-obj["tags"].push("playground")
-println(json.stringify(obj))` },
-    ],
-  },
-];
-
-const samples: Record<string, string> = Object.fromEntries(
-  EXAMPLE_GROUPS.flatMap(g => g.items.map(i => [i.key, i.content]))
-);
+// New files start with this stub. Examples gallery was removed for
+// the simplified three-panel layout.
+const DEFAULT_FILE_CONTENT = `println("hello, world!")\n`;
 
 type XS = {
   run: (code: string) => Promise<string>;
@@ -214,20 +57,6 @@ const STOP_BTN = "inline-flex items-center gap-1.5 border border-[color:var(--kw
 const KBD = "inline-flex items-center px-1.5 rounded-[3px] border border-[color:var(--bg)] font-mono text-[10px] leading-[1.4] opacity-90";
 
 type OutChunk = { kind: "out" | "err" | "in"; text: string };
-type OutlineItem = { kind: string; name: string; line: number };
-type ReplEntry = { code: string; stdout: string; stderr: string; ms: number };
-type RightTab = "output" | "emit-c" | "emit-js" | "emit-wasm" | "emit-ast" | "emit-bytecode";
-type EmitCacheEntry = { forSource: string; text: string; bytes?: Uint8Array | null; isError: boolean };
-type EmitCache = Partial<Record<RightTab, EmitCacheEntry>>;
-
-const RIGHT_TABS: { key: RightTab; label: string; emitArg?: string; lang?: string; binary?: boolean; downloadName?: string; downloadMime?: string }[] = [
-  { key: "output",       label: "output" },
-  { key: "emit-c",       label: "C",       emitArg: "c",        lang: "c" },
-  { key: "emit-js",      label: "JS",      emitArg: "js",       lang: "javascript" },
-  { key: "emit-wasm",    label: "wasm",    emitArg: "wasm",     lang: "wasm", binary: true, downloadName: "module.wasm", downloadMime: "application/wasm" },
-  { key: "emit-ast",     label: "AST",     emitArg: "ast",      lang: "lisp" },
-  { key: "emit-bytecode",label: "bytecode",emitArg: "bytecode", lang: "asm" },
-];
 
 // Pull out file:line:col addresses inside stderr text and emphasise them so
 // the eye lands on the location instead of scanning the whole error blob.
@@ -283,45 +112,6 @@ function renderError(
 type Layout = { files: number; output: number };
 const DEFAULT_LAYOUT: Layout = { files: 200, output: 38 };
 
-// Parse the text output of `xs --emit ast` into a flat outline of the
-// program's top-level declarations. The emit format is indented two
-// spaces per nesting level; the PROGRAM root is depth 0, so anything at
-// depth 1 (`  KIND ...`) is a top-level statement. We pick out the
-// declaration kinds we care about and look up each one's line number by
-// finding the first matching source line (the AST emit doesn't carry
-// spans, so source lookup is the cheapest way to anchor the entry).
-const AST_KINDS: Record<string, string> = {
-  FN_DECL: "fn", LAMBDA: "fn", STRUCT: "struct", STRUCT_DECL: "struct",
-  CLASS_DECL: "class", ENUM_DECL: "enum", TRAIT_DECL: "trait", IMPL_DECL: "impl",
-  TAG_DECL: "tag", EFFECT_DECL: "effect", LET: "let", VAR: "var", CONST: "const",
-  ACTOR_DECL: "actor",
-};
-function parseAstOutline(astOut: string, source: string): OutlineItem[] {
-  if (!astOut) return [];
-  const items: OutlineItem[] = [];
-  const srcLines = source.split("\n");
-  const used = new Set<number>();
-  for (const raw of astOut.split("\n")) {
-    if (!raw.startsWith("  ") || raw.startsWith("    ")) continue; // top-level only
-    const trimmed = raw.slice(2);
-    const kindMatch = /^([A-Z_]+)\b/.exec(trimmed);
-    if (!kindMatch) continue;
-    const kindLabel = AST_KINDS[kindMatch[1]];
-    if (!kindLabel) continue;
-    const nameMatch = /\bname=([A-Za-z_][A-Za-z0-9_]*)/.exec(trimmed);
-    if (!nameMatch) continue;
-    const name = nameMatch[1];
-    const declRe = new RegExp("^\\s*(?:pub\\s+)?(?:async\\s+)?" + kindLabel + "\\*?\\s+" + name + "\\b");
-    let line = -1;
-    for (let i = 0; i < srcLines.length; i++) {
-      if (used.has(i)) continue;
-      if (declRe.test(srcLines[i])) { line = i + 1; used.add(i); break; }
-    }
-    items.push({ kind: kindLabel, name, line: line > 0 ? line : 1 });
-  }
-  return items;
-}
-
 function loadLayout(): Layout {
   if (typeof window === "undefined") return DEFAULT_LAYOUT;
   try {
@@ -347,10 +137,6 @@ function uniqueName(base: string, taken: Record<string, string>): string {
   return base + "-" + Date.now();
 }
 
-function exampleToFilename(name: string): string {
-  return name.endsWith(".xs") ? name : name + ".xs";
-}
-
 export default function PlaygroundPage() {
   return (
     <DialogsProvider>
@@ -362,7 +148,7 @@ export default function PlaygroundPage() {
 function Playground() {
   const dialogs = useDialogs();
   const [mounted, setMounted] = useState(false);
-  const [files, setFiles] = useState<Record<string, string>>({ [DEFAULT_FILE]: samples["hello-world"] });
+  const [files, setFiles] = useState<Record<string, string>>({ [DEFAULT_FILE]: DEFAULT_FILE_CONTENT });
   const [activeFile, setActiveFile] = useState(DEFAULT_FILE);
   const [chunks, setChunks] = useState<OutChunk[]>([]);
   const [running, setRunning] = useState(false);
@@ -376,18 +162,6 @@ function Playground() {
   const [runMs, setRunMs] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   const [waitingForInput, setWaitingForInput] = useState(false);
-  const [rightTab, setRightTab] = useState<RightTab>("output");
-  const [emitCache, setEmitCache] = useState<EmitCache>({});
-  const [emitLoading, setEmitLoading] = useState<RightTab | null>(null);
-  const [cursor, setCursor] = useState<{ line: number; col: number }>({ line: 1, col: 1 });
-  const [paletteOpen, setPaletteOpen] = useState(false);
-  const [replOpen, setReplOpen] = useState(false);
-  const [replInput, setReplInput] = useState("");
-  const [replHistory, setReplHistory] = useState<ReplEntry[]>([]);
-  const [replBusy, setReplBusy] = useState(false);
-  const [replHistoryIdx, setReplHistoryIdx] = useState<number | null>(null);
-  const replInputRef = useRef<HTMLTextAreaElement>(null);
-  const replScrollRef = useRef<HTMLDivElement>(null);
   const [stdinValue, setStdinValue] = useState("");
   const [filesPanelOpen, setFilesPanelOpen] = useState(() => {
     // Hidden by default on phone-width screens so the editor isn't
@@ -470,7 +244,7 @@ function Playground() {
           if (isLegacySingle) {
             const base = nextFiles && Object.keys(nextFiles).length > 0
               ? nextFiles
-              : { [DEFAULT_FILE]: samples["hello-world"] };
+              : { [DEFAULT_FILE]: DEFAULT_FILE_CONTENT };
             const sharedName = uniqueName("shared.xs", base);
             nextFiles = { ...base, [sharedName]: ws.files["shared.xs"] };
             nextActive = sharedName;
@@ -598,7 +372,6 @@ function Playground() {
     setChunks([]);
     setShowOutput(true);
     setRunMs(null);
-    setRightTab("output");
     editorRef.current?.setMarkers([]);
     let produced = false;
     let stderrAcc = "";
@@ -680,130 +453,6 @@ function Playground() {
     else if (e.key === "c" && e.ctrlKey) { e.preventDefault(); handleStop(); }
   }, [submitStdin, handleStop]);
 
-  // Pulls `xs --emit <kind> /file.xs` through the worker. Binary emits
-  // (wasm) capture stdout as raw bytes and stash them on the cache entry
-  // for the download button; non-binary emits cache the stdout string.
-  const fetchEmit = useCallback(async (tab: RightTab, source: string) => {
-    const meta = RIGHT_TABS.find(t => t.key === tab);
-    if (!meta?.emitArg || !xsRef.current) return;
-    setEmitLoading(tab);
-    try {
-      const file = "/__emit__.xs";
-      await xsRef.current.writeFile(file, source);
-      const res = await xsRef.current.exec(["--emit", meta.emitArg, file], { binary: !!meta.binary });
-      let text = res.stdout || "";
-      let bytes: Uint8Array | null = res.stdoutBytes || null;
-      let isError = false;
-      if (res.stderr && !text && (!bytes || bytes.length === 0)) {
-        text = res.stderr;
-        isError = true;
-      }
-      if (meta.binary && bytes) {
-        const isWasm = bytes.length >= 4 && bytes[0] === 0x00 && bytes[1] === 0x61 && bytes[2] === 0x73 && bytes[3] === 0x6d;
-        text = `${bytes.length} bytes${isWasm ? "  (\\0asm magic)" : ""}`;
-      }
-      setEmitCache(prev => ({ ...prev, [tab]: { forSource: source, text, bytes, isError } }));
-    } catch (e) {
-      setEmitCache(prev => ({ ...prev, [tab]: { forSource: source, text: String((e as Error)?.message ?? e), isError: true } }));
-    } finally {
-      setEmitLoading(null);
-    }
-  }, []);
-
-  // Runs the current REPL input as a fresh program. No state persistence
-  // (each evaluation gets a clean runtime), so think of it as a scratchpad
-  // rather than a true REPL session. Captures stdout / stderr separately
-  // for nicer rendering. Up / Down arrows in the input walk history.
-  const submitRepl = useCallback(async () => {
-    const code = replInput.trim();
-    if (!code || replBusy || !xsRef.current) return;
-    setReplBusy(true);
-    let out = "", err = "";
-    const stdoutPrev = stdoutCbRef.current;
-    const stderrPrev = stderrCbRef.current;
-    stdoutCbRef.current = (t) => { out += t; };
-    stderrCbRef.current = (t) => { err += t; };
-    const t0 = performance.now();
-    try { await xsRef.current.run(code); }
-    catch (e) { err += String((e as Error)?.message ?? e); }
-    finally {
-      stdoutCbRef.current = stdoutPrev;
-      stderrCbRef.current = stderrPrev;
-    }
-    const ms = performance.now() - t0;
-    setReplHistory(prev => [...prev, { code, stdout: out, stderr: err, ms }]);
-    setReplInput("");
-    setReplHistoryIdx(null);
-    setReplBusy(false);
-    requestAnimationFrame(() => {
-      replScrollRef.current?.scrollTo({ top: replScrollRef.current.scrollHeight });
-      replInputRef.current?.focus();
-    });
-  }, [replInput, replBusy]);
-
-  const handleReplKey = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      submitRepl();
-      return;
-    }
-    if (e.key === "ArrowUp" && replInput === "" || (e.key === "ArrowUp" && e.ctrlKey)) {
-      // Walk history newest-to-oldest; first press lands on the most
-      // recent entry, subsequent presses move backwards.
-      if (replHistory.length === 0) return;
-      e.preventDefault();
-      setReplHistoryIdx(idx => {
-        const next = idx == null ? replHistory.length - 1 : Math.max(0, idx - 1);
-        setReplInput(replHistory[next].code);
-        return next;
-      });
-      return;
-    }
-    if (e.key === "ArrowDown" && (e.ctrlKey || replHistoryIdx != null)) {
-      if (replHistoryIdx == null) return;
-      e.preventDefault();
-      setReplHistoryIdx(idx => {
-        if (idx == null) return null;
-        if (idx + 1 >= replHistory.length) { setReplInput(""); return null; }
-        setReplInput(replHistory[idx + 1].code);
-        return idx + 1;
-      });
-      return;
-    }
-  }, [replHistory, replHistoryIdx, replInput, submitRepl]);
-
-  const downloadEmit = useCallback((tab: RightTab) => {
-    const meta = RIGHT_TABS.find(t => t.key === tab);
-    const entry = emitCache[tab];
-    if (!meta?.downloadName || !entry?.bytes) return;
-    // Copy into a fresh ArrayBuffer-backed view so the Blob ctor doesn't
-    // choke on a SharedArrayBuffer-backed Uint8Array (the worker's bytes
-    // can be either depending on COI / transfer).
-    const buf = new Uint8Array(entry.bytes.length);
-    buf.set(entry.bytes);
-    const blob = new Blob([buf], { type: meta.downloadMime || "application/octet-stream" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = meta.downloadName;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  }, [emitCache]);
-
-  // When the active right-pane tab is an emit view and the source has
-  // changed (or there's no cached output yet), refetch. Output tab and
-  // bytecode get the active file's text; emit views always do too.
-  const activeSource = files[activeFile] ?? "";
-  useEffect(() => {
-    if (rightTab === "output") return;
-    const cached = emitCache[rightTab];
-    if (cached && cached.forSource === activeSource) return;
-    if (emitLoading === rightTab) return;
-    fetchEmit(rightTab, activeSource);
-  }, [rightTab, activeSource, emitCache, emitLoading, fetchEmit]);
-
   const switchFile = useCallback((name: string) => {
     // Use `in` so an empty file still counts as present -- a fresh
     // `main.xs` you haven't typed into yet is "" and `!files[name]`
@@ -869,16 +518,6 @@ function Playground() {
     editorRef.current?.setValue("");
     setTimeout(() => editorRef.current?.focus(), 0);
   }, [files, dialogs, validateFilename]);
-
-  const handleLoadExample = useCallback((sampleName: string) => {
-    const fileName = uniqueName(exampleToFilename(sampleName), files);
-    const content = samples[sampleName];
-    setFiles(prev => ({ ...prev, [fileName]: content }));
-    setActiveFile(fileName);
-    activeFileRef.current = fileName;
-    editorRef.current?.setValue(content);
-    setTimeout(() => editorRef.current?.focus(), 0);
-  }, [files]);
 
   const handleRename = useCallback(async (oldName: string, newName: string) => {
     const cleaned = newName.trim().endsWith(".xs") ? newName.trim() : newName.trim() + ".xs";
@@ -1031,116 +670,6 @@ function Playground() {
 
   const fileCount = useMemo(() => Object.keys(files).length, [files]);
 
-  // Outline: best-effort regex scan as the immediate result, refined to
-  // an AST-confirmed list once `xs --emit ast` returns. The regex catches
-  // string-literal false positives and misses nothing useful; the AST
-  // pass filters out anything not actually present in the program AST and
-  // adds kinds the regex doesn't recognise (effect_decl etc.).
-  const outline = useMemo<OutlineItem[]>(() => {
-    const src = files[activeFile] ?? "";
-    const items: OutlineItem[] = [];
-    const lines = src.split("\n");
-    const re = /^\s*(?:pub\s+)?(?:async\s+)?(fn\*?|struct|class|enum|trait|impl|tag|effect|let|var|const|actor)\s+([A-Za-z_][A-Za-z0-9_]*)/;
-    for (let i = 0; i < lines.length; i++) {
-      const m = re.exec(lines[i]);
-      if (!m) continue;
-      if (/^\s/.test(lines[i])) continue;
-      items.push({ kind: m[1], name: m[2], line: i + 1 });
-    }
-    return items;
-  }, [files, activeFile]);
-
-  const [astOutline, setAstOutline] = useState<OutlineItem[] | null>(null);
-  // Debounced AST refresh. Throttles compiler work to once per 350ms of
-  // typing-idle so the playground doesn't recompile-on-every-keystroke.
-  // Falls back to the regex outline when the AST emit fails or returns
-  // nothing useful.
-  useEffect(() => {
-    const src = files[activeFile] ?? "";
-    if (!src.trim()) { setAstOutline(null); return; }
-    if (!xsRef.current) return;
-    const timer = setTimeout(async () => {
-      try {
-        const file = "/__outline__.xs";
-        await xsRef.current!.writeFile(file, src);
-        const { stdout, stderr } = await xsRef.current!.exec(["--emit", "ast", file]);
-        if (stderr && !stdout) { setAstOutline(null); return; }
-        setAstOutline(parseAstOutline(stdout, src));
-      } catch {
-        setAstOutline(null);
-      }
-    }, 350);
-    return () => clearTimeout(timer);
-  }, [files, activeFile]);
-
-  const effectiveOutline = astOutline ?? outline;
-
-  // Global keys: Cmd/Ctrl+K opens the command palette, Ctrl+` toggles
-  // the REPL drawer (mirrors vscode's terminal binding).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setPaletteOpen(o => !o);
-        return;
-      }
-      if (e.ctrlKey && e.key === "`") {
-        e.preventDefault();
-        setReplOpen(o => {
-          const next = !o;
-          if (next) requestAnimationFrame(() => replInputRef.current?.focus());
-          return next;
-        });
-        return;
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  // Command-palette action set. Rebuilt when handlers / files / examples
-  // change so closures capture fresh state. Each action ends up driving
-  // an existing UI handler, so the palette is purely a navigation surface.
-  const paletteActions = useMemo<PaletteAction[]>(() => {
-    const acts: PaletteAction[] = [];
-    acts.push({ id: "run",        label: "run active file",   group: "run", hint: "^⏎", run: handleRun });
-    acts.push({ id: "stop",       label: "stop running",      group: "run", run: handleStop });
-    acts.push({ id: "share",      label: "share workspace",   group: "io",  run: handleShare });
-    acts.push({ id: "gist",       label: "load gist",         group: "io",  run: handleLoadGist });
-    acts.push({ id: "newfile",    label: "new blank file",    group: "file", run: handleNewBlank });
-    acts.push({ id: "togglefiles",label: "toggle files panel",group: "view", run: () => setFilesPanelOpen(o => !o) });
-    acts.push({ id: "togglerepl", label: "toggle scratchpad",  group: "view", hint: "^`", run: () => setReplOpen(o => !o) });
-    acts.push({ id: "clearout",   label: "clear output",      group: "view", run: () => { setChunks([]); setShowOutput(false); setRunMs(null); } });
-    for (const tab of RIGHT_TABS) {
-      acts.push({
-        id: "tab-" + tab.key,
-        label: "show " + tab.label + (tab.emitArg ? " (emit " + tab.emitArg + ")" : ""),
-        group: "view",
-        run: () => setRightTab(tab.key),
-      });
-    }
-    for (const name of Object.keys(files)) {
-      acts.push({
-        id: "switch-" + name,
-        label: "open " + name,
-        group: "file",
-        run: () => switchFile(name),
-      });
-    }
-    for (const group of EXAMPLE_GROUPS) {
-      for (const item of group.items) {
-        acts.push({
-          id: "example-" + item.key,
-          label: "load example: " + item.label,
-          hint: item.description,
-          group: "example",
-          run: () => handleLoadExample(item.key),
-        });
-      }
-    }
-    return acts;
-  }, [files, handleRun, handleStop, handleShare, handleLoadGist, handleNewBlank, handleLoadExample, switchFile]);
-
   // SSR-safe skeleton: render the chrome but no editor / output content until
   // we've read localStorage. Prevents the flash of the default hello-world
   // example on every refresh.
@@ -1182,24 +711,6 @@ function Playground() {
               running<span style={{ animation: "running-blink 1.2s step-start infinite" }}>...</span>
             </span>
           )}
-          <button onClick={() => setPaletteOpen(true)} className={BTN} title="command palette (Ctrl+K)">
-            <span>commands</span>
-            <span className={KBD + " ml-1"} aria-hidden>{"^K"}</span>
-          </button>
-          <button
-            onClick={() => {
-              setReplOpen(o => {
-                const next = !o;
-                if (next) requestAnimationFrame(() => replInputRef.current?.focus());
-                return next;
-              });
-            }}
-            className={BTN}
-            title="scratchpad REPL (Ctrl+`)"
-          >
-            <span>scratch</span>
-            <span className={KBD + " ml-1"} aria-hidden>{"^`"}</span>
-          </button>
           <button onClick={handleShare} className={BTN} title="share or embed this workspace">share</button>
           <button onClick={handleLoadGist} className={BTN} title="import .xs files from a public gist">gist</button>
           <PlaygroundSettings prefs={editorPrefs} onChange={setEditorPrefs} />
@@ -1235,12 +746,8 @@ function Playground() {
                 <PlaygroundFiles
                   files={files}
                   activeFile={activeFile}
-                  exampleGroups={EXAMPLE_GROUPS}
-                  outline={effectiveOutline}
-                  onJumpToLine={(line) => editorRef.current?.gotoLine(line)}
                   onSelect={switchFile}
                   onNewBlank={handleNewBlank}
-                  onLoadExample={handleLoadExample}
                   onRename={handleRename}
                   onDelete={handleDelete}
                   onDuplicate={handleDuplicate}
@@ -1293,7 +800,7 @@ function Playground() {
                 aria-label="new file"
               >+</button>
               <div className="flex-1" />
-              <span className="px-3 py-1.5 text-[10px] text-[color:var(--text-faint)] whitespace-nowrap">^⏎ to run, ^K for actions</span>
+              <span className="px-3 py-1.5 text-[10px] text-[color:var(--text-faint)] whitespace-nowrap">^⏎ to run</span>
             </div>
             <div className="flex-1 overflow-hidden">
               <XSEditor
@@ -1301,7 +808,6 @@ function Playground() {
                 initialValue={code}
                 onChange={setCode}
                 onRun={handleRun}
-                onCursorChange={(line, col) => setCursor({ line, col })}
                 opts={editorPrefs}
               />
             </div>
@@ -1313,39 +819,22 @@ function Playground() {
             className="hidden md:block w-1 cursor-col-resize bg-[color:var(--rule)] hover:bg-[color:var(--rule-soft)] transition-colors shrink-0"
           />
 
-          {/* right pane: tabs across output + emit views.
-              max-md:!w-full overrides the inline width on mobile so the
-              pane spans the full viewport beneath the editor instead of
-              leaving a whitespace gutter on the right. */}
+          {/* output pane. max-md:!w-full overrides the inline width on
+              mobile so the pane spans the full viewport beneath the
+              editor instead of leaving a whitespace gutter. */}
           <div
             className="flex flex-col overflow-hidden border-t md:border-t-0 border-[color:var(--rule)] bg-[color:var(--panel)] shrink-0 max-md:!w-full max-md:h-[45vh]"
             style={{ width: `${layout.output}%`, minWidth: 240 }}
           >
-            <div className="border-b border-[color:var(--rule)] flex items-stretch font-mono text-xs overflow-x-auto">
-              {RIGHT_TABS.map(tab => {
-                const active = rightTab === tab.key;
-                return (
-                  <button
-                    key={tab.key}
-                    onClick={() => setRightTab(tab.key)}
-                    className={
-                      "px-3 py-1.5 border-r border-[color:var(--rule)] transition-colors " +
-                      (active
-                        ? "text-[color:var(--text)] bg-[color:var(--bg)]"
-                        : "text-[color:var(--text-faint)] hover:text-[color:var(--text-muted)]")
-                    }
-                    title={tab.emitArg ? `xs --emit ${tab.emitArg}` : "stdout / stderr from run"}
-                  >{tab.label}</button>
-                );
-              })}
-              <div className="flex-1 border-r border-[color:var(--rule)]" />
-              <div className="flex items-center gap-3 px-3">
-                {rightTab === "output" && runMs != null && !running && (
-                  <span className="text-[10px] text-[color:var(--text-faint)]" title="wall time of the most recent run">
+            <div className="border-b border-[color:var(--rule)] px-4 py-1.5 font-mono text-xs text-[color:var(--text-faint)] flex items-center justify-between gap-3">
+              <span>output</span>
+              <div className="flex items-center gap-3">
+                {runMs != null && !running && (
+                  <span className="text-[10px]" title="wall time of the most recent run">
                     {runMs < 10 ? runMs.toFixed(1) : Math.round(runMs)}ms
                   </span>
                 )}
-                {rightTab === "output" && chunks.length > 0 && !running && (
+                {chunks.length > 0 && !running && (
                   <>
                     <button
                       onClick={async () => {
@@ -1353,49 +842,17 @@ function Playground() {
                         try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1200); }
                         catch { /* permission denied; silent */ }
                       }}
-                      className="text-[10px] text-[color:var(--text-faint)] hover:text-[color:var(--text)]"
+                      className="text-[10px] hover:text-[color:var(--text)]"
                       title="copy output to clipboard"
                     >{copied ? "copied" : "copy"}</button>
                     <button
                       onClick={() => { setChunks([]); setShowOutput(false); setRunMs(null); }}
-                      className="text-[10px] text-[color:var(--text-faint)] hover:text-[color:var(--text)]"
+                      className="text-[10px] hover:text-[color:var(--text)]"
                     >clear</button>
                   </>
                 )}
-                {rightTab !== "output" && emitCache[rightTab] && !emitCache[rightTab]!.isError && (() => {
-                  const meta = RIGHT_TABS.find(t => t.key === rightTab);
-                  const entry = emitCache[rightTab]!;
-                  if (meta?.binary && entry.bytes) {
-                    return (
-                      <>
-                        <span className="text-[10px] text-[color:var(--text-faint)]">{entry.bytes.length} bytes</span>
-                        <button
-                          onClick={() => downloadEmit(rightTab)}
-                          className="text-[10px] text-[color:var(--link)] hover:text-[color:var(--link-hover)]"
-                          title={`download ${meta.downloadName}`}
-                        >download</button>
-                      </>
-                    );
-                  }
-                  return (
-                    <>
-                      <span className="text-[10px] text-[color:var(--text-faint)]">
-                        {entry.text.split("\n").length} lines
-                      </span>
-                      <button
-                        onClick={async () => {
-                          try { await navigator.clipboard.writeText(entry.text); setCopied(true); setTimeout(() => setCopied(false), 1200); }
-                          catch { /* ignore */ }
-                        }}
-                        className="text-[10px] text-[color:var(--text-faint)] hover:text-[color:var(--text)]"
-                        title="copy emit output"
-                      >{copied ? "copied" : "copy"}</button>
-                    </>
-                  );
-                })()}
               </div>
             </div>
-            {rightTab === "output" ? (
             <pre
               ref={outputRef}
               onClick={() => waitingForInput && stdinInputRef.current?.focus()}
@@ -1444,153 +901,7 @@ function Playground() {
                 </>
               )}
             </pre>
-            ) : (() => {
-              const meta = RIGHT_TABS.find(t => t.key === rightTab);
-              const entry = emitCache[rightTab];
-              if (emitLoading === rightTab) {
-                return (
-                  <pre className="flex-1 overflow-auto p-4 font-mono text-[12.5px] text-[color:var(--text-faint)]">
-                    {"-- emitting "}{rightTab.replace("emit-", "")}{"..."}
-                  </pre>
-                );
-              }
-              if (!entry) {
-                return (
-                  <pre className="flex-1 overflow-auto p-4 font-mono text-[12.5px] text-[color:var(--text-faint)]">{"-- loading..."}</pre>
-                );
-              }
-              if (meta?.binary && entry.bytes && !entry.isError) {
-                const bytes = entry.bytes;
-                const head = Array.from(bytes.slice(0, 32))
-                  .map(b => b.toString(16).padStart(2, "0")).join(" ");
-                const isWasm = bytes.length >= 4 && bytes[0] === 0x00 && bytes[1] === 0x61 && bytes[2] === 0x73 && bytes[3] === 0x6d;
-                return (
-                  <div className="flex-1 overflow-auto p-6 flex flex-col items-center justify-center text-center gap-4">
-                    <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-[color:var(--text-faint)]">
-                      {meta.downloadName}
-                    </div>
-                    <div className="font-mono text-[28px] text-[color:var(--text)] tabular-nums">
-                      {bytes.length.toLocaleString()} <span className="text-[14px] text-[color:var(--text-muted)]">bytes</span>
-                    </div>
-                    <div className="font-mono text-[11px] text-[color:var(--text-faint)]">
-                      {isWasm ? "valid wasm module (\\0asm magic ok)" : "no wasm magic detected"}
-                    </div>
-                    <button
-                      onClick={() => downloadEmit(rightTab)}
-                      className={RUN_BTN + " mt-2"}
-                      title={`download ${meta.downloadName}`}
-                    >
-                      <span aria-hidden>↓</span> download {meta.downloadName}
-                    </button>
-                    <details className="w-full max-w-[480px] mt-4 text-left">
-                      <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.08em] text-[color:var(--text-faint)] hover:text-[color:var(--text-muted)]">
-                        first 32 bytes (hex)
-                      </summary>
-                      <pre className="mt-2 p-3 rounded-[4px] bg-[color:var(--bg)] font-mono text-[11px] text-[color:var(--text-muted)] whitespace-pre-wrap break-all">
-                        {head}
-                      </pre>
-                    </details>
-                  </div>
-                );
-              }
-              return (
-                <pre
-                  className="flex-1 overflow-auto p-4 font-mono text-[12.5px] leading-relaxed whitespace-pre text-[color:var(--text)]"
-                  style={{ tabSize: 4 }}
-                >
-                  <span style={{ color: entry.isError ? "var(--kw)" : "var(--text)" }}>
-                    {entry.text || `-- (empty ${rightTab.replace("emit-", "")} output)`}
-                  </span>
-                </pre>
-              );
-            })()}
           </div>
-        </div>
-
-        {replOpen && (
-          <div className="mt-2 rounded-[6px] border border-[color:var(--rule)] bg-[color:var(--panel)] overflow-hidden flex flex-col" style={{ height: "32vh", minHeight: 200 }}>
-            <div className="border-b border-[color:var(--rule)] px-3 py-1.5 font-mono text-xs text-[color:var(--text-faint)] flex items-center gap-3">
-              <span className="uppercase tracking-[0.08em] text-[10px]">scratch</span>
-              <span className="text-[10px]">each entry runs fresh; no state persists</span>
-              <div className="flex-1" />
-              {replHistory.length > 0 && (
-                <button
-                  onClick={() => setReplHistory([])}
-                  className="text-[10px] text-[color:var(--text-faint)] hover:text-[color:var(--text)]"
-                >clear history</button>
-              )}
-              <button
-                onClick={() => setReplOpen(false)}
-                className="text-[10px] text-[color:var(--text-faint)] hover:text-[color:var(--text)]"
-                aria-label="close scratchpad"
-              >close</button>
-            </div>
-            <div ref={replScrollRef} className="flex-1 overflow-y-auto px-4 py-3 font-mono text-[12.5px] space-y-3">
-              {replHistory.length === 0 && (
-                <div className="text-[color:var(--text-faint)]">{"-- type any XS expression, press ↵ to evaluate (shift+↵ for newline; ↑/↓ to walk history)"}</div>
-              )}
-              {replHistory.map((entry, i) => (
-                <div key={i} className="leading-relaxed">
-                  <div className="flex items-baseline gap-2">
-                    <span style={{ color: "var(--link)" }} className="select-none">{"› "}</span>
-                    <button
-                      onClick={() => setReplInput(entry.code)}
-                      className="text-left whitespace-pre-wrap text-[color:var(--text)] hover:text-[color:var(--link)] transition-colors"
-                      title="click to re-edit"
-                    >{entry.code}</button>
-                    <span className="ml-auto text-[10px] text-[color:var(--text-faint)] shrink-0">{entry.ms < 10 ? entry.ms.toFixed(1) : Math.round(entry.ms)}ms</span>
-                  </div>
-                  {entry.stdout && (
-                    <pre className="whitespace-pre-wrap text-[color:var(--text-muted)] mt-0.5">{entry.stdout}</pre>
-                  )}
-                  {entry.stderr && (
-                    <pre className="whitespace-pre-wrap mt-0.5" style={{ color: "var(--kw)" }}>{entry.stderr}</pre>
-                  )}
-                </div>
-              ))}
-              {replBusy && (
-                <div className="text-[color:var(--text-faint)]">running...</div>
-              )}
-            </div>
-            <div className="border-t border-[color:var(--rule)] px-3 py-2 flex items-end gap-2">
-              <span style={{ color: "var(--link)" }} className="font-mono text-[14px] leading-none mt-1.5 select-none">›</span>
-              <textarea
-                ref={replInputRef}
-                value={replInput}
-                onChange={(e) => setReplInput(e.target.value)}
-                onKeyDown={handleReplKey}
-                rows={1}
-                placeholder='println("hello")'
-                spellCheck={false}
-                autoCapitalize="off"
-                autoComplete="off"
-                className="flex-1 bg-transparent border-none outline-none font-mono text-[13px] text-[color:var(--text)] resize-y min-h-[24px]"
-                style={{ caretColor: "var(--link)" }}
-              />
-              <button
-                onClick={submitRepl}
-                disabled={!replInput.trim() || replBusy}
-                className="text-[10px] uppercase tracking-[0.08em] text-[color:var(--link)] hover:text-[color:var(--link-hover)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                title="run (Enter)"
-              >run ↵</button>
-            </div>
-          </div>
-        )}
-
-        <div className="mt-2 flex items-center gap-3 font-mono text-[10px] text-[color:var(--text-faint)] border border-[color:var(--rule)] rounded-[6px] px-3 py-1 bg-[color:var(--panel)]">
-          <span>XS v{RUNTIME_VERSION}</span>
-          <span className="text-[color:var(--rule)]">|</span>
-          <span>{activeFile}</span>
-          <span className="text-[color:var(--rule)]">|</span>
-          <span>line {cursor.line}, col {cursor.col}</span>
-          <div className="flex-1" />
-          {running ? (
-            <span className="text-[color:var(--link)]">running</span>
-          ) : runMs != null ? (
-            <span>last run {runMs < 10 ? runMs.toFixed(1) : Math.round(runMs)}ms</span>
-          ) : (
-            <span>idle</span>
-          )}
         </div>
 
         <p className="mt-3 text-xs text-[color:var(--text-faint)] hidden sm:block">
@@ -1604,103 +915,6 @@ function Playground() {
           onClose={() => setShareOpen(false)}
         />
       )}
-      {paletteOpen && (
-        <CommandPalette
-          onClose={() => setPaletteOpen(false)}
-          actions={paletteActions}
-        />
-      )}
     </Wrap>
-  );
-}
-
-// --- Command palette ------------------------------------------------------
-type PaletteAction = { id: string; label: string; hint?: string; group: string; run: () => void };
-
-function CommandPalette({ actions, onClose }: { actions: PaletteAction[]; onClose: () => void }) {
-  const [query, setQuery] = useState("");
-  const [focused, setFocused] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => { inputRef.current?.focus(); }, []);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return actions;
-    return actions
-      .map(a => {
-        const hay = (a.label + " " + a.group + " " + (a.hint ?? "")).toLowerCase();
-        let score = 0;
-        let qi = 0;
-        for (let i = 0; i < hay.length && qi < q.length; i++) {
-          if (hay[i] === q[qi]) { score += (i === 0 || hay[i - 1] === " " ? 2 : 1); qi++; }
-        }
-        if (qi < q.length) return null;
-        return { action: a, score };
-      })
-      .filter((x): x is { action: PaletteAction; score: number } => x !== null)
-      .sort((a, b) => b.score - a.score)
-      .map(x => x.action);
-  }, [actions, query]);
-
-  useEffect(() => { setFocused(0); }, [query]);
-
-  const choose = (idx: number) => {
-    const act = filtered[idx];
-    if (!act) return;
-    onClose();
-    requestAnimationFrame(() => act.run());
-  };
-
-  const handleKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Escape") { e.preventDefault(); onClose(); return; }
-    if (e.key === "Enter") { e.preventDefault(); choose(focused); return; }
-    if (e.key === "ArrowDown") { e.preventDefault(); setFocused(i => Math.min(filtered.length - 1, i + 1)); return; }
-    if (e.key === "ArrowUp") { e.preventDefault(); setFocused(i => Math.max(0, i - 1)); return; }
-  };
-
-  return (
-    <div
-      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[12vh] bg-black/40 backdrop-blur-sm"
-    >
-      <div className="w-[560px] max-w-[92vw] rounded-[8px] border border-[color:var(--rule)] bg-[color:var(--panel)] shadow-2xl overflow-hidden">
-        <input
-          ref={inputRef}
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          onKeyDown={handleKey}
-          placeholder="type a command, file, or example..."
-          className="w-full px-4 py-3 bg-transparent border-b border-[color:var(--rule)] font-mono text-sm text-[color:var(--text)] outline-none placeholder:text-[color:var(--text-faint)]"
-          spellCheck={false}
-          autoComplete="off"
-        />
-        <div className="max-h-[40vh] overflow-y-auto py-1">
-          {filtered.length === 0 && (
-            <div className="px-4 py-3 font-mono text-xs text-[color:var(--text-faint)]">no matches</div>
-          )}
-          {filtered.map((a, i) => (
-            <button
-              key={a.id}
-              onClick={() => choose(i)}
-              onMouseEnter={() => setFocused(i)}
-              className={
-                "w-full text-left px-4 py-1.5 flex items-center gap-3 font-mono text-[13px] " +
-                (i === focused ? "bg-[color:var(--rule-soft)] text-[color:var(--text)]" : "text-[color:var(--text-muted)]")
-              }
-            >
-              <span className="text-[10px] uppercase tracking-[0.06em] text-[color:var(--text-faint)] w-16 shrink-0">{a.group}</span>
-              <span className="flex-1 truncate">{a.label}</span>
-              {a.hint && <span className="text-[10px] text-[color:var(--text-faint)]">{a.hint}</span>}
-            </button>
-          ))}
-        </div>
-        <div className="px-4 py-1.5 border-t border-[color:var(--rule)] flex items-center gap-3 font-mono text-[10px] text-[color:var(--text-faint)]">
-          <span>↑↓ navigate</span>
-          <span>↵ run</span>
-          <span>esc close</span>
-        </div>
-      </div>
-    </div>
   );
 }
