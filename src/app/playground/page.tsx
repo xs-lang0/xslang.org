@@ -215,6 +215,7 @@ const KBD = "inline-flex items-center px-1.5 rounded-[3px] border border-[color:
 
 type OutChunk = { kind: "out" | "err" | "in"; text: string };
 type OutlineItem = { kind: string; name: string; line: number };
+type ReplEntry = { code: string; stdout: string; stderr: string; ms: number };
 type RightTab = "output" | "emit-c" | "emit-js" | "emit-wasm" | "emit-ast" | "emit-bytecode";
 type EmitCacheEntry = { forSource: string; text: string; bytes?: Uint8Array | null; isError: boolean };
 type EmitCache = Partial<Record<RightTab, EmitCacheEntry>>;
@@ -341,6 +342,13 @@ function Playground() {
   const [emitLoading, setEmitLoading] = useState<RightTab | null>(null);
   const [cursor, setCursor] = useState<{ line: number; col: number }>({ line: 1, col: 1 });
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [replOpen, setReplOpen] = useState(false);
+  const [replInput, setReplInput] = useState("");
+  const [replHistory, setReplHistory] = useState<ReplEntry[]>([]);
+  const [replBusy, setReplBusy] = useState(false);
+  const [replHistoryIdx, setReplHistoryIdx] = useState<number | null>(null);
+  const replInputRef = useRef<HTMLTextAreaElement>(null);
+  const replScrollRef = useRef<HTMLDivElement>(null);
   const [stdinValue, setStdinValue] = useState("");
   const [filesPanelOpen, setFilesPanelOpen] = useState(() => {
     // Hidden by default on phone-width screens so the editor isn't
@@ -663,6 +671,68 @@ function Playground() {
     }
   }, []);
 
+  // Runs the current REPL input as a fresh program. No state persistence
+  // (each evaluation gets a clean runtime), so think of it as a scratchpad
+  // rather than a true REPL session. Captures stdout / stderr separately
+  // for nicer rendering. Up / Down arrows in the input walk history.
+  const submitRepl = useCallback(async () => {
+    const code = replInput.trim();
+    if (!code || replBusy || !xsRef.current) return;
+    setReplBusy(true);
+    let out = "", err = "";
+    const stdoutPrev = stdoutCbRef.current;
+    const stderrPrev = stderrCbRef.current;
+    stdoutCbRef.current = (t) => { out += t; };
+    stderrCbRef.current = (t) => { err += t; };
+    const t0 = performance.now();
+    try { await xsRef.current.run(code); }
+    catch (e) { err += String((e as Error)?.message ?? e); }
+    finally {
+      stdoutCbRef.current = stdoutPrev;
+      stderrCbRef.current = stderrPrev;
+    }
+    const ms = performance.now() - t0;
+    setReplHistory(prev => [...prev, { code, stdout: out, stderr: err, ms }]);
+    setReplInput("");
+    setReplHistoryIdx(null);
+    setReplBusy(false);
+    requestAnimationFrame(() => {
+      replScrollRef.current?.scrollTo({ top: replScrollRef.current.scrollHeight });
+      replInputRef.current?.focus();
+    });
+  }, [replInput, replBusy]);
+
+  const handleReplKey = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      submitRepl();
+      return;
+    }
+    if (e.key === "ArrowUp" && replInput === "" || (e.key === "ArrowUp" && e.ctrlKey)) {
+      // Walk history newest-to-oldest; first press lands on the most
+      // recent entry, subsequent presses move backwards.
+      if (replHistory.length === 0) return;
+      e.preventDefault();
+      setReplHistoryIdx(idx => {
+        const next = idx == null ? replHistory.length - 1 : Math.max(0, idx - 1);
+        setReplInput(replHistory[next].code);
+        return next;
+      });
+      return;
+    }
+    if (e.key === "ArrowDown" && (e.ctrlKey || replHistoryIdx != null)) {
+      if (replHistoryIdx == null) return;
+      e.preventDefault();
+      setReplHistoryIdx(idx => {
+        if (idx == null) return null;
+        if (idx + 1 >= replHistory.length) { setReplInput(""); return null; }
+        setReplInput(replHistory[idx + 1].code);
+        return idx + 1;
+      });
+      return;
+    }
+  }, [replHistory, replHistoryIdx, replInput, submitRepl]);
+
   const downloadEmit = useCallback((tab: RightTab) => {
     const meta = RIGHT_TABS.find(t => t.key === tab);
     const entry = emitCache[tab];
@@ -942,12 +1012,23 @@ function Playground() {
     return items;
   }, [files, activeFile]);
 
-  // Cmd / Ctrl + K opens the command palette from anywhere on the page.
+  // Global keys: Cmd/Ctrl+K opens the command palette, Ctrl+` toggles
+  // the REPL drawer (mirrors vscode's terminal binding).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setPaletteOpen(o => !o);
+        return;
+      }
+      if (e.ctrlKey && e.key === "`") {
+        e.preventDefault();
+        setReplOpen(o => {
+          const next = !o;
+          if (next) requestAnimationFrame(() => replInputRef.current?.focus());
+          return next;
+        });
+        return;
       }
     };
     window.addEventListener("keydown", onKey);
@@ -965,6 +1046,7 @@ function Playground() {
     acts.push({ id: "gist",       label: "load gist",         group: "io",  run: handleLoadGist });
     acts.push({ id: "newfile",    label: "new blank file",    group: "file", run: handleNewBlank });
     acts.push({ id: "togglefiles",label: "toggle files panel",group: "view", run: () => setFilesPanelOpen(o => !o) });
+    acts.push({ id: "togglerepl", label: "toggle scratchpad",  group: "view", hint: "^`", run: () => setReplOpen(o => !o) });
     acts.push({ id: "clearout",   label: "clear output",      group: "view", run: () => { setChunks([]); setShowOutput(false); setRunMs(null); } });
     for (const tab of RIGHT_TABS) {
       acts.push({
@@ -1040,6 +1122,20 @@ function Playground() {
           <button onClick={() => setPaletteOpen(true)} className={BTN} title="command palette (Ctrl+K)">
             <span>commands</span>
             <span className={KBD + " ml-1"} aria-hidden>{"^K"}</span>
+          </button>
+          <button
+            onClick={() => {
+              setReplOpen(o => {
+                const next = !o;
+                if (next) requestAnimationFrame(() => replInputRef.current?.focus());
+                return next;
+              });
+            }}
+            className={BTN}
+            title="scratchpad REPL (Ctrl+`)"
+          >
+            <span>scratch</span>
+            <span className={KBD + " ml-1"} aria-hidden>{"^`"}</span>
           </button>
           <button onClick={handleShare} className={BTN} title="share or embed this workspace">share</button>
           <button onClick={handleLoadGist} className={BTN} title="import .xs files from a public gist">gist</button>
@@ -1347,6 +1443,76 @@ function Playground() {
             })()}
           </div>
         </div>
+
+        {replOpen && (
+          <div className="mt-2 rounded-[6px] border border-[color:var(--rule)] bg-[color:var(--panel)] overflow-hidden flex flex-col" style={{ height: "32vh", minHeight: 200 }}>
+            <div className="border-b border-[color:var(--rule)] px-3 py-1.5 font-mono text-xs text-[color:var(--text-faint)] flex items-center gap-3">
+              <span className="uppercase tracking-[0.08em] text-[10px]">scratch</span>
+              <span className="text-[10px]">each entry runs fresh; no state persists</span>
+              <div className="flex-1" />
+              {replHistory.length > 0 && (
+                <button
+                  onClick={() => setReplHistory([])}
+                  className="text-[10px] text-[color:var(--text-faint)] hover:text-[color:var(--text)]"
+                >clear history</button>
+              )}
+              <button
+                onClick={() => setReplOpen(false)}
+                className="text-[10px] text-[color:var(--text-faint)] hover:text-[color:var(--text)]"
+                aria-label="close scratchpad"
+              >close</button>
+            </div>
+            <div ref={replScrollRef} className="flex-1 overflow-y-auto px-4 py-3 font-mono text-[12.5px] space-y-3">
+              {replHistory.length === 0 && (
+                <div className="text-[color:var(--text-faint)]">{"-- type any XS expression, press ↵ to evaluate (shift+↵ for newline; ↑/↓ to walk history)"}</div>
+              )}
+              {replHistory.map((entry, i) => (
+                <div key={i} className="leading-relaxed">
+                  <div className="flex items-baseline gap-2">
+                    <span style={{ color: "var(--link)" }} className="select-none">{"› "}</span>
+                    <button
+                      onClick={() => setReplInput(entry.code)}
+                      className="text-left whitespace-pre-wrap text-[color:var(--text)] hover:text-[color:var(--link)] transition-colors"
+                      title="click to re-edit"
+                    >{entry.code}</button>
+                    <span className="ml-auto text-[10px] text-[color:var(--text-faint)] shrink-0">{entry.ms < 10 ? entry.ms.toFixed(1) : Math.round(entry.ms)}ms</span>
+                  </div>
+                  {entry.stdout && (
+                    <pre className="whitespace-pre-wrap text-[color:var(--text-muted)] mt-0.5">{entry.stdout}</pre>
+                  )}
+                  {entry.stderr && (
+                    <pre className="whitespace-pre-wrap mt-0.5" style={{ color: "var(--kw)" }}>{entry.stderr}</pre>
+                  )}
+                </div>
+              ))}
+              {replBusy && (
+                <div className="text-[color:var(--text-faint)]">running...</div>
+              )}
+            </div>
+            <div className="border-t border-[color:var(--rule)] px-3 py-2 flex items-end gap-2">
+              <span style={{ color: "var(--link)" }} className="font-mono text-[14px] leading-none mt-1.5 select-none">›</span>
+              <textarea
+                ref={replInputRef}
+                value={replInput}
+                onChange={(e) => setReplInput(e.target.value)}
+                onKeyDown={handleReplKey}
+                rows={1}
+                placeholder='println("hello")'
+                spellCheck={false}
+                autoCapitalize="off"
+                autoComplete="off"
+                className="flex-1 bg-transparent border-none outline-none font-mono text-[13px] text-[color:var(--text)] resize-y min-h-[24px]"
+                style={{ caretColor: "var(--link)" }}
+              />
+              <button
+                onClick={submitRepl}
+                disabled={!replInput.trim() || replBusy}
+                className="text-[10px] uppercase tracking-[0.08em] text-[color:var(--link)] hover:text-[color:var(--link-hover)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                title="run (Enter)"
+              >run ↵</button>
+            </div>
+          </div>
+        )}
 
         <div className="mt-2 flex items-center gap-3 font-mono text-[10px] text-[color:var(--text-faint)] border border-[color:var(--rule)] rounded-[6px] px-3 py-1 bg-[color:var(--panel)]">
           <span>XS v{RUNTIME_VERSION}</span>
