@@ -7,6 +7,7 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirro
 import { StreamLanguage, syntaxHighlighting, HighlightStyle, LanguageSupport, indentOnInput, bracketMatching, foldKeymap, foldGutter, indentUnit, type StringStream } from "@codemirror/language";
 import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap, CompletionContext } from "@codemirror/autocomplete";
 import { searchKeymap, search, highlightSelectionMatches } from "@codemirror/search";
+import { lintGutter, setDiagnostics, type Diagnostic } from "@codemirror/lint";
 import { tags as t } from "@lezer/highlight";
 
 const KEYWORDS = new Set([
@@ -435,6 +436,11 @@ export type XSEditorHandle = {
    * scroll the line into view, and focus the editor. Out-of-range
    * line numbers clamp to the document bounds. */
   gotoLine: (line: number, col?: number) => void;
+  /** Replace any existing lint markers with the given list. Pass `[]`
+   * to clear. Each marker is `(line, col, severity, message)`; col is
+   * 1-indexed, line is 1-indexed. The marker spans from `col` to end
+   * of line. */
+  setMarkers: (markers: Array<{ line: number; col?: number; severity: "error" | "warning" | "info"; message: string }>) => void;
 };
 
 export type EditorOpts = {
@@ -525,6 +531,7 @@ export const XSEditor = forwardRef<XSEditorHandle, Props>(function XSEditor(
       extensions: [
         optsCompartmentRef.current.of(buildOptsExtensions(optsRef.current)),
         foldGutter(),
+        lintGutter(),
         highlightActiveLineGutter(),
         highlightSpecialChars(),
         history(),
@@ -601,6 +608,20 @@ export const XSEditor = forwardRef<XSEditorHandle, Props>(function XSEditor(
         effects: EditorView.scrollIntoView(pos, { y: "center" }),
       });
       view.focus();
+    },
+    setMarkers: (markers) => {
+      const view = viewRef.current;
+      if (!view) return;
+      const doc = view.state.doc;
+      const diags: Diagnostic[] = [];
+      for (const m of markers) {
+        const target = Math.max(1, Math.min(doc.lines, Math.floor(m.line)));
+        const lineInfo = doc.line(target);
+        const fromCol = Math.max(0, Math.floor((m.col ?? 1) - 1));
+        const from = Math.min(lineInfo.from + fromCol, lineInfo.to);
+        diags.push({ from, to: lineInfo.to, severity: m.severity, message: m.message });
+      }
+      view.dispatch(setDiagnostics(view.state, diags));
     },
   }));
 

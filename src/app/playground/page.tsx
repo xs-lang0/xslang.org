@@ -540,9 +540,12 @@ function Playground() {
     setChunks([]);
     setShowOutput(true);
     setRunMs(null);
+    setRightTab("output");
+    editorRef.current?.setMarkers([]);
     let produced = false;
+    let stderrAcc = "";
     stdoutCbRef.current = (text: string) => { produced = true; appendChunk("out", text); };
-    stderrCbRef.current = (text: string) => { produced = true; appendChunk("err", text); };
+    stderrCbRef.current = (text: string) => { produced = true; stderrAcc += text; appendChunk("err", text); };
     const t0 = performance.now();
     try {
       // Make sure the latest content is in the worker VFS before run.
@@ -564,6 +567,26 @@ function Playground() {
       stdinResolverRef.current = null;
       setWaitingForInput(false);
       setRunning(false);
+      // Mine accumulated stderr for `file:line[:col]` addresses pointing
+      // at the active file (or the synthesised __run__.xs the runtime
+      // stamps on inline scripts) and surface them as red lint markers.
+      const markers: Array<{ line: number; col?: number; severity: "error"; message: string }> = [];
+      const re = /([A-Za-z0-9_./-]+\.xs):(\d+)(?::(\d+))?/g;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(stderrAcc)) !== null) {
+        const f = m[1].replace(/^\/+/, "");
+        if (f !== activeFile && f !== "__run__.xs" && f !== "_run_.xs") continue;
+        const lineStart = stderrAcc.lastIndexOf("\n", m.index) + 1;
+        const lineEnd = stderrAcc.indexOf("\n", m.index);
+        const ctx = stderrAcc.slice(lineStart, lineEnd === -1 ? undefined : lineEnd).trim();
+        markers.push({
+          line: parseInt(m[2], 10),
+          col: m[3] ? parseInt(m[3], 10) : undefined,
+          severity: "error",
+          message: ctx || "runtime error here",
+        });
+      }
+      if (markers.length > 0) editorRef.current?.setMarkers(markers);
     }
   }, [files, activeFile, running, appendChunk, bootRuntime]);
 
@@ -1021,18 +1044,32 @@ function Playground() {
             <div className="border-b border-[color:var(--rule)] flex items-stretch overflow-x-auto font-mono text-xs">
               {Object.keys(files).map(name => {
                 const active = name === activeFile;
+                const onlyFile = fileCount === 1;
                 return (
-                  <button
+                  <div
                     key={name}
-                    onClick={() => switchFile(name)}
                     className={
-                      "px-3 py-1.5 border-r border-[color:var(--rule)] whitespace-nowrap transition-colors " +
+                      "group flex items-stretch border-r border-[color:var(--rule)] whitespace-nowrap transition-colors " +
                       (active
                         ? "text-[color:var(--text)] bg-[color:var(--bg)] border-b border-b-[color:var(--link)]"
                         : "text-[color:var(--text-faint)] hover:text-[color:var(--text-muted)]")
                     }
-                    title={name}
-                  >{name}</button>
+                  >
+                    <button
+                      onClick={() => switchFile(name)}
+                      className="pl-3 py-1.5"
+                      title={name}
+                    >{name}</button>
+                    <button
+                      onClick={() => handleDelete(name)}
+                      disabled={onlyFile}
+                      className={
+                        "px-2 py-1.5 text-[10px] opacity-0 group-hover:opacity-100 disabled:hidden hover:text-[color:var(--kw)] transition-opacity"
+                      }
+                      title={onlyFile ? "can't close the last file" : "close (delete) " + name}
+                      aria-label={"close " + name}
+                    >×</button>
+                  </div>
                 );
               })}
               <button
