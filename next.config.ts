@@ -38,6 +38,17 @@ const config: NextConfig = {
           { key: "Access-Control-Allow-Origin", value: "*" },
         ],
       },
+      // Every subresource needs an explicit CORP under COEP: require-corp
+      // for chromium to actually flip crossOriginIsolated on. Same-origin
+      // theoretically defaults to ok without one, but in practice a few of
+      // the Next / Turbopack chunks were enough to keep the document from
+      // becoming isolated.
+      {
+        source: "/_next/:path*",
+        headers: [
+          { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+        ],
+      },
       // Cross-origin isolation for /playground and /embed so
       // SharedArrayBuffer is available. The SAB is what backs the worker
       // -> main-thread stdin channel; without it, input() returns
