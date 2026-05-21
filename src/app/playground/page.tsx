@@ -7,6 +7,7 @@ import { PlaygroundFiles } from "@/components/playground-files";
 import { DialogsProvider, useDialogs } from "@/components/confirm-modal";
 import { PlaygroundSettings, loadPrefs, savePrefs, DEFAULT_PREFS, type EditorPrefs } from "@/components/playground-settings";
 import { ShareModal } from "@/components/share-modal";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { decodeWorkspace } from "@/lib/share";
 import { fetchGist, parseGistRef } from "@/lib/gist";
 
@@ -26,7 +27,9 @@ function staticBase(): string {
 // Cache-bust on every shipped fix to xs.js / xs.wasm. /xs.js is served with a
 // 1-hour public cache, so without this users keep running the previous
 // build's runtime until their TTL rolls. Bump when either asset changes.
-const RUNTIME_VERSION = "1.2.32";
+// Suffix `-rN` is the playground-side asset revision; bump it when xs.js
+// changes even if the xsypy binary version stayed put.
+const RUNTIME_VERSION = "1.2.32-r3";
 
 type Example = { key: string; label: string; description: string; content: string };
 type ExampleGroup = { category: string; items: Example[] };
@@ -192,7 +195,7 @@ const samples: Record<string, string> = Object.fromEntries(
 
 type XS = {
   run: (code: string) => Promise<string>;
-  exec: (argv: string[]) => Promise<{ stdout: string; stderr: string }>;
+  exec: (argv: string[], opts?: { binary?: boolean }) => Promise<{ stdout: string; stderr: string; stdoutBytes?: Uint8Array | null }>;
   writeFile: (path: string, content: string | Uint8Array) => void | Promise<void>;
   readFile: (path: string) => string | null | Promise<string | null>;
   listFiles: () => string[] | Promise<string[]>;
@@ -213,13 +216,14 @@ const KBD = "inline-flex items-center px-1.5 rounded-[3px] border border-[color:
 type OutChunk = { kind: "out" | "err" | "in"; text: string };
 type OutlineItem = { kind: string; name: string; line: number };
 type RightTab = "output" | "emit-c" | "emit-js" | "emit-wasm" | "emit-ast" | "emit-bytecode";
-type EmitCache = Partial<Record<RightTab, { forSource: string; text: string; isError: boolean }>>;
+type EmitCacheEntry = { forSource: string; text: string; bytes?: Uint8Array | null; isError: boolean };
+type EmitCache = Partial<Record<RightTab, EmitCacheEntry>>;
 
-const RIGHT_TABS: { key: RightTab; label: string; emitArg?: string; lang?: string }[] = [
+const RIGHT_TABS: { key: RightTab; label: string; emitArg?: string; lang?: string; binary?: boolean; downloadName?: string; downloadMime?: string }[] = [
   { key: "output",       label: "output" },
   { key: "emit-c",       label: "C",       emitArg: "c",        lang: "c" },
   { key: "emit-js",      label: "JS",      emitArg: "js",       lang: "javascript" },
-  { key: "emit-wasm",    label: "wasm",    emitArg: "wasm",     lang: "wasm" },
+  { key: "emit-wasm",    label: "wasm",    emitArg: "wasm",     lang: "wasm", binary: true, downloadName: "module.wasm", downloadMime: "application/wasm" },
   { key: "emit-ast",     label: "AST",     emitArg: "ast",      lang: "lisp" },
   { key: "emit-bytecode",label: "bytecode",emitArg: "bytecode", lang: "asm" },
 ];
@@ -338,7 +342,13 @@ function Playground() {
   const [cursor, setCursor] = useState<{ line: number; col: number }>({ line: 1, col: 1 });
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [stdinValue, setStdinValue] = useState("");
-  const [filesPanelOpen, setFilesPanelOpen] = useState(true);
+  const [filesPanelOpen, setFilesPanelOpen] = useState(() => {
+    // Hidden by default on phone-width screens so the editor isn't
+    // squeezed behind the sidebar on first load. The mobile toolbar
+    // button reveals it on tap.
+    if (typeof window === "undefined") return true;
+    return window.matchMedia("(min-width: 768px)").matches;
+  });
   const [editorPrefs, setEditorPrefs] = useState<EditorPrefs>(DEFAULT_PREFS);
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<XSEditorHandle>(null);
@@ -623,8 +633,9 @@ function Playground() {
     else if (e.key === "c" && e.ctrlKey) { e.preventDefault(); handleStop(); }
   }, [submitStdin, handleStop]);
 
-  // Pulls `xs --emit <kind> /file.xs` through the worker. Wasm output is
-  // binary so it's reported as a short summary instead of a wall of bytes.
+  // Pulls `xs --emit <kind> /file.xs` through the worker. Binary emits
+  // (wasm) capture stdout as raw bytes and stash them on the cache entry
+  // for the download button; non-binary emits cache the stdout string.
   const fetchEmit = useCallback(async (tab: RightTab, source: string) => {
     const meta = RIGHT_TABS.find(t => t.key === tab);
     if (!meta?.emitArg || !xsRef.current) return;
@@ -632,30 +643,45 @@ function Playground() {
     try {
       const file = "/__emit__.xs";
       await xsRef.current.writeFile(file, source);
-      const res = await xsRef.current.exec(["--emit", meta.emitArg, file]);
+      const res = await xsRef.current.exec(["--emit", meta.emitArg, file], { binary: !!meta.binary });
       let text = res.stdout || "";
+      let bytes: Uint8Array | null = res.stdoutBytes || null;
       let isError = false;
-      if (res.stderr && !text) {
+      if (res.stderr && !text && (!bytes || bytes.length === 0)) {
         text = res.stderr;
         isError = true;
       }
-      if (meta.emitArg === "wasm" && text) {
-        // Stdout is the raw wasm module. Render a short summary plus a
-        // hex preview of the first 64 bytes -- nobody wants a megabyte
-        // of binary in a code panel.
-        const bytes = new TextEncoder().encode(text);
-        const head = Array.from(bytes.slice(0, 64))
-          .map(b => b.toString(16).padStart(2, "0")).join(" ");
+      if (meta.binary && bytes) {
         const isWasm = bytes.length >= 4 && bytes[0] === 0x00 && bytes[1] === 0x61 && bytes[2] === 0x73 && bytes[3] === 0x6d;
-        text = `${bytes.length} bytes${isWasm ? " (\\0asm magic)" : ""}\n\nfirst 64 bytes:\n${head}`;
+        text = `${bytes.length} bytes${isWasm ? "  (\\0asm magic)" : ""}`;
       }
-      setEmitCache(prev => ({ ...prev, [tab]: { forSource: source, text, isError } }));
+      setEmitCache(prev => ({ ...prev, [tab]: { forSource: source, text, bytes, isError } }));
     } catch (e) {
       setEmitCache(prev => ({ ...prev, [tab]: { forSource: source, text: String((e as Error)?.message ?? e), isError: true } }));
     } finally {
       setEmitLoading(null);
     }
   }, []);
+
+  const downloadEmit = useCallback((tab: RightTab) => {
+    const meta = RIGHT_TABS.find(t => t.key === tab);
+    const entry = emitCache[tab];
+    if (!meta?.downloadName || !entry?.bytes) return;
+    // Copy into a fresh ArrayBuffer-backed view so the Blob ctor doesn't
+    // choke on a SharedArrayBuffer-backed Uint8Array (the worker's bytes
+    // can be either depending on COI / transfer).
+    const buf = new Uint8Array(entry.bytes.length);
+    buf.set(entry.bytes);
+    const blob = new Blob([buf], { type: meta.downloadMime || "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = meta.downloadName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, [emitCache]);
 
   // When the active right-pane tab is an emit view and the source has
   // changed (or there's no cached output yet), refetch. Output tab and
@@ -1018,6 +1044,9 @@ function Playground() {
           <button onClick={handleShare} className={BTN} title="share or embed this workspace">share</button>
           <button onClick={handleLoadGist} className={BTN} title="import .xs files from a public gist">gist</button>
           <PlaygroundSettings prefs={editorPrefs} onChange={setEditorPrefs} />
+          <div className="inline-flex items-center justify-center border border-[color:var(--rule)] bg-[color:var(--panel)] rounded-[6px] px-2 py-1.5">
+            <ThemeToggle />
+          </div>
           <button
             onClick={() => setFilesPanelOpen(o => !o)}
             className={BTN + " md:hidden"}
@@ -1034,11 +1063,14 @@ function Playground() {
           className="flex flex-col md:flex-row min-h-[60vh] rounded-[6px] border border-[color:var(--rule)] overflow-hidden bg-[color:var(--panel)]"
           style={{ userSelect: (draggingFiles || draggingOutput) ? "none" : "auto" }}
         >
-          {/* files panel */}
+          {/* files panel. On mobile the fixed-pixel inline width gives
+              the sidebar exactly 240-ish px which leaves the editor
+              awkwardly narrow; max-md:!w-full lets it take the full
+              viewport width above the editor with a capped height. */}
           {filesPanelOpen && (
             <>
               <div
-                className="border-b md:border-b-0 md:border-r border-[color:var(--rule)] bg-[color:var(--panel)] shrink-0"
+                className="border-b md:border-b-0 md:border-r border-[color:var(--rule)] bg-[color:var(--panel)] shrink-0 max-md:!w-full max-md:max-h-[40vh] max-md:overflow-y-auto"
                 style={{ width: layout.files, minWidth: 140, maxWidth: "60%" }}
               >
                 <PlaygroundFiles
@@ -1122,12 +1154,15 @@ function Playground() {
             className="hidden md:block w-1 cursor-col-resize bg-[color:var(--rule)] hover:bg-[color:var(--rule-soft)] transition-colors shrink-0"
           />
 
-          {/* right pane: tabs across output + emit views */}
+          {/* right pane: tabs across output + emit views.
+              max-md:!w-full overrides the inline width on mobile so the
+              pane spans the full viewport beneath the editor instead of
+              leaving a whitespace gutter on the right. */}
           <div
-            className="flex flex-col overflow-hidden border-t md:border-t-0 border-[color:var(--rule)] bg-[color:var(--panel)] shrink-0"
+            className="flex flex-col overflow-hidden border-t md:border-t-0 border-[color:var(--rule)] bg-[color:var(--panel)] shrink-0 max-md:!w-full max-md:h-[45vh]"
             style={{ width: `${layout.output}%`, minWidth: 240 }}
           >
-            <div className="border-b border-[color:var(--rule)] flex items-stretch font-mono text-xs">
+            <div className="border-b border-[color:var(--rule)] flex items-stretch font-mono text-xs overflow-x-auto">
               {RIGHT_TABS.map(tab => {
                 const active = rightTab === tab.key;
                 return (
@@ -1168,22 +1203,37 @@ function Playground() {
                     >clear</button>
                   </>
                 )}
-                {rightTab !== "output" && emitCache[rightTab] && !emitCache[rightTab]!.isError && (
-                  <>
-                    <span className="text-[10px] text-[color:var(--text-faint)]">
-                      {emitCache[rightTab]!.text.split("\n").length} lines
-                    </span>
-                    <button
-                      onClick={async () => {
-                        const text = emitCache[rightTab]!.text;
-                        try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1200); }
-                        catch { /* ignore */ }
-                      }}
-                      className="text-[10px] text-[color:var(--text-faint)] hover:text-[color:var(--text)]"
-                      title="copy emit output"
-                    >{copied ? "copied" : "copy"}</button>
-                  </>
-                )}
+                {rightTab !== "output" && emitCache[rightTab] && !emitCache[rightTab]!.isError && (() => {
+                  const meta = RIGHT_TABS.find(t => t.key === rightTab);
+                  const entry = emitCache[rightTab]!;
+                  if (meta?.binary && entry.bytes) {
+                    return (
+                      <>
+                        <span className="text-[10px] text-[color:var(--text-faint)]">{entry.bytes.length} bytes</span>
+                        <button
+                          onClick={() => downloadEmit(rightTab)}
+                          className="text-[10px] text-[color:var(--link)] hover:text-[color:var(--link-hover)]"
+                          title={`download ${meta.downloadName}`}
+                        >download</button>
+                      </>
+                    );
+                  }
+                  return (
+                    <>
+                      <span className="text-[10px] text-[color:var(--text-faint)]">
+                        {entry.text.split("\n").length} lines
+                      </span>
+                      <button
+                        onClick={async () => {
+                          try { await navigator.clipboard.writeText(entry.text); setCopied(true); setTimeout(() => setCopied(false), 1200); }
+                          catch { /* ignore */ }
+                        }}
+                        className="text-[10px] text-[color:var(--text-faint)] hover:text-[color:var(--text)]"
+                        title="copy emit output"
+                      >{copied ? "copied" : "copy"}</button>
+                    </>
+                  );
+                })()}
               </div>
             </div>
             {rightTab === "output" ? (
@@ -1235,24 +1285,66 @@ function Playground() {
                 </>
               )}
             </pre>
-            ) : (
-              <pre
-                className="flex-1 overflow-auto p-4 font-mono text-[12.5px] leading-relaxed whitespace-pre text-[color:var(--text)]"
-                style={{ tabSize: 4 }}
-              >
-                {emitLoading === rightTab ? (
-                  <span className="text-[color:var(--text-faint)]">
-                    {"-- "}emitting{" "}{rightTab.replace("emit-", "")}{"..."}
+            ) : (() => {
+              const meta = RIGHT_TABS.find(t => t.key === rightTab);
+              const entry = emitCache[rightTab];
+              if (emitLoading === rightTab) {
+                return (
+                  <pre className="flex-1 overflow-auto p-4 font-mono text-[12.5px] text-[color:var(--text-faint)]">
+                    {"-- emitting "}{rightTab.replace("emit-", "")}{"..."}
+                  </pre>
+                );
+              }
+              if (!entry) {
+                return (
+                  <pre className="flex-1 overflow-auto p-4 font-mono text-[12.5px] text-[color:var(--text-faint)]">{"-- loading..."}</pre>
+                );
+              }
+              if (meta?.binary && entry.bytes && !entry.isError) {
+                const bytes = entry.bytes;
+                const head = Array.from(bytes.slice(0, 32))
+                  .map(b => b.toString(16).padStart(2, "0")).join(" ");
+                const isWasm = bytes.length >= 4 && bytes[0] === 0x00 && bytes[1] === 0x61 && bytes[2] === 0x73 && bytes[3] === 0x6d;
+                return (
+                  <div className="flex-1 overflow-auto p-6 flex flex-col items-center justify-center text-center gap-4">
+                    <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-[color:var(--text-faint)]">
+                      {meta.downloadName}
+                    </div>
+                    <div className="font-mono text-[28px] text-[color:var(--text)] tabular-nums">
+                      {bytes.length.toLocaleString()} <span className="text-[14px] text-[color:var(--text-muted)]">bytes</span>
+                    </div>
+                    <div className="font-mono text-[11px] text-[color:var(--text-faint)]">
+                      {isWasm ? "valid wasm module (\\0asm magic ok)" : "no wasm magic detected"}
+                    </div>
+                    <button
+                      onClick={() => downloadEmit(rightTab)}
+                      className={RUN_BTN + " mt-2"}
+                      title={`download ${meta.downloadName}`}
+                    >
+                      <span aria-hidden>↓</span> download {meta.downloadName}
+                    </button>
+                    <details className="w-full max-w-[480px] mt-4 text-left">
+                      <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.08em] text-[color:var(--text-faint)] hover:text-[color:var(--text-muted)]">
+                        first 32 bytes (hex)
+                      </summary>
+                      <pre className="mt-2 p-3 rounded-[4px] bg-[color:var(--bg)] font-mono text-[11px] text-[color:var(--text-muted)] whitespace-pre-wrap break-all">
+                        {head}
+                      </pre>
+                    </details>
+                  </div>
+                );
+              }
+              return (
+                <pre
+                  className="flex-1 overflow-auto p-4 font-mono text-[12.5px] leading-relaxed whitespace-pre text-[color:var(--text)]"
+                  style={{ tabSize: 4 }}
+                >
+                  <span style={{ color: entry.isError ? "var(--kw)" : "var(--text)" }}>
+                    {entry.text || `-- (empty ${rightTab.replace("emit-", "")} output)`}
                   </span>
-                ) : emitCache[rightTab] ? (
-                  <span style={{ color: emitCache[rightTab]!.isError ? "var(--kw)" : "var(--text)" }}>
-                    {emitCache[rightTab]!.text || `-- (empty ${rightTab.replace("emit-", "")} output)`}
-                  </span>
-                ) : (
-                  <span className="text-[color:var(--text-faint)]">{"-- loading..."}</span>
-                )}
-              </pre>
-            )}
+                </pre>
+              );
+            })()}
           </div>
         </div>
 

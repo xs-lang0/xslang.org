@@ -909,7 +909,16 @@ function runWasi(argv, config) {
         const ptr = v().getUint32(iovPtr + i * 8, true);
         const len = v().getUint32(iovPtr + i * 8 + 4, true);
         const bytes = m().slice(ptr, ptr + len);
-        if (fd === 1) { stdoutBuf += new TextDecoder().decode(bytes); stdoutBuf = flushLine(stdoutBuf, onStdout); }
+        if (fd === 1) {
+          if (config.binaryStdout && config.stdoutBytes) {
+            // Raw byte path: hand the bytes through untouched. Used by
+            // --emit wasm so the binary output survives intact.
+            config.stdoutBytes(bytes);
+          } else {
+            stdoutBuf += new TextDecoder().decode(bytes);
+            stdoutBuf = flushLine(stdoutBuf, onStdout);
+          }
+        }
         else if (fd === 2) { stderrBuf += new TextDecoder().decode(bytes); stderrBuf = flushLine(stderrBuf, onStderr); }
         else vfs.write(fd, bytes);
         total += len;
@@ -1109,18 +1118,33 @@ self.onmessage = async (ev) => {
       // Run the xs cli with caller-supplied argv. Captures stdout / stderr
       // and reports them back so the host can pull --emit c / js / wasm /
       // ast output without spawning a fresh runtime.
+      //
+      // d.binary switches the stdout capture from text-decoded strings to
+      // raw byte chunks (Uint8Array), used by --emit wasm so the binary
+      // output survives. Stderr stays text in both modes.
       const argv = ["xs", ...(d.argv || [])];
-      let stdout = "", stderr = "";
+      const binary = !!d.binary;
+      let stdoutText = "", stderr = "";
+      const stdoutChunks = [];
       const cap = {
         ...(d.config || {}),
-        stdoutPartial: (t) => { stdout += t; },
+        binaryStdout: binary,
+        stdoutBytes: binary ? (bytes) => { if (bytes && bytes.length) stdoutChunks.push(new Uint8Array(bytes)); } : undefined,
         stderrPartial: (t) => { stderr += t; },
-        stdout: (t) => { stdout += t + "\n"; },
+        stdout: binary ? () => {} : (t) => { stdoutText += t + "\n"; },
         stderr: (t) => { stderr += t + "\n"; },
       };
       try { runWasi(argv, cap); }
       catch (e) { stderr += String(e && e.message || e); }
-      self.postMessage({ cmd: "exec-resp", id: d.id, stdout, stderr });
+      let stdoutBytes = null;
+      if (binary) {
+        let total = 0; for (const c of stdoutChunks) total += c.length;
+        stdoutBytes = new Uint8Array(total);
+        let off = 0; for (const c of stdoutChunks) { stdoutBytes.set(c, off); off += c.length; }
+      }
+      const payload = { cmd: "exec-resp", id: d.id, stdout: binary ? "" : stdoutText, stderr };
+      if (binary && stdoutBytes) payload.stdoutBytes = stdoutBytes;
+      self.postMessage(payload, binary && stdoutBytes ? [stdoutBytes.buffer] : []);
     } else if (d.cmd === "read") {
       self.postMessage({ cmd: "read-resp", id: d.id, data: vfs.readFile(d.path) });
     } else if (d.cmd === "list") {
@@ -1206,7 +1230,12 @@ self.onmessage = async (ev) => {
         pending.delete(d.id); entry.resolve(d.data);
       }
       else if (d.cmd === "exec-resp") {
-        pending.delete(d.id); entry.resolve({ stdout: d.stdout || "", stderr: d.stderr || "" });
+        pending.delete(d.id);
+        entry.resolve({
+          stdout: d.stdout || "",
+          stderr: d.stderr || "",
+          stdoutBytes: d.stdoutBytes || null,
+        });
       }
     });
 
@@ -1253,11 +1282,12 @@ self.onmessage = async (ev) => {
       },
 
       /** Run the xs cli with caller-supplied argv (the leading "xs" is
-       * implicit). Resolves to `{ stdout, stderr }`. Stdout / stderr are
-       * NOT streamed through config.stdout / stderr; this is meant for
-       * one-shot capture like `xs --emit c path/to/file.xs`. */
-      async exec(argv) {
-        return callWorker({ cmd: "exec", argv });
+       * implicit). Resolves to `{ stdout, stderr, stdoutBytes }`. Stdout
+       * is normally a string; pass `{ binary: true }` to capture stdout
+       * as raw Uint8Array bytes instead (in which case `stdout` is "" and
+       * `stdoutBytes` holds the bytes). Stderr is always a string. */
+      async exec(argv, opts) {
+        return callWorker({ cmd: "exec", argv, binary: !!(opts && opts.binary) });
       },
 
       async readFile(path) {
