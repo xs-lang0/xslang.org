@@ -1,193 +1,76 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Wrap } from "@/components/wrap";
 import { XSEditor, type XSEditorHandle } from "@/components/xs-codemirror";
 import { PlaygroundFiles } from "@/components/playground-files";
-import { DialogsProvider, useDialogs } from "@/components/confirm-modal";
-import { PlaygroundSettings, loadPrefs, savePrefs, DEFAULT_PREFS, type EditorPrefs } from "@/components/playground-settings";
-import { ShareModal } from "@/components/share-modal";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { decodeWorkspace } from "@/lib/share";
-import { fetchGist, parseGistRef } from "@/lib/gist";
 
-// Same-origin xs.js / xs.wasm so the /playground route's COOP/COEP isolation
-// (set in next.config.ts) actually allows SharedArrayBuffer for stdin. A
-// cross-origin fetch under COEP: require-corp would need a CORP header on
-// the asset, which static.xslang.org doesn't currently send.
-//
-// Resolved at boot, not at module load, because window isn't available during
-// SSR. The blob worker spawned by xs.js can't resolve a leading-slash relative
-// URL — its base URL is the blob: scheme.
+// xs.js + xs.wasm are served same-origin so the playground's COOP / COEP
+// headers cover them. RUNTIME_VERSION is the cache-buster; bump the -rN
+// suffix when xs.js changes even if the xsypy binary version stayed put.
+const RUNTIME_VERSION = "1.2.32-r3";
+
 function staticBase(): string {
   if (typeof window === "undefined") return "";
   return window.location.origin;
 }
 
-// Cache-bust on every shipped fix to xs.js / xs.wasm. /xs.js is served with a
-// 1-hour public cache, so without this users keep running the previous
-// build's runtime until their TTL rolls. Bump when either asset changes.
-// Suffix `-rN` is the playground-side asset revision; bump it when xs.js
-// changes even if the xsypy binary version stayed put.
-const RUNTIME_VERSION = "1.2.32-r3";
-
-
-// New files start with this stub. Examples gallery was removed for
-// the simplified three-panel layout.
-const DEFAULT_FILE_CONTENT = `println("hello, world!")\n`;
-
 type XS = {
   run: (code: string) => Promise<string>;
-  exec: (argv: string[], opts?: { binary?: boolean }) => Promise<{ stdout: string; stderr: string; stdoutBytes?: Uint8Array | null }>;
   writeFile: (path: string, content: string | Uint8Array) => void | Promise<void>;
-  readFile: (path: string) => string | null | Promise<string | null>;
-  listFiles: () => string[] | Promise<string[]>;
-  deleteFile: (path: string) => boolean | Promise<boolean>;
   terminate?: () => void;
 };
 
-const DEFAULT_FILE = "main.xs";
-const STORAGE_FILES = "xs_files_v1";
-const STORAGE_ACTIVE = "xs_active_v1";
-const STORAGE_LAYOUT = "xs_layout_v1";
-
-const BTN = "inline-flex items-center gap-1.5 border border-[color:var(--rule)] bg-[color:var(--panel)] px-3 py-1.5 rounded-[6px] font-mono text-xs text-[color:var(--text)] hover:border-[color:var(--link)] hover:text-[color:var(--link)] focus-visible:outline-none focus-visible:border-[color:var(--link)] transition-colors";
-const RUN_BTN = "inline-flex items-center gap-2 border border-[color:var(--link)] bg-[color:var(--link)] text-[color:var(--bg)] px-3.5 py-1.5 rounded-[6px] font-mono text-xs font-medium hover:bg-[color:var(--link-hover)] hover:border-[color:var(--link-hover)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-offset-1 focus-visible:ring-[color:var(--link)] transition-colors";
-const STOP_BTN = "inline-flex items-center gap-1.5 border border-[color:var(--kw)] bg-[color:var(--panel)] px-3.5 py-1.5 rounded-[6px] font-mono text-xs text-[color:var(--kw)] hover:bg-[color:var(--kw)] hover:text-[color:var(--bg)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[color:var(--kw)] transition-colors";
-const KBD = "inline-flex items-center px-1.5 rounded-[3px] border border-[color:var(--bg)] font-mono text-[10px] leading-[1.4] opacity-90";
-
 type OutChunk = { kind: "out" | "err" | "in"; text: string };
 
-// Pull out file:line:col addresses inside stderr text and emphasise them so
-// the eye lands on the location instead of scanning the whole error blob.
-// Matches `file.xs:LINE[:COL]` (we want to jump to it), `line N[:M]`, and a
-// bare `N:M` at line start. The first form is the only one we can actually
-// route to a file, the other two get styled but stay non-interactive.
-const ADDR_RE = /(\b[A-Za-z0-9_./-]+\.xs:\d+(?::\d+)?|\bline\s+\d+(?::\d+)?|\b\d+:\d+\b)/g;
-const FILE_REF_RE = /^([A-Za-z0-9_./-]+\.xs):(\d+)(?::(\d+))?$/;
+const DEFAULT_FILE = "main.xs";
+const DEFAULT_FILE_CONTENT = `println("hello, world!")\n`;
+const STORAGE_FILES = "xs_files_v1";
+const STORAGE_ACTIVE = "xs_active_v1";
 
-function renderError(
-  text: string,
-  jumpToFile?: (file: string, line: number, col?: number) => void,
-) {
-  if (!ADDR_RE.test(text)) return text;
-  ADDR_RE.lastIndex = 0;
-  const out: React.ReactNode[] = [];
-  let last = 0;
-  let m: RegExpExecArray | null;
-  let key = 0;
-  while ((m = ADDR_RE.exec(text)) !== null) {
-    if (m.index > last) out.push(text.slice(last, m.index));
-    const token = m[0];
-    const fref = FILE_REF_RE.exec(token);
-    if (fref && jumpToFile) {
-      const file = fref[1];
-      const line = parseInt(fref[2], 10);
-      const col = fref[3] ? parseInt(fref[3], 10) : undefined;
-      out.push(
-        <button
-          key={key++}
-          type="button"
-          onClick={() => jumpToFile(file, line, col)}
-          className="font-medium underline decoration-dotted underline-offset-[3px] hover:decoration-solid cursor-pointer"
-          style={{ color: "var(--num)" }}
-          title="open in editor"
-        >{token}</button>
-      );
-    } else {
-      out.push(
-        <span
-          key={key++}
-          className="font-medium underline decoration-dotted underline-offset-[3px]"
-          style={{ color: "var(--num)" }}
-        >{token}</span>
-      );
-    }
-    last = m.index + token.length;
-  }
-  if (last < text.length) out.push(text.slice(last));
-  return <>{out}</>;
-}
+const RUN_BTN = "inline-flex items-center gap-2 border border-[color:var(--link)] bg-[color:var(--link)] text-[color:var(--bg)] px-3.5 py-1.5 rounded-[6px] font-mono text-xs font-medium hover:bg-[color:var(--link-hover)] hover:border-[color:var(--link-hover)] transition-colors";
+const STOP_BTN = "inline-flex items-center gap-1.5 border border-[color:var(--kw)] bg-[color:var(--panel)] px-3.5 py-1.5 rounded-[6px] font-mono text-xs text-[color:var(--kw)] hover:bg-[color:var(--kw)] hover:text-[color:var(--bg)] transition-colors";
 
-type Layout = { files: number; output: number };
-const DEFAULT_LAYOUT: Layout = { files: 200, output: 38 };
-
-function loadLayout(): Layout {
-  if (typeof window === "undefined") return DEFAULT_LAYOUT;
-  try {
-    const raw = localStorage.getItem(STORAGE_LAYOUT);
-    if (!raw) return DEFAULT_LAYOUT;
-    const parsed = JSON.parse(raw);
-    return {
-      files: typeof parsed.files === "number" ? parsed.files : DEFAULT_LAYOUT.files,
-      output: typeof parsed.output === "number" ? parsed.output : DEFAULT_LAYOUT.output,
-    };
-  } catch { return DEFAULT_LAYOUT; }
-}
-
-function uniqueName(base: string, taken: Record<string, string>): string {
+function uniqueName(base: string, taken: Record<string, unknown>): string {
   if (!(base in taken)) return base;
   const dot = base.lastIndexOf(".");
-  const stem = dot >= 0 ? base.slice(0, dot) : base;
-  const ext = dot >= 0 ? base.slice(dot) : "";
-  for (let i = 2; i < 1000; i++) {
-    const cand = `${stem}-${i}${ext}`;
-    if (!(cand in taken)) return cand;
+  const stem = dot > 0 ? base.slice(0, dot) : base;
+  const ext = dot > 0 ? base.slice(dot) : "";
+  for (let i = 2; i < 10000; i++) {
+    const candidate = `${stem}-${i}${ext}`;
+    if (!(candidate in taken)) return candidate;
   }
-  return base + "-" + Date.now();
+  return base;
 }
 
 export default function PlaygroundPage() {
-  return (
-    <DialogsProvider>
-      <Playground />
-    </DialogsProvider>
-  );
+  return <Playground />;
 }
 
 function Playground() {
-  const dialogs = useDialogs();
   const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [files, setFiles] = useState<Record<string, string>>({ [DEFAULT_FILE]: DEFAULT_FILE_CONTENT });
   const [activeFile, setActiveFile] = useState(DEFAULT_FILE);
   const [chunks, setChunks] = useState<OutChunk[]>([]);
   const [running, setRunning] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [layout, setLayout] = useState<Layout>(DEFAULT_LAYOUT);
-  const [draggingFiles, setDraggingFiles] = useState(false);
-  const [draggingOutput, setDraggingOutput] = useState(false);
-  const [shareNote, setShareNote] = useState<string | null>(null);
-  const [shareOpen, setShareOpen] = useState(false);
-  const [showOutput, setShowOutput] = useState(false);
-  const [runMs, setRunMs] = useState<number | null>(null);
-  const [copied, setCopied] = useState(false);
   const [waitingForInput, setWaitingForInput] = useState(false);
   const [stdinValue, setStdinValue] = useState("");
-  const [filesPanelOpen, setFilesPanelOpen] = useState(() => {
-    // Hidden by default on phone-width screens so the editor isn't
-    // squeezed behind the sidebar on first load. The mobile toolbar
-    // button reveals it on tap.
-    if (typeof window === "undefined") return true;
-    return window.matchMedia("(min-width: 768px)").matches;
-  });
-  const [editorPrefs, setEditorPrefs] = useState<EditorPrefs>(DEFAULT_PREFS);
-  const containerRef = useRef<HTMLDivElement>(null);
+
   const editorRef = useRef<XSEditorHandle>(null);
-  const stdinInputRef = useRef<HTMLInputElement>(null);
   const outputRef = useRef<HTMLPreElement>(null);
+  const stdinInputRef = useRef<HTMLInputElement>(null);
   const xsRef = useRef<XS | null>(null);
   const stdoutCbRef = useRef<((line: string) => void) | null>(null);
   const stderrCbRef = useRef<((line: string) => void) | null>(null);
-  const stdinResolverRef = useRef<((value: string) => void) | null>(null);
-
-  const code = files[activeFile] ?? "";
-  // Mirror activeFile in a ref so setCode never captures a stale name via
-  // closure. Without this, a keystroke that fires onChange after the
-  // user clicks a different file (but before React commits the new
-  // activeFile to setCode's closure) writes the new file's content into
-  // the OLD file's slot -- the file-overwrite bug the panel hit.
+  const stdinResolverRef = useRef<((v: string) => void) | null>(null);
   const activeFileRef = useRef(activeFile);
   useEffect(() => { activeFileRef.current = activeFile; }, [activeFile]);
+
+  const code = files[activeFile] ?? "";
+
+  // setCode goes through a ref so a still-in-flight keystroke fired after
+  // the user clicks a different file slot doesn't write to the old file.
   const setCode = useCallback((next: string) => {
     const name = activeFileRef.current;
     setFiles(prev => prev[name] === next ? prev : { ...prev, [name]: next });
@@ -195,85 +78,39 @@ function Playground() {
 
   const appendChunk = useCallback((kind: OutChunk["kind"], text: string) => {
     setChunks(prev => {
-      if (prev.length && prev[prev.length - 1].kind === kind) {
-        const next = prev.slice();
-        next[next.length - 1] = { kind, text: next[next.length - 1].text + text };
-        return next;
+      const last = prev[prev.length - 1];
+      if (last && last.kind === kind) {
+        return [...prev.slice(0, -1), { kind, text: last.text + text }];
       }
       return [...prev, { kind, text }];
     });
   }, []);
 
-  // Mount: hydrate everything from localStorage, then flip the mounted
-  // flag to swap the SSR skeleton for the real UI. Avoids the hello-world
-  // flash because the first paint of the real UI already has the user's
-  // last-active file content. Share-link hydration is async (gzip-aware
-  // decoder) so the rest of mount is wrapped in the same task.
+  // Hydrate files + active from localStorage. First paint is the SSR
+  // skeleton until this lands, which prevents a hello-world flash.
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      let nextFiles: Record<string, string> | null = null;
-      let nextActive: string | null = null;
-      try {
-        const raw = localStorage.getItem(STORAGE_FILES);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed && typeof parsed === "object") {
-            nextFiles = {};
-            for (const [k, v] of Object.entries(parsed)) {
-              if (typeof v === "string") nextFiles[k] = v;
-            }
+    try {
+      const raw = localStorage.getItem(STORAGE_FILES);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          const restored: Record<string, string> = {};
+          for (const [k, v] of Object.entries(parsed)) {
+            if (typeof v === "string") restored[k] = v;
           }
-        }
-        const a = localStorage.getItem(STORAGE_ACTIVE);
-        if (a) nextActive = a;
-      } catch { /* ignore */ }
-
-      // Share fragment overrides. v1+ payloads carry a whole workspace;
-      // legacy payloads (raw base64 of one source file) are decoded as
-      // a single shared.xs added next to whatever the user already had,
-      // matching the old behaviour.
-      const hash = typeof window !== "undefined" ? window.location.hash : "";
-      if (hash.startsWith("#s=")) {
-        const ws = await decodeWorkspace(hash.slice(3));
-        if (ws) {
-          const isLegacySingle =
-            Object.keys(ws.files).length === 1 &&
-            ws.active === "shared.xs" &&
-            "shared.xs" in ws.files;
-          if (isLegacySingle) {
-            const base = nextFiles && Object.keys(nextFiles).length > 0
-              ? nextFiles
-              : { [DEFAULT_FILE]: DEFAULT_FILE_CONTENT };
-            const sharedName = uniqueName("shared.xs", base);
-            nextFiles = { ...base, [sharedName]: ws.files["shared.xs"] };
-            nextActive = sharedName;
-          } else {
-            // Multi-file share replaces the workspace wholesale -- the
-            // sharer's intent is "look at this project," not "merge into
-            // mine." Local state stays in localStorage until the user
-            // changes anything (the persistence effect will overwrite then).
-            nextFiles = { ...ws.files };
-            nextActive = ws.active;
+          if (Object.keys(restored).length > 0) {
+            setFiles(restored);
+            const a = localStorage.getItem(STORAGE_ACTIVE);
+            const initial = a && restored[a] ? a : Object.keys(restored)[0];
+            setActiveFile(initial);
+            editorRef.current?.setValue(restored[initial]);
           }
         }
       }
-
-      if (cancelled) return;
-      if (nextFiles && Object.keys(nextFiles).length > 0) {
-        setFiles(nextFiles);
-        const fallback = nextActive && nextFiles[nextActive] ? nextActive : Object.keys(nextFiles)[0];
-        setActiveFile(fallback);
-        editorRef.current?.setValue(nextFiles[fallback]);
-      }
-      setLayout(loadLayout());
-      setEditorPrefs(loadPrefs());
-      setMounted(true);
-    })();
-    return () => { cancelled = true; };
+    } catch { /* ignore */ }
+    setMounted(true);
   }, []);
 
-  // Persist files + active file to localStorage on change.
   useEffect(() => {
     if (!mounted) return;
     try { localStorage.setItem(STORAGE_FILES, JSON.stringify(files)); } catch { /* ignore */ }
@@ -282,24 +119,14 @@ function Playground() {
     if (!mounted) return;
     try { localStorage.setItem(STORAGE_ACTIVE, activeFile); } catch { /* ignore */ }
   }, [activeFile, mounted]);
-  useEffect(() => {
-    if (!mounted) return;
-    try { localStorage.setItem(STORAGE_LAYOUT, JSON.stringify(layout)); } catch { /* ignore */ }
-  }, [layout, mounted]);
-  useEffect(() => {
-    if (!mounted) return;
-    savePrefs(editorPrefs);
-  }, [editorPrefs, mounted]);
 
-  // Boot the runtime once. The xsRef is stable across all example / file switches.
-  // bootRuntime is also re-callable to recreate the runtime after a cancel.
   const bootRuntime = useCallback(async () => {
     return new Promise<XS | null>((resolve) => {
       const base = staticBase();
       const existing = (window as unknown as { loadXS?: unknown }).loadXS;
       const start = async () => {
         try {
-          // @ts-expect-error - loadXS is attached to window by the script
+          // @ts-expect-error loadXS is attached to window by the script
           const runtime: XS = await window.loadXS({
             wasmUrl: `${base}/xs.wasm?v=${RUNTIME_VERSION}`,
             worker: true,
@@ -314,17 +141,16 @@ function Playground() {
             }),
           });
           resolve(runtime);
-        } catch (err) {
-          console.error("loadXS failed:", err);
+        } catch {
           resolve(null);
         }
       };
       if (existing) { start(); return; }
-      const script = document.createElement("script");
-      script.src = `${base}/xs.js?v=${RUNTIME_VERSION}`;
-      script.onload = start;
-      script.onerror = () => resolve(null);
-      document.head.appendChild(script);
+      const s = document.createElement("script");
+      s.src = `${base}/xs.js?v=${RUNTIME_VERSION}`;
+      s.onload = start;
+      s.onerror = () => resolve(null);
+      document.head.appendChild(s);
     });
   }, []);
 
@@ -332,23 +158,17 @@ function Playground() {
     if (!mounted) return;
     let cancelled = false;
     (async () => {
-      const runtime = await bootRuntime();
+      const rt = await bootRuntime();
       if (cancelled) return;
-      if (!runtime) {
-        appendChunk("err", "error: could not load XS runtime");
-        setLoading(false);
-        return;
-      }
-      xsRef.current = runtime;
+      if (!rt) { appendChunk("err", "could not load XS runtime\n"); setLoading(false); return; }
+      xsRef.current = rt;
       setLoading(false);
     })();
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mounted]);
+  }, [mounted, bootRuntime, appendChunk]);
 
-  // Keep the worker VFS in sync with our local file state so use / import
-  // statements between files actually find their targets at runtime. localStorage
-  // remains the source of truth — this is just a one-way push to the VM.
+  // Keep the worker VFS in sync with local state so `use`/`import` between
+  // files resolve at runtime.
   useEffect(() => {
     if (!mounted) return;
     const xs = xsRef.current;
@@ -361,6 +181,7 @@ function Playground() {
     return () => clearTimeout(t);
   }, [files, mounted]);
 
+  // Auto-scroll output on new chunks / stdin prompt.
   useEffect(() => {
     const el = outputRef.current;
     if (el) el.scrollTop = el.scrollHeight;
@@ -370,16 +191,10 @@ function Playground() {
     if (!xsRef.current || running) return;
     setRunning(true);
     setChunks([]);
-    setShowOutput(true);
-    setRunMs(null);
-    editorRef.current?.setMarkers([]);
     let produced = false;
-    let stderrAcc = "";
-    stdoutCbRef.current = (text: string) => { produced = true; appendChunk("out", text); };
-    stderrCbRef.current = (text: string) => { produced = true; stderrAcc += text; appendChunk("err", text); };
-    const t0 = performance.now();
+    stdoutCbRef.current = (t) => { produced = true; appendChunk("out", t); };
+    stderrCbRef.current = (t) => { produced = true; appendChunk("err", t); };
     try {
-      // Make sure the latest content is in the worker VFS before run.
       for (const [path, content] of Object.entries(files)) {
         try { await xsRef.current.writeFile(path, content); } catch { /* ignore */ }
       }
@@ -392,32 +207,11 @@ function Playground() {
       const fresh = await bootRuntime();
       if (fresh) xsRef.current = fresh;
     } finally {
-      setRunMs(performance.now() - t0);
       stdoutCbRef.current = null;
       stderrCbRef.current = null;
       stdinResolverRef.current = null;
       setWaitingForInput(false);
       setRunning(false);
-      // Mine accumulated stderr for `file:line[:col]` addresses pointing
-      // at the active file (or the synthesised __run__.xs the runtime
-      // stamps on inline scripts) and surface them as red lint markers.
-      const markers: Array<{ line: number; col?: number; severity: "error"; message: string }> = [];
-      const re = /([A-Za-z0-9_./-]+\.xs):(\d+)(?::(\d+))?/g;
-      let m: RegExpExecArray | null;
-      while ((m = re.exec(stderrAcc)) !== null) {
-        const f = m[1].replace(/^\/+/, "");
-        if (f !== activeFile && f !== "__run__.xs" && f !== "_run_.xs") continue;
-        const lineStart = stderrAcc.lastIndexOf("\n", m.index) + 1;
-        const lineEnd = stderrAcc.indexOf("\n", m.index);
-        const ctx = stderrAcc.slice(lineStart, lineEnd === -1 ? undefined : lineEnd).trim();
-        markers.push({
-          line: parseInt(m[2], 10),
-          col: m[3] ? parseInt(m[3], 10) : undefined,
-          severity: "error",
-          message: ctx || "runtime error here",
-        });
-      }
-      if (markers.length > 0) editorRef.current?.setMarkers(markers);
     }
   }, [files, activeFile, running, appendChunk, bootRuntime]);
 
@@ -454,14 +248,7 @@ function Playground() {
   }, [submitStdin, handleStop]);
 
   const switchFile = useCallback((name: string) => {
-    // Use `in` so an empty file still counts as present -- a fresh
-    // `main.xs` you haven't typed into yet is "" and `!files[name]`
-    // would reject the switch, locking you out of an empty file.
-    if (!(name in files)) return;
-    if (name === activeFileRef.current) return;
-    // Flush any in-flight edits in the editor into the OLD file's slot
-    // before swapping. CodeMirror's onChange is debounced via React's
-    // batching so a still-in-flight keystroke would otherwise vanish.
+    if (!(name in files) || name === activeFileRef.current) return;
     const cur = editorRef.current?.getValue();
     const oldName = activeFileRef.current;
     setFiles(prev => {
@@ -470,216 +257,40 @@ function Playground() {
       return next;
     });
     setActiveFile(name);
-    activeFileRef.current = name; // keep ref ahead of React commit
+    activeFileRef.current = name;
     editorRef.current?.setValue(files[name]);
   }, [files]);
 
-  // Jump-to-error handler. The transpiler stamps `_run_.xs` on synthesised
-  // run scripts; we map that back to the active file so clicking a runtime
-  // error's file:line:col jumps to the actual source the user is editing.
-  const jumpToError = useCallback((file: string, line: number, col?: number) => {
-    const stripped = file.replace(/^\/+/, "");
-    const target = (stripped === "__run__.xs" || stripped === "_run_.xs")
-      ? activeFileRef.current
-      : (stripped in files ? stripped : null);
-    if (!target) return;
-    if (target !== activeFileRef.current) switchFile(target);
-    // setValue runs synchronously inside switchFile so the doc is current
-    // by the next microtask -- defer one tick so gotoLine sees fresh doc.
-    requestAnimationFrame(() => editorRef.current?.gotoLine(line, col));
-  }, [files, switchFile]);
-
-  const validateFilename = useCallback((existing: Record<string, string>, ignore?: string) => {
-    return (raw: string): string | null => {
-      const v = raw.trim();
-      if (!v) return "name required";
-      if (!/^[A-Za-z0-9._\-/]+$/.test(v)) return "only letters, digits, . _ - / allowed";
-      const cleaned = v.endsWith(".xs") ? v : v + ".xs";
-      if (cleaned !== ignore && cleaned in existing) return `${cleaned} already exists`;
-      return null;
-    };
-  }, []);
-
-  const handleNewBlank = useCallback(async () => {
-    const name = await dialogs.prompt({
-      title: "new file",
-      message: "name your file (.xs is added if you leave it off)",
-      defaultValue: uniqueName("untitled.xs", files),
-      placeholder: "scratch.xs",
-      confirmLabel: "create",
-      validate: validateFilename(files),
-    });
-    if (!name) return;
-    const cleaned = name.trim().endsWith(".xs") ? name.trim() : name.trim() + ".xs";
-    setFiles(prev => ({ ...prev, [cleaned]: "" }));
-    setActiveFile(cleaned);
-    activeFileRef.current = cleaned; // sync ref before setValue so any
-                                     // in-flight onChange routes to the new file
+  const handleNewBlank = useCallback(() => {
+    const name = uniqueName("untitled.xs", files);
+    setFiles(prev => ({ ...prev, [name]: "" }));
+    setActiveFile(name);
+    activeFileRef.current = name;
     editorRef.current?.setValue("");
     setTimeout(() => editorRef.current?.focus(), 0);
-  }, [files, dialogs, validateFilename]);
+  }, [files]);
 
-  const handleRename = useCallback(async (oldName: string, newName: string) => {
-    const cleaned = newName.trim().endsWith(".xs") ? newName.trim() : newName.trim() + ".xs";
-    if (cleaned === oldName) return;
-    if (cleaned in files) {
-      await dialogs.alert({
-        title: "rename failed",
-        message: `${cleaned} already exists. Pick another name.`,
-      });
-      return;
-    }
+  const handleDelete = useCallback((name: string) => {
+    if (Object.keys(files).length <= 1) return;
+    if (!confirm(`delete ${name}?`)) return;
     setFiles(prev => {
-      const next: Record<string, string> = {};
-      for (const [k, v] of Object.entries(prev)) {
-        if (k === oldName) next[cleaned] = v;
-        else next[k] = v;
-      }
+      const next = { ...prev };
+      delete next[name];
       return next;
     });
-    if (xsRef.current) { try { void xsRef.current.deleteFile(oldName); } catch { /* ignore */ } }
-    if (activeFile === oldName) {
-      setActiveFile(cleaned);
-      activeFileRef.current = cleaned;
-    }
-  }, [files, activeFile, dialogs]);
-
-  const handleDelete = useCallback(async (name: string) => {
-    if (Object.keys(files).length <= 1) {
-      await dialogs.alert({
-        title: "can't delete",
-        message: "you need at least one file. Create another first, then delete this one.",
-      });
-      return;
-    }
-    const ok = await dialogs.confirm({
-      title: "delete file",
-      message: `Delete ${name}? This can't be undone.`,
-      confirmLabel: "delete",
-      kind: "danger",
-    });
-    if (!ok) return;
-    const next = { ...files };
-    delete next[name];
-    if (xsRef.current) { try { void xsRef.current.deleteFile(name); } catch { /* ignore */ } }
-    setFiles(next);
     if (activeFile === name) {
-      const remaining = Object.keys(next);
-      setActiveFile(remaining[0]);
-      activeFileRef.current = remaining[0];
-      editorRef.current?.setValue(next[remaining[0]]);
+      const rest = Object.keys(files).filter(n => n !== name);
+      const fallback = rest[0];
+      setActiveFile(fallback);
+      activeFileRef.current = fallback;
+      editorRef.current?.setValue(files[fallback]);
     }
-  }, [files, activeFile, dialogs]);
+  }, [files, activeFile]);
 
-  const handleDuplicate = useCallback(async (name: string) => {
-    const suggested = uniqueName(name, files);
-    const dup = await dialogs.prompt({
-      title: "duplicate file",
-      message: `name the copy of ${name}`,
-      defaultValue: suggested,
-      confirmLabel: "duplicate",
-      validate: validateFilename(files),
-    });
-    if (!dup) return;
-    const cleaned = dup.trim().endsWith(".xs") ? dup.trim() : dup.trim() + ".xs";
-    setFiles(prev => ({ ...prev, [cleaned]: prev[name] }));
-    setActiveFile(cleaned);
-    activeFileRef.current = cleaned;
-    editorRef.current?.setValue(files[name]);
-  }, [files, dialogs, validateFilename]);
-
-  const handleShare = useCallback(async () => {
-    setShareOpen(true);
-  }, []);
-
-  const handleLoadGist = useCallback(async () => {
-    const ref = await dialogs.prompt({
-      title: "load from gist",
-      message: "paste a gist URL or ID. only .xs files are imported.",
-      placeholder: "https://gist.github.com/user/abc123...",
-      confirmLabel: "load",
-      validate: (raw) => {
-        const v = raw.trim();
-        if (!v) return "paste a gist URL or ID";
-        if (!parseGistRef(v)) return "doesn't look like a gist URL or ID";
-        return null;
-      },
-    });
-    if (!ref) return;
-    const id = parseGistRef(ref);
-    if (!id) return;
-    let imported: Record<string, string>;
-    try {
-      imported = await fetchGist(id);
-    } catch (err) {
-      await dialogs.alert({
-        title: "gist failed",
-        message: err instanceof Error ? err.message : "could not fetch the gist",
-      });
-      return;
-    }
-    const names = Object.keys(imported);
-    if (names.length === 0) {
-      await dialogs.alert({
-        title: "no .xs files",
-        message: "this gist doesn't contain any .xs files.",
-      });
-      return;
-    }
-    const collisions = names.filter(n => n in files);
-    if (collisions.length > 0) {
-      const ok = await dialogs.confirm({
-        title: "overwrite existing?",
-        message: `${collisions.length === 1 ? "this file" : "these files"} already exist and will be replaced: ${collisions.join(", ")}.`,
-        confirmLabel: "overwrite",
-        kind: "danger",
-      });
-      if (!ok) return;
-    }
-    setFiles(prev => ({ ...prev, ...imported }));
-    const first = names[0];
-    setActiveFile(first);
-    activeFileRef.current = first;
-    editorRef.current?.setValue(imported[first]);
-    setShareNote(`loaded ${names.length} file${names.length === 1 ? "" : "s"} from gist`);
-    setTimeout(() => setShareNote(null), 2500);
-  }, [dialogs, files]);
-
-  // Drag handles
-  useEffect(() => {
-    if (!draggingFiles && !draggingOutput) return;
-    const onMove = (e: MouseEvent) => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      if (draggingFiles) {
-        const px = Math.max(140, Math.min(420, e.clientX - rect.left));
-        setLayout(l => ({ ...l, files: px }));
-      } else if (draggingOutput) {
-        const pct = ((rect.right - e.clientX) / rect.width) * 100;
-        setLayout(l => ({ ...l, output: Math.max(20, Math.min(70, pct)) }));
-      }
-    };
-    const onUp = () => { setDraggingFiles(false); setDraggingOutput(false); };
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseup", onUp);
-    return () => {
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", onUp);
-    };
-  }, [draggingFiles, draggingOutput]);
-
-  const fileCount = useMemo(() => Object.keys(files).length, [files]);
-
-  // SSR-safe skeleton: render the chrome but no editor / output content until
-  // we've read localStorage. Prevents the flash of the default hello-world
-  // example on every refresh.
   if (!mounted) {
     return (
       <Wrap wide>
         <section className="pt-10 pb-12">
-          <div className="flex items-center gap-3 flex-wrap mb-4 font-mono text-xs">
-            <span className={BTN + " opacity-40"}>loading...</span>
-          </div>
           <div className="rounded-[6px] border border-[color:var(--rule)] bg-[color:var(--panel)] min-h-[60vh]" />
         </section>
       </Wrap>
@@ -689,191 +300,56 @@ function Playground() {
   return (
     <Wrap wide>
       <section className="pt-10 pb-12">
-        <div className="flex items-center gap-3 flex-wrap mb-4 font-mono text-xs">
+        <div className="mb-3 flex items-center gap-3 font-mono text-xs">
           {running ? (
-            <button onClick={handleStop} className={STOP_BTN} title="stop the running program">
+            <button onClick={handleStop} className={STOP_BTN}>
               <span aria-hidden>■</span> stop
             </button>
           ) : (
-            <button
-              onClick={handleRun}
-              disabled={loading}
-              className={RUN_BTN + " disabled:opacity-40 disabled:cursor-not-allowed"}
-              title="run the active file (Ctrl+Enter)"
-            >
-              <span aria-hidden>▶</span>
-              {loading ? "loading" : "run"}
-              <span className={KBD + " ml-1"} aria-hidden>{"^⏎"}</span>
+            <button onClick={handleRun} disabled={loading} className={RUN_BTN + " disabled:opacity-40 disabled:cursor-not-allowed"}>
+              <span aria-hidden>▶</span> {loading ? "loading" : "run"}
             </button>
-          )}
-          {running && (
-            <span className="text-[color:var(--text-muted)]">
-              running<span style={{ animation: "running-blink 1.2s step-start infinite" }}>...</span>
-            </span>
-          )}
-          <button onClick={handleShare} className={BTN} title="share or embed this workspace">share</button>
-          <button onClick={handleLoadGist} className={BTN} title="import .xs files from a public gist">gist</button>
-          <PlaygroundSettings prefs={editorPrefs} onChange={setEditorPrefs} />
-          <div className="inline-flex items-center justify-center border border-[color:var(--rule)] bg-[color:var(--panel)] rounded-[6px] px-2 py-1.5">
-            <ThemeToggle />
-          </div>
-          <button
-            onClick={() => setFilesPanelOpen(o => !o)}
-            className={BTN + " md:hidden"}
-            aria-label="toggle files panel"
-          >{filesPanelOpen ? "hide files" : "files"}</button>
-          <span className="text-[color:var(--text-faint)] ml-auto hidden md:inline">{fileCount} file{fileCount === 1 ? "" : "s"}</span>
-          {shareNote && (
-            <span className="text-[color:var(--text-muted)]">{shareNote}</span>
           )}
         </div>
 
-        <div
-          ref={containerRef}
-          className="flex flex-col md:flex-row min-h-[60vh] rounded-[6px] border border-[color:var(--rule)] overflow-hidden bg-[color:var(--panel)]"
-          style={{ userSelect: (draggingFiles || draggingOutput) ? "none" : "auto" }}
-        >
-          {/* files panel. On mobile the fixed-pixel inline width gives
-              the sidebar exactly 240-ish px which leaves the editor
-              awkwardly narrow; max-md:!w-full lets it take the full
-              viewport width above the editor with a capped height. */}
-          {filesPanelOpen && (
-            <>
-              <div
-                className="border-b md:border-b-0 md:border-r border-[color:var(--rule)] bg-[color:var(--panel)] shrink-0 max-md:!w-full max-md:max-h-[40vh] max-md:overflow-y-auto"
-                style={{ width: layout.files, minWidth: 140, maxWidth: "60%" }}
-              >
-                <PlaygroundFiles
-                  files={files}
-                  activeFile={activeFile}
-                  onSelect={switchFile}
-                  onNewBlank={handleNewBlank}
-                  onRename={handleRename}
-                  onDelete={handleDelete}
-                  onDuplicate={handleDuplicate}
-                />
-              </div>
-              <div
-                onMouseDown={() => setDraggingFiles(true)}
-                className="hidden md:block w-1 cursor-col-resize bg-transparent hover:bg-[color:var(--rule-soft)] transition-colors shrink-0"
-              />
-            </>
-          )}
-
-          {/* editor */}
-          <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-            <div className="border-b border-[color:var(--rule)] flex items-stretch overflow-x-auto font-mono text-xs">
-              {Object.keys(files).map(name => {
-                const active = name === activeFile;
-                const onlyFile = fileCount === 1;
-                return (
-                  <div
-                    key={name}
-                    className={
-                      "group flex items-stretch border-r border-[color:var(--rule)] whitespace-nowrap transition-colors " +
-                      (active
-                        ? "text-[color:var(--text)] bg-[color:var(--bg)] border-b border-b-[color:var(--link)]"
-                        : "text-[color:var(--text-faint)] hover:text-[color:var(--text-muted)]")
-                    }
-                  >
-                    <button
-                      onClick={() => switchFile(name)}
-                      className="pl-3 py-1.5"
-                      title={name}
-                    >{name}</button>
-                    <button
-                      onClick={() => handleDelete(name)}
-                      disabled={onlyFile}
-                      className={
-                        "px-2 py-1.5 text-[10px] opacity-0 group-hover:opacity-100 disabled:hidden hover:text-[color:var(--kw)] transition-opacity"
-                      }
-                      title={onlyFile ? "can't close the last file" : "close (delete) " + name}
-                      aria-label={"close " + name}
-                    >×</button>
-                  </div>
-                );
-              })}
-              <button
-                onClick={handleNewBlank}
-                className="px-3 py-1.5 border-r border-[color:var(--rule)] text-[color:var(--text-faint)] hover:text-[color:var(--text)]"
-                title="new file"
-                aria-label="new file"
-              >+</button>
-              <div className="flex-1" />
-              <span className="px-3 py-1.5 text-[10px] text-[color:var(--text-faint)] whitespace-nowrap">^⏎ to run</span>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <XSEditor
-                ref={editorRef}
-                initialValue={code}
-                onChange={setCode}
-                onRun={handleRun}
-                opts={editorPrefs}
-              />
-            </div>
+        <div className="flex flex-col md:flex-row min-h-[70vh] rounded-[6px] border border-[color:var(--rule)] overflow-hidden bg-[color:var(--panel)]">
+          {/* 1. files */}
+          <div className="border-b md:border-b-0 md:border-r border-[color:var(--rule)] bg-[color:var(--panel)] shrink-0 md:w-[180px]">
+            <PlaygroundFiles
+              files={files}
+              activeFile={activeFile}
+              onSelect={switchFile}
+              onNewBlank={handleNewBlank}
+              onDelete={handleDelete}
+            />
           </div>
 
-          {/* output divider */}
-          <div
-            onMouseDown={() => setDraggingOutput(true)}
-            className="hidden md:block w-1 cursor-col-resize bg-[color:var(--rule)] hover:bg-[color:var(--rule-soft)] transition-colors shrink-0"
-          />
+          {/* 2. editor */}
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <XSEditor
+              ref={editorRef}
+              initialValue={code}
+              onChange={setCode}
+              onRun={handleRun}
+            />
+          </div>
 
-          {/* output pane. max-md:!w-full overrides the inline width on
-              mobile so the pane spans the full viewport beneath the
-              editor instead of leaving a whitespace gutter. */}
+          {/* 3. output */}
           <div
-            className="flex flex-col overflow-hidden border-t md:border-t-0 border-[color:var(--rule)] bg-[color:var(--panel)] shrink-0 max-md:!w-full max-md:h-[45vh]"
-            style={{ width: `${layout.output}%`, minWidth: 240 }}
+            className="flex flex-col overflow-hidden border-t md:border-t-0 md:border-l border-[color:var(--rule)] bg-[color:var(--bg)] shrink-0 md:w-[34%] max-md:h-[40vh]"
           >
-            <div className="border-b border-[color:var(--rule)] px-4 py-1.5 font-mono text-xs text-[color:var(--text-faint)] flex items-center justify-between gap-3">
-              <span>output</span>
-              <div className="flex items-center gap-3">
-                {runMs != null && !running && (
-                  <span className="text-[10px]" title="wall time of the most recent run">
-                    {runMs < 10 ? runMs.toFixed(1) : Math.round(runMs)}ms
-                  </span>
-                )}
-                {chunks.length > 0 && !running && (
-                  <>
-                    <button
-                      onClick={async () => {
-                        const text = chunks.map(c => c.text).join("");
-                        try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1200); }
-                        catch { /* permission denied; silent */ }
-                      }}
-                      className="text-[10px] hover:text-[color:var(--text)]"
-                      title="copy output to clipboard"
-                    >{copied ? "copied" : "copy"}</button>
-                    <button
-                      onClick={() => { setChunks([]); setShowOutput(false); setRunMs(null); }}
-                      className="text-[10px] hover:text-[color:var(--text)]"
-                    >clear</button>
-                  </>
-                )}
-              </div>
-            </div>
             <pre
               ref={outputRef}
               onClick={() => waitingForInput && stdinInputRef.current?.focus()}
               className="flex-1 overflow-auto p-4 font-mono text-[13px] leading-relaxed whitespace-pre-wrap text-[color:var(--text-muted)]"
-              style={showOutput ? { animation: "output-slide-in 220ms cubic-bezier(0.22,1,0.36,1) both" } : {}}
             >
               {chunks.length === 0
-                ? <span className="text-[color:var(--text-faint)]">{"-- press Ctrl+Enter or click run"}</span>
+                ? <span className="text-[color:var(--text-faint)]">{"(no output yet)"}</span>
                 : chunks.map((c, i) => (
                     <span
                       key={i}
-                      style={{
-                        color: c.kind === "err"
-                          ? "var(--kw)"
-                          : c.kind === "in"
-                            ? "var(--link)"
-                            : "var(--text)",
-                      }}
-                    >
-                      {c.kind === "err" ? renderError(c.text, jumpToError) : c.text}
-                    </span>
+                      style={{ color: c.kind === "err" ? "var(--kw)" : c.kind === "in" ? "var(--link)" : "var(--text)" }}
+                    >{c.text}</span>
                   ))
               }
               {waitingForInput && (
@@ -888,33 +364,19 @@ function Playground() {
                     className="bg-transparent border-none outline-none font-mono text-[13px] text-[color:var(--text)]"
                     style={{
                       caretColor: "var(--link)",
-                      color: "var(--text)",
                       width: `${Math.max(8, stdinValue.length + 2)}ch`,
                       minWidth: "8ch",
-                      verticalAlign: "baseline",
                     }}
                     spellCheck={false}
                     autoCapitalize="off"
                     autoComplete="off"
                   />
-                  <span style={{ color: "var(--text-faint)" }} className="ml-2 text-[11px] select-none">↵ submit</span>
                 </>
               )}
             </pre>
           </div>
         </div>
-
-        <p className="mt-3 text-xs text-[color:var(--text-faint)] hidden sm:block">
-          Real XS interpreter via WebAssembly. Files persist locally in your browser. Networking, native plugins, JIT, and the REPL aren&apos;t available.
-        </p>
       </section>
-      {shareOpen && (
-        <ShareModal
-          files={files}
-          active={activeFile}
-          onClose={() => setShareOpen(false)}
-        />
-      )}
     </Wrap>
   );
 }
