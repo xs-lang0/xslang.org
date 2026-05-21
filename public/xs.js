@@ -1105,6 +1105,22 @@ self.onmessage = async (ev) => {
       runWasi(["xs", "/__run__.xs"], d.config || {});
       vfs.deleteFile("__run__.xs");
       self.postMessage({ cmd: "done", id: d.id });
+    } else if (d.cmd === "exec") {
+      // Run the xs cli with caller-supplied argv. Captures stdout / stderr
+      // and reports them back so the host can pull --emit c / js / wasm /
+      // ast output without spawning a fresh runtime.
+      const argv = ["xs", ...(d.argv || [])];
+      let stdout = "", stderr = "";
+      const cap = {
+        ...(d.config || {}),
+        stdoutPartial: (t) => { stdout += t; },
+        stderrPartial: (t) => { stderr += t; },
+        stdout: (t) => { stdout += t + "\n"; },
+        stderr: (t) => { stderr += t + "\n"; },
+      };
+      try { runWasi(argv, cap); }
+      catch (e) { stderr += String(e && e.message || e); }
+      self.postMessage({ cmd: "exec-resp", id: d.id, stdout, stderr });
     } else if (d.cmd === "read") {
       self.postMessage({ cmd: "read-resp", id: d.id, data: vfs.readFile(d.path) });
     } else if (d.cmd === "list") {
@@ -1189,6 +1205,9 @@ self.onmessage = async (ev) => {
       else if (d.cmd === "read-resp" || d.cmd === "list-resp" || d.cmd === "files-ok") {
         pending.delete(d.id); entry.resolve(d.data);
       }
+      else if (d.cmd === "exec-resp") {
+        pending.delete(d.id); entry.resolve({ stdout: d.stdout || "", stderr: d.stderr || "" });
+      }
     });
 
     function callWorker(msg) {
@@ -1231,6 +1250,14 @@ self.onmessage = async (ev) => {
       async writeFile(path, content) {
         if (persistVfs) persistVfs.writeFile(path, content);
         await callWorker({ cmd: "files", files: { [path]: content } });
+      },
+
+      /** Run the xs cli with caller-supplied argv (the leading "xs" is
+       * implicit). Resolves to `{ stdout, stderr }`. Stdout / stderr are
+       * NOT streamed through config.stdout / stderr; this is meant for
+       * one-shot capture like `xs --emit c path/to/file.xs`. */
+      async exec(argv) {
+        return callWorker({ cmd: "exec", argv });
       },
 
       async readFile(path) {

@@ -192,6 +192,7 @@ const samples: Record<string, string> = Object.fromEntries(
 
 type XS = {
   run: (code: string) => Promise<string>;
+  exec: (argv: string[]) => Promise<{ stdout: string; stderr: string }>;
   writeFile: (path: string, content: string | Uint8Array) => void | Promise<void>;
   readFile: (path: string) => string | null | Promise<string | null>;
   listFiles: () => string[] | Promise<string[]>;
@@ -210,6 +211,17 @@ const STOP_BTN = "inline-flex items-center gap-1.5 border border-[color:var(--kw
 const KBD = "inline-flex items-center px-1.5 rounded-[3px] border border-[color:var(--bg)] font-mono text-[10px] leading-[1.4] opacity-90";
 
 type OutChunk = { kind: "out" | "err" | "in"; text: string };
+type RightTab = "output" | "emit-c" | "emit-js" | "emit-wasm" | "emit-ast" | "emit-bytecode";
+type EmitCache = Partial<Record<RightTab, { forSource: string; text: string; isError: boolean }>>;
+
+const RIGHT_TABS: { key: RightTab; label: string; emitArg?: string; lang?: string }[] = [
+  { key: "output",       label: "output" },
+  { key: "emit-c",       label: "C",       emitArg: "c",        lang: "c" },
+  { key: "emit-js",      label: "JS",      emitArg: "js",       lang: "javascript" },
+  { key: "emit-wasm",    label: "wasm",    emitArg: "wasm",     lang: "wasm" },
+  { key: "emit-ast",     label: "AST",     emitArg: "ast",      lang: "lisp" },
+  { key: "emit-bytecode",label: "bytecode",emitArg: "bytecode", lang: "asm" },
+];
 
 // Pull out file:line:col addresses inside stderr text and emphasise them so
 // the eye lands on the location instead of scanning the whole error blob.
@@ -319,6 +331,9 @@ function Playground() {
   const [runMs, setRunMs] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   const [waitingForInput, setWaitingForInput] = useState(false);
+  const [rightTab, setRightTab] = useState<RightTab>("output");
+  const [emitCache, setEmitCache] = useState<EmitCache>({});
+  const [emitLoading, setEmitLoading] = useState<RightTab | null>(null);
   const [stdinValue, setStdinValue] = useState("");
   const [filesPanelOpen, setFilesPanelOpen] = useState(true);
   const [editorPrefs, setEditorPrefs] = useState<EditorPrefs>(DEFAULT_PREFS);
@@ -581,6 +596,52 @@ function Playground() {
     if (e.key === "Enter") { e.preventDefault(); submitStdin(); }
     else if (e.key === "c" && e.ctrlKey) { e.preventDefault(); handleStop(); }
   }, [submitStdin, handleStop]);
+
+  // Pulls `xs --emit <kind> /file.xs` through the worker. Wasm output is
+  // binary so it's reported as a short summary instead of a wall of bytes.
+  const fetchEmit = useCallback(async (tab: RightTab, source: string) => {
+    const meta = RIGHT_TABS.find(t => t.key === tab);
+    if (!meta?.emitArg || !xsRef.current) return;
+    setEmitLoading(tab);
+    try {
+      const file = "/__emit__.xs";
+      await xsRef.current.writeFile(file, source);
+      const res = await xsRef.current.exec(["--emit", meta.emitArg, file]);
+      let text = res.stdout || "";
+      let isError = false;
+      if (res.stderr && !text) {
+        text = res.stderr;
+        isError = true;
+      }
+      if (meta.emitArg === "wasm" && text) {
+        // Stdout is the raw wasm module. Render a short summary plus a
+        // hex preview of the first 64 bytes -- nobody wants a megabyte
+        // of binary in a code panel.
+        const bytes = new TextEncoder().encode(text);
+        const head = Array.from(bytes.slice(0, 64))
+          .map(b => b.toString(16).padStart(2, "0")).join(" ");
+        const isWasm = bytes.length >= 4 && bytes[0] === 0x00 && bytes[1] === 0x61 && bytes[2] === 0x73 && bytes[3] === 0x6d;
+        text = `${bytes.length} bytes${isWasm ? " (\\0asm magic)" : ""}\n\nfirst 64 bytes:\n${head}`;
+      }
+      setEmitCache(prev => ({ ...prev, [tab]: { forSource: source, text, isError } }));
+    } catch (e) {
+      setEmitCache(prev => ({ ...prev, [tab]: { forSource: source, text: String((e as Error)?.message ?? e), isError: true } }));
+    } finally {
+      setEmitLoading(null);
+    }
+  }, []);
+
+  // When the active right-pane tab is an emit view and the source has
+  // changed (or there's no cached output yet), refetch. Output tab and
+  // bytecode get the active file's text; emit views always do too.
+  const activeSource = files[activeFile] ?? "";
+  useEffect(() => {
+    if (rightTab === "output") return;
+    const cached = emitCache[rightTab];
+    if (cached && cached.forSource === activeSource) return;
+    if (emitLoading === rightTab) return;
+    fetchEmit(rightTab, activeSource);
+  }, [rightTab, activeSource, emitCache, emitLoading, fetchEmit]);
 
   const switchFile = useCallback((name: string) => {
     // Use `in` so an empty file still counts as present -- a fresh
@@ -918,20 +979,36 @@ function Playground() {
             className="hidden md:block w-1 cursor-col-resize bg-[color:var(--rule)] hover:bg-[color:var(--rule-soft)] transition-colors shrink-0"
           />
 
-          {/* output */}
+          {/* right pane: tabs across output + emit views */}
           <div
             className="flex flex-col overflow-hidden border-t md:border-t-0 border-[color:var(--rule)] bg-[color:var(--panel)] shrink-0"
-            style={{ width: `${layout.output}%`, minWidth: 200 }}
+            style={{ width: `${layout.output}%`, minWidth: 240 }}
           >
-            <div className="border-b border-[color:var(--rule)] px-4 py-1.5 font-mono text-xs text-[color:var(--text-faint)] flex items-center justify-between gap-3">
-              <span>output</span>
-              <div className="flex items-center gap-3">
-                {runMs != null && !running && (
+            <div className="border-b border-[color:var(--rule)] flex items-stretch font-mono text-xs">
+              {RIGHT_TABS.map(tab => {
+                const active = rightTab === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setRightTab(tab.key)}
+                    className={
+                      "px-3 py-1.5 border-r border-[color:var(--rule)] transition-colors " +
+                      (active
+                        ? "text-[color:var(--text)] bg-[color:var(--bg)]"
+                        : "text-[color:var(--text-faint)] hover:text-[color:var(--text-muted)]")
+                    }
+                    title={tab.emitArg ? `xs --emit ${tab.emitArg}` : "stdout / stderr from run"}
+                  >{tab.label}</button>
+                );
+              })}
+              <div className="flex-1 border-r border-[color:var(--rule)]" />
+              <div className="flex items-center gap-3 px-3">
+                {rightTab === "output" && runMs != null && !running && (
                   <span className="text-[10px] text-[color:var(--text-faint)]" title="wall time of the most recent run">
                     {runMs < 10 ? runMs.toFixed(1) : Math.round(runMs)}ms
                   </span>
                 )}
-                {chunks.length > 0 && !running && (
+                {rightTab === "output" && chunks.length > 0 && !running && (
                   <>
                     <button
                       onClick={async () => {
@@ -948,8 +1025,25 @@ function Playground() {
                     >clear</button>
                   </>
                 )}
+                {rightTab !== "output" && emitCache[rightTab] && !emitCache[rightTab]!.isError && (
+                  <>
+                    <span className="text-[10px] text-[color:var(--text-faint)]">
+                      {emitCache[rightTab]!.text.split("\n").length} lines
+                    </span>
+                    <button
+                      onClick={async () => {
+                        const text = emitCache[rightTab]!.text;
+                        try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1200); }
+                        catch { /* ignore */ }
+                      }}
+                      className="text-[10px] text-[color:var(--text-faint)] hover:text-[color:var(--text)]"
+                      title="copy emit output"
+                    >{copied ? "copied" : "copy"}</button>
+                  </>
+                )}
               </div>
             </div>
+            {rightTab === "output" ? (
             <pre
               ref={outputRef}
               onClick={() => waitingForInput && stdinInputRef.current?.focus()}
@@ -998,6 +1092,24 @@ function Playground() {
                 </>
               )}
             </pre>
+            ) : (
+              <pre
+                className="flex-1 overflow-auto p-4 font-mono text-[12.5px] leading-relaxed whitespace-pre text-[color:var(--text)]"
+                style={{ tabSize: 4 }}
+              >
+                {emitLoading === rightTab ? (
+                  <span className="text-[color:var(--text-faint)]">
+                    {"-- "}emitting{" "}{rightTab.replace("emit-", "")}{"..."}
+                  </span>
+                ) : emitCache[rightTab] ? (
+                  <span style={{ color: emitCache[rightTab]!.isError ? "var(--kw)" : "var(--text)" }}>
+                    {emitCache[rightTab]!.text || `-- (empty ${rightTab.replace("emit-", "")} output)`}
+                  </span>
+                ) : (
+                  <span className="text-[color:var(--text-faint)]">{"-- loading..."}</span>
+                )}
+              </pre>
+            )}
           </div>
         </div>
 
