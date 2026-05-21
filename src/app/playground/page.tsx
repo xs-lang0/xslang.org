@@ -28,39 +28,44 @@ function staticBase(): string {
 // build's runtime until their TTL rolls. Bump when either asset changes.
 const RUNTIME_VERSION = "1.2.32";
 
-const samples: Record<string, string> = {
-  "hello-world": `println("hello, world!")
+type Example = { key: string; label: string; description: string; content: string };
+type ExampleGroup = { category: string; items: Example[] };
+
+const EXAMPLE_GROUPS: ExampleGroup[] = [
+  {
+    category: "basics",
+    items: [
+      { key: "hello-world", label: "hello world", description: "println, string concatenation, let bindings.", content: `println("hello, world!")
 
 let name = "XS"
-println("welcome to " + name)`,
-  "fizzbuzz": `for i in 1..=20 {
+println("welcome to " + name)` },
+      { key: "fizzbuzz", label: "fizzbuzz", description: "for loops and match guards.", content: `for i in 1..=20 {
     match 0 {
         _ if i % 15 == 0 => println("FizzBuzz")
         _ if i % 3 == 0  => println("Fizz")
         _ if i % 5 == 0  => println("Buzz")
         _                 => println(str(i))
     }
-}`,
-  "pattern-matching": `fn describe(value) {
-    match value {
-        0          => "zero"
-        n if n > 0 => "positive: " + str(n)
-        _          => "negative"
-    }
-}
+}` },
+      { key: "interactive-input", label: "interactive input", description: "input() blocks on the playground stdin field.", content: `let name = input("what's your name? ")
+println("hi, " + name + "!")
 
-println(describe(0))
-println(describe(42))
-println(describe(-7))`,
-  "fibonacci": `fn fib(n) {
+let n = int(input("enter a number: "))
+println("doubled: " + str(n * 2))` },
+    ],
+  },
+  {
+    category: "functions",
+    items: [
+      { key: "fibonacci", label: "fibonacci", description: "recursive functions and ranges.", content: `fn fib(n) {
     if n <= 1 { return n }
     return fib(n - 1) + fib(n - 2)
 }
 
 for i in 0..10 {
     println("fib(" + str(i) + ") = " + str(fib(i)))
-}`,
-  "closures": `fn make_counter(start) {
+}` },
+      { key: "closures", label: "closures", description: "returning a function that captures outer state.", content: `fn make_counter(start) {
     var n = start
     return fn() {
         n = n + 1
@@ -71,8 +76,19 @@ for i in 0..10 {
 let count = make_counter(0)
 println(count())
 println(count())
-println(count())`,
-  "error-handling": `fn safe_divide(a, b) {
+println(count())` },
+      { key: "generators", label: "generators", description: "fn* with yield, consumed by for-in.", content: `fn* range_step(start, stop, step) {
+    var i = start
+    while i < stop {
+        yield i
+        i = i + step
+    }
+}
+
+for n in range_step(0, 20, 3) {
+    println(n)
+}` },
+      { key: "error-handling", label: "error handling", description: "throw / try / catch, plus a fall-through return.", content: `fn safe_divide(a, b) {
     try {
         if b == 0 {
             throw "cannot divide by zero"
@@ -86,19 +102,24 @@ println(count())`,
 
 println(safe_divide(10, 3))
 println(safe_divide(10, 0))
-println(safe_divide(42, 7))`,
-  "generators": `fn* range_step(start, stop, step) {
-    var i = start
-    while i < stop {
-        yield i
-        i = i + step
+println(safe_divide(42, 7))` },
+    ],
+  },
+  {
+    category: "types",
+    items: [
+      { key: "pattern-matching", label: "pattern matching", description: "match arms with guards, literal and wildcard patterns.", content: `fn describe(value) {
+    match value {
+        0          => "zero"
+        n if n > 0 => "positive: " + str(n)
+        _          => "negative"
     }
 }
 
-for n in range_step(0, 20, 3) {
-    println(n)
-}`,
-  "enums": `enum Shape {
+println(describe(0))
+println(describe(42))
+println(describe(-7))` },
+      { key: "enums", label: "enums", description: "tagged unions destructured by match.", content: `enum Shape {
     Circle(r)
     Rect(w, h)
 }
@@ -111,21 +132,34 @@ fn area(s) {
 }
 
 println(area(Shape::Circle(5)))
-println(area(Shape::Rect(3, 4)))`,
-  "durations": `let warmup = 2m30s
+println(area(Shape::Rect(3, 4)))` },
+      { key: "structs", label: "structs", description: "named fields with an impl block.", content: `struct Point { x, y }
+
+impl Point {
+    fn distance(self, other) {
+        let dx = self.x - other.x
+        let dy = self.y - other.y
+        return (dx * dx + dy * dy) ** 0.5
+    }
+}
+
+let a = Point(0, 0)
+let b = Point(3, 4)
+println(a.distance(b))` },
+    ],
+  },
+  {
+    category: "advanced",
+    items: [
+      { key: "durations", label: "durations", description: "first-class time values with unit suffixes.", content: `let warmup = 2m30s
 let frame  = 16ms
 
 println(typeof(warmup))    -- duration
 println(warmup)            -- 2m30s
 println(warmup + frame)    -- 2m30.016s
 println((1500ms).s)        -- 1.5
-println(2s / 250ms)        -- 8`,
-  "interactive-input": `let name = input("what's your name? ")
-println("hi, " + name + "!")
-
-let n = int(input("enter a number: "))
-println("doubled: " + str(n * 2))`,
-  "decorators": `var ticks = 0
+println(2s / 250ms)        -- 8` },
+      { key: "decorators", label: "decorators", description: "lifecycle hooks: @on_start, @every, @on_exit.", content: `var ticks = 0
 
 @on_start fn boot() {
     println("starting")
@@ -141,8 +175,20 @@ println("doubled: " + str(n * 2))`,
 
 @on_exit fn bye() {
     println("done")
-}`,
-};
+}` },
+      { key: "json-roundtrip", label: "json roundtrip", description: "parse a JSON string, mutate, and re-stringify.", content: `import json
+
+let raw = "{\\"name\\": \\"xs\\", \\"version\\": \\"1.2\\", \\"tags\\": [\\"lang\\", \\"wasm\\"]}"
+let obj = json.parse(raw)
+obj["tags"].push("playground")
+println(json.stringify(obj))` },
+    ],
+  },
+];
+
+const samples: Record<string, string> = Object.fromEntries(
+  EXAMPLE_GROUPS.flatMap(g => g.items.map(i => [i.key, i.content]))
+);
 
 type XS = {
   run: (code: string) => Promise<string>;
@@ -167,10 +213,16 @@ type OutChunk = { kind: "out" | "err" | "in"; text: string };
 
 // Pull out file:line:col addresses inside stderr text and emphasise them so
 // the eye lands on the location instead of scanning the whole error blob.
-// Matches forms like `main.xs:5:12`, `at script.xs:42`, or a bare `5:12` at
-// the start of a line. Anything that doesn't match is rendered as-is.
+// Matches `file.xs:LINE[:COL]` (we want to jump to it), `line N[:M]`, and a
+// bare `N:M` at line start. The first form is the only one we can actually
+// route to a file, the other two get styled but stay non-interactive.
 const ADDR_RE = /(\b[A-Za-z0-9_./-]+\.xs:\d+(?::\d+)?|\bline\s+\d+(?::\d+)?|\b\d+:\d+\b)/g;
-function renderError(text: string) {
+const FILE_REF_RE = /^([A-Za-z0-9_./-]+\.xs):(\d+)(?::(\d+))?$/;
+
+function renderError(
+  text: string,
+  jumpToFile?: (file: string, line: number, col?: number) => void,
+) {
   if (!ADDR_RE.test(text)) return text;
   ADDR_RE.lastIndex = 0;
   const out: React.ReactNode[] = [];
@@ -179,14 +231,32 @@ function renderError(text: string) {
   let key = 0;
   while ((m = ADDR_RE.exec(text)) !== null) {
     if (m.index > last) out.push(text.slice(last, m.index));
-    out.push(
-      <span
-        key={key++}
-        className="font-medium underline decoration-dotted underline-offset-[3px]"
-        style={{ color: "var(--num)" }}
-      >{m[0]}</span>
-    );
-    last = m.index + m[0].length;
+    const token = m[0];
+    const fref = FILE_REF_RE.exec(token);
+    if (fref && jumpToFile) {
+      const file = fref[1];
+      const line = parseInt(fref[2], 10);
+      const col = fref[3] ? parseInt(fref[3], 10) : undefined;
+      out.push(
+        <button
+          key={key++}
+          type="button"
+          onClick={() => jumpToFile(file, line, col)}
+          className="font-medium underline decoration-dotted underline-offset-[3px] hover:decoration-solid cursor-pointer"
+          style={{ color: "var(--num)" }}
+          title="open in editor"
+        >{token}</button>
+      );
+    } else {
+      out.push(
+        <span
+          key={key++}
+          className="font-medium underline decoration-dotted underline-offset-[3px]"
+          style={{ color: "var(--num)" }}
+        >{token}</span>
+      );
+    }
+    last = m.index + token.length;
   }
   if (last < text.length) out.push(text.slice(last));
   return <>{out}</>;
@@ -246,6 +316,8 @@ function Playground() {
   const [shareNote, setShareNote] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [showOutput, setShowOutput] = useState(false);
+  const [runMs, setRunMs] = useState<number | null>(null);
+  const [copied, setCopied] = useState(false);
   const [waitingForInput, setWaitingForInput] = useState(false);
   const [stdinValue, setStdinValue] = useState("");
   const [filesPanelOpen, setFilesPanelOpen] = useState(true);
@@ -450,9 +522,11 @@ function Playground() {
     setRunning(true);
     setChunks([]);
     setShowOutput(true);
+    setRunMs(null);
     let produced = false;
     stdoutCbRef.current = (text: string) => { produced = true; appendChunk("out", text); };
     stderrCbRef.current = (text: string) => { produced = true; appendChunk("err", text); };
+    const t0 = performance.now();
     try {
       // Make sure the latest content is in the worker VFS before run.
       for (const [path, content] of Object.entries(files)) {
@@ -467,6 +541,7 @@ function Playground() {
       const fresh = await bootRuntime();
       if (fresh) xsRef.current = fresh;
     } finally {
+      setRunMs(performance.now() - t0);
       stdoutCbRef.current = null;
       stderrCbRef.current = null;
       stdinResolverRef.current = null;
@@ -527,6 +602,21 @@ function Playground() {
     activeFileRef.current = name; // keep ref ahead of React commit
     editorRef.current?.setValue(files[name]);
   }, [files]);
+
+  // Jump-to-error handler. The transpiler stamps `_run_.xs` on synthesised
+  // run scripts; we map that back to the active file so clicking a runtime
+  // error's file:line:col jumps to the actual source the user is editing.
+  const jumpToError = useCallback((file: string, line: number, col?: number) => {
+    const stripped = file.replace(/^\/+/, "");
+    const target = (stripped === "__run__.xs" || stripped === "_run_.xs")
+      ? activeFileRef.current
+      : (stripped in files ? stripped : null);
+    if (!target) return;
+    if (target !== activeFileRef.current) switchFile(target);
+    // setValue runs synchronously inside switchFile so the doc is current
+    // by the next microtask -- defer one tick so gotoLine sees fresh doc.
+    requestAnimationFrame(() => editorRef.current?.gotoLine(line, col));
+  }, [files, switchFile]);
 
   const validateFilename = useCallback((existing: Record<string, string>, ignore?: string) => {
     return (raw: string): string | null => {
@@ -789,7 +879,7 @@ function Playground() {
                 <PlaygroundFiles
                   files={files}
                   activeFile={activeFile}
-                  examples={samples}
+                  exampleGroups={EXAMPLE_GROUPS}
                   onSelect={switchFile}
                   onNewBlank={handleNewBlank}
                   onLoadExample={handleLoadExample}
@@ -833,14 +923,32 @@ function Playground() {
             className="flex flex-col overflow-hidden border-t md:border-t-0 border-[color:var(--rule)] bg-[color:var(--panel)] shrink-0"
             style={{ width: `${layout.output}%`, minWidth: 200 }}
           >
-            <div className="border-b border-[color:var(--rule)] px-4 py-1.5 font-mono text-xs text-[color:var(--text-faint)] flex items-center justify-between">
+            <div className="border-b border-[color:var(--rule)] px-4 py-1.5 font-mono text-xs text-[color:var(--text-faint)] flex items-center justify-between gap-3">
               <span>output</span>
-              {chunks.length > 0 && !running && (
-                <button
-                  onClick={() => { setChunks([]); setShowOutput(false); }}
-                  className="text-[10px] text-[color:var(--text-faint)] hover:text-[color:var(--text)]"
-                >clear</button>
-              )}
+              <div className="flex items-center gap-3">
+                {runMs != null && !running && (
+                  <span className="text-[10px] text-[color:var(--text-faint)]" title="wall time of the most recent run">
+                    {runMs < 10 ? runMs.toFixed(1) : Math.round(runMs)}ms
+                  </span>
+                )}
+                {chunks.length > 0 && !running && (
+                  <>
+                    <button
+                      onClick={async () => {
+                        const text = chunks.map(c => c.text).join("");
+                        try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1200); }
+                        catch { /* permission denied; silent */ }
+                      }}
+                      className="text-[10px] text-[color:var(--text-faint)] hover:text-[color:var(--text)]"
+                      title="copy output to clipboard"
+                    >{copied ? "copied" : "copy"}</button>
+                    <button
+                      onClick={() => { setChunks([]); setShowOutput(false); setRunMs(null); }}
+                      className="text-[10px] text-[color:var(--text-faint)] hover:text-[color:var(--text)]"
+                    >clear</button>
+                  </>
+                )}
+              </div>
             </div>
             <pre
               ref={outputRef}
@@ -861,7 +969,7 @@ function Playground() {
                             : "var(--text)",
                       }}
                     >
-                      {c.kind === "err" ? renderError(c.text) : c.text}
+                      {c.kind === "err" ? renderError(c.text, jumpToError) : c.text}
                     </span>
                   ))
               }

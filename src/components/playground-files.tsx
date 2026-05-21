@@ -4,10 +4,15 @@ import { useState, useRef, useEffect, useCallback } from "react";
 
 export type FileEntry = { name: string; content: string };
 
+export type ExampleItem = { key: string; label: string; description: string };
+export type ExampleGroup = { category: string; items: ExampleItem[] };
+
 type Props = {
   files: Record<string, string>;
   activeFile: string;
-  examples: Record<string, string>;
+  /** Categorised example list. Each item's `key` is what `onLoadExample`
+   * receives (and what the parent uses to look up the body content). */
+  exampleGroups: ExampleGroup[];
   onSelect: (name: string) => void;
   onNewBlank: () => void;
   onLoadExample: (sampleName: string) => void;
@@ -127,7 +132,7 @@ function FileRow({
 export function PlaygroundFiles({
   files,
   activeFile,
-  examples,
+  exampleGroups,
   onSelect,
   onNewBlank,
   onLoadExample,
@@ -183,20 +188,31 @@ export function PlaygroundFiles({
           >
             <span className="text-[9px]">{examplesOpen ? "▾" : "▸"}</span>
             examples
-            <span className="ml-auto text-[10px] text-[color:var(--text-faint)] normal-case">{Object.keys(examples).length}</span>
+            <span className="ml-auto text-[10px] text-[color:var(--text-faint)] normal-case">
+              {exampleGroups.reduce((n, g) => n + g.items.length, 0)}
+            </span>
           </button>
           {examplesOpen && (
-            <div className="px-1 pb-1 space-y-px">
-              {Object.keys(examples).map(name => (
-                <button
-                  key={name}
-                  onClick={() => onLoadExample(name)}
-                  className="w-full text-left px-2 py-[3px] rounded-[4px] flex items-center gap-2 text-[12.5px] font-mono text-[color:var(--text-muted)] hover:bg-[color:var(--rule-soft)] hover:text-[color:var(--text)]"
-                  title={`open as new file`}
-                >
-                  <span aria-hidden className="text-[10px] w-3 text-[color:var(--text-faint)]">↗</span>
-                  <span className="truncate">{name}</span>
-                </button>
+            <div className="px-1 pb-1">
+              {exampleGroups.map(group => (
+                <div key={group.category} className="mb-2 last:mb-0">
+                  <div className="px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-[color:var(--text-faint)] font-mono">
+                    {group.category}
+                  </div>
+                  <div className="space-y-px">
+                    {group.items.map(item => (
+                      <button
+                        key={item.key}
+                        onClick={() => onLoadExample(item.key)}
+                        className="w-full text-left px-2 py-[3px] rounded-[4px] flex items-center gap-2 text-[12.5px] font-mono text-[color:var(--text-muted)] hover:bg-[color:var(--rule-soft)] hover:text-[color:var(--text)]"
+                        title={item.description}
+                      >
+                        <span aria-hidden className="text-[10px] w-3 text-[color:var(--text-faint)]">↗</span>
+                        <span className="truncate">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           )}

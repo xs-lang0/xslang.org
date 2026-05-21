@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useImperativeHandle, forwardRef } from "react";
 import { EditorState, Compartment } from "@codemirror/state";
-import { EditorView, keymap, highlightActiveLineGutter, highlightActiveLine, lineNumbers, drawSelection, highlightSpecialChars } from "@codemirror/view";
+import { EditorView, keymap, highlightActiveLineGutter, highlightActiveLine, lineNumbers, drawSelection, highlightSpecialChars, rectangularSelection, crosshairCursor, dropCursor } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { StreamLanguage, syntaxHighlighting, HighlightStyle, LanguageSupport, indentOnInput, bracketMatching, foldKeymap, foldGutter, indentUnit, type StringStream } from "@codemirror/language";
 import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap, CompletionContext } from "@codemirror/autocomplete";
@@ -431,6 +431,10 @@ export type XSEditorHandle = {
   getValue: () => string;
   setValue: (next: string) => void;
   focus: () => void;
+  /** Move the cursor to 1-indexed `line` (and optionally `col`),
+   * scroll the line into view, and focus the editor. Out-of-range
+   * line numbers clamp to the document bounds. */
+  gotoLine: (line: number, col?: number) => void;
 };
 
 export type EditorOpts = {
@@ -517,7 +521,10 @@ export const XSEditor = forwardRef<XSEditorHandle, Props>(function XSEditor(
         highlightSpecialChars(),
         history(),
         drawSelection(),
+        dropCursor(),
         EditorState.allowMultipleSelections.of(true),
+        rectangularSelection(),
+        crosshairCursor(),
         indentOnInput(),
         bracketMatching(),
         closeBrackets(),
@@ -574,6 +581,19 @@ export const XSEditor = forwardRef<XSEditorHandle, Props>(function XSEditor(
       }
     },
     focus: () => viewRef.current?.focus(),
+    gotoLine: (line: number, col = 1) => {
+      const view = viewRef.current;
+      if (!view) return;
+      const doc = view.state.doc;
+      const target = Math.max(1, Math.min(doc.lines, Math.floor(line)));
+      const lineInfo = doc.line(target);
+      const pos = Math.min(lineInfo.from + Math.max(0, Math.floor(col) - 1), lineInfo.to);
+      view.dispatch({
+        selection: { anchor: pos },
+        effects: EditorView.scrollIntoView(pos, { y: "center" }),
+      });
+      view.focus();
+    },
   }));
 
   return <div ref={containerRef} className={className} style={{ height: "100%" }} />;
