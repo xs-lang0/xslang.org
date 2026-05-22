@@ -8,7 +8,7 @@ import { PlaygroundFiles } from "@/components/playground-files";
 // xs.js + xs.wasm are served same-origin so the playground's COOP / COEP
 // headers cover them. RUNTIME_VERSION is the cache-buster; bump the -rN
 // suffix when xs.js changes even if the xsypy binary version stayed put.
-const RUNTIME_VERSION = "1.2.32-r3";
+const RUNTIME_VERSION = "1.2.32-r4";
 
 function staticBase(): string {
   if (typeof window === "undefined") return "";

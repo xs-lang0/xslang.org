@@ -1131,8 +1131,8 @@ self.onmessage = async (ev) => {
         binaryStdout: binary,
         stdoutBytes: binary ? (bytes) => { if (bytes && bytes.length) stdoutChunks.push(new Uint8Array(bytes)); } : undefined,
         stderrPartial: (t) => { stderr += t; },
-        stdout: binary ? () => {} : (t) => { stdoutText += t + "\n"; },
-        stderr: (t) => { stderr += t + "\n"; },
+        stdout: binary ? () => {} : (t) => { stdoutText += t + "\\n"; },
+        stderr: (t) => { stderr += t + "\\n"; },
       };
       try { runWasi(argv, cap); }
       catch (e) { stderr += String(e && e.message || e); }
@@ -1165,8 +1165,15 @@ self.onmessage = async (ev) => {
     let stdinFlag = null;
     let stdinBytes = null;
 
-    // ready handshake
+    // ready handshake. Reject on a worker-level error so a syntax error
+    // inside WORKER_SRC fails fast instead of hanging the host's await.
     await new Promise((resolve, reject) => {
+      const onErr = (e) => {
+        worker.removeEventListener("error", onErr);
+        worker.removeEventListener("message", onMsg);
+        reject(new Error("worker error: " + (e && e.message || e)));
+      };
+      worker.addEventListener("error", onErr);
       const onMsg = (ev) => {
         if (ev.data.cmd === "ready") {
           sharedBuffer = ev.data.sharedBuffer;
